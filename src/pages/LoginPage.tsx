@@ -1,183 +1,66 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, type FormEvent, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, Bot, Check, ChevronLeft, KeyRound, Loader2, Mail, Phone, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Mail, Lock, Eye, EyeOff, Loader2, Signal } from 'lucide-react';
+import LoginWelcomeScene from '@/components/LoginWelcomeScene';
+import { getStoredLanguage, setStoredLanguage, type Language } from '@/lib/i18n';
+
+const robotImage = 'https://png.pngtree.com/png-clipart/20250207/original/pngtree-ai-powered-robot-interacting-with-a-tablet-device-png-image_19770445.png';
+type Step = 'language'|'consent'|'pause'|'status'|'username'|'phone'|'birth'|'email'|'password'|'existingEmail'|'existingCode'|'verification';
+const flow: Step[] = ['language','consent','status','username','phone','birth','email','password','verification'];
+const words = {
+ ar:{language:'اختر لغتك',welcome:'مرحباً بك في موقعنا، أرجو منك بعض الوقت للتسجيل أو الدخول.',consent:'هل لديك بعض الوقت؟',noTime:'ليس لدي وقت',yesTime:'نعم، لدي وقت',pause:'لا مشكلة، سأكون هنا عندما تعود.',back:'عودة',status:'هل هي أول مرة تستخدم المنصة؟',yes:'نعم، هذه أول مرة',no:'لا، لدي حساب',username:'ما اسم المستخدم الذي تريده؟',usernamePlaceholder:'اسم المستخدم',nice:'حسن جداً!',phone:'أدخل رقم هاتفك',phoneConfirm:'أعد إدخال رقم الهاتف للتأكيد',phonePlaceholder:'+212 600 000 000',birth:'ما تاريخ ميلادك؟',day:'اليوم',month:'الشهر',year:'السنة',email:'ما بريدك الإلكتروني؟',emailPlaceholder:'name@example.com',password:'أنشئ كلمة مرور لحسابك',passwordPlaceholder:'8 أحرف على الأقل',passwordAgain:'أعد إدخال كلمة المرور',code:'أدخل رمز التحقق المرسل إلى بريدك',codePlaceholder:'الرمز المكوّن من 6 أرقام',submit:'متابعة',verify:'تأكيد الرمز',sendCode:'إرسال رمز الدخول',resend:'إعادة إرسال الرمز',done:'مرحباً بك! هل أنت مستعد لاكتشاف الموقع؟',explore:'نعم، هيا بنا',badUsername:'استخدم 3 إلى 30 حرفًا إنجليزيًا أو رقمًا أو _.',badPhone:'أدخل رقمًا صحيحًا، ثم أعد كتابته كما هو.',badBirth:'تحقق من اليوم والشهر والسنة.',badEmail:'أدخل بريدًا إلكترونيًا صحيحًا.',badPassword:'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.',badMatch:'كلمتا المرور غير متطابقتين.',badCode:'الرمز غير صحيح أو انتهت صلاحيته.',progress:'الخطوة',assistant:'مساعد Deep-Signal',months:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']},
+ fr:{language:'Choisissez votre langue',welcome:'Bienvenue sur notre plateforme. Prenez un instant pour vous inscrire ou vous connecter.',consent:'Avez-vous un moment ?',noTime:'Pas maintenant',yesTime:'Oui, continuons',pause:'Pas de problème, je serai là à votre retour.',back:'Retour',status:'Est-ce votre première visite ?',yes:'Oui, première visite',no:'Non, j’ai déjà un compte',username:'Quel nom d’utilisateur souhaitez-vous ?',usernamePlaceholder:'Nom d’utilisateur',nice:'Très bien !',phone:'Saisissez votre numéro de téléphone',phoneConfirm:'Saisissez-le à nouveau pour le confirmer',phonePlaceholder:'+33 6 00 00 00 00',birth:'Quelle est votre date de naissance ?',day:'Jour',month:'Mois',year:'Année',email:'Quelle est votre adresse e-mail ?',emailPlaceholder:'nom@exemple.com',password:'Créez un mot de passe',passwordPlaceholder:'8 caractères minimum',passwordAgain:'Confirmez le mot de passe',code:'Saisissez le code envoyé par e-mail',codePlaceholder:'Code à 6 chiffres',submit:'Continuer',verify:'Confirmer le code',sendCode:'Envoyer le code de connexion',resend:'Renvoyer le code',done:'Bienvenue ! Prêt à découvrir la plateforme ?',explore:'Oui, c’est parti',badUsername:'Utilisez 3 à 30 lettres, chiffres ou _.',badPhone:'Saisissez un numéro valide et confirmez-le.',badBirth:'Vérifiez le jour, le mois et l’année.',badEmail:'Saisissez une adresse e-mail valide.',badPassword:'Le mot de passe doit contenir au moins 8 caractères.',badMatch:'Les mots de passe ne correspondent pas.',badCode:'Code incorrect ou expiré.',progress:'Étape',assistant:'Assistant Deep-Signal',months:['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']},
+ en:{language:'Choose your language',welcome:'Welcome to our platform. Please take a moment to sign up or log in.',consent:'Do you have a moment?',noTime:'Not right now',yesTime:'Yes, let’s continue',pause:'No problem. I’ll be here when you return.',back:'Go back',status:'Is this your first time using the platform?',yes:'Yes, this is my first time',no:'No, I already have an account',username:'What username would you like?',usernamePlaceholder:'Username',nice:'Very good!',phone:'Enter your phone number',phoneConfirm:'Enter your phone number again to confirm',phonePlaceholder:'+1 555 000 0000',birth:'What is your date of birth?',day:'Day',month:'Month',year:'Year',email:'What is your email address?',emailPlaceholder:'name@example.com',password:'Create a password for your account',passwordPlaceholder:'At least 8 characters',passwordAgain:'Enter your password again',code:'Enter the verification code sent to your email',codePlaceholder:'6-digit code',submit:'Continue',verify:'Verify code',sendCode:'Send sign-in code',resend:'Resend code',done:'Welcome! Ready to explore the platform?',explore:'Yes, let’s go',badUsername:'Use 3–30 English letters, numbers, or underscores.',badPhone:'Enter a valid phone number, then re-enter it exactly.',badBirth:'Check the day, month, and year.',badEmail:'Enter a valid email address.',badPassword:'Password must be at least 8 characters.',badMatch:'The passwords do not match.',badCode:'The code is invalid or has expired.',progress:'Step',assistant:'Deep-Signal assistant',months:['January','February','March','April','May','June','July','August','September','October','November','December']}
+} as const;
+function Robot({language,message}:{language:Language;message:string}) { return <div className={`flex items-center gap-3 rounded-2xl border border-[#b9e978]/15 bg-[#b9e978]/[.05] p-3 ${language==='ar'?'text-right':'text-left'}`}><span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-[#b9e978]/25 bg-[#0a1120]"><Bot className="absolute h-6 w-6 text-[#b9e978]"/><img src={robotImage} alt="" className="relative h-full w-full object-contain" onError={e=>{e.currentTarget.style.display='none'}}/></span><p className="text-sm leading-6 text-white/80">{message}</p></div>; }
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const result = await signIn(email.trim(), password);
-    setLoading(false);
-    if (result.error) {
-      setError(result.error.message);
-      return;
-    }
-    navigate('/feed', { replace: true });
-  };
-
-  const handleGoogle = async () => {
-    setError(null);
-    setGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback?flow=oauth` },
-      });
-      if (error) throw error;
-    } catch (error) {
-      setGoogleLoading(false);
-      setError(error instanceof Error ? error.message : 'تعذر تسجيل الدخول عبر Google');
-    }
-  };
-
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b090b] px-4 py-10 text-white">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(244,63,94,0.14), transparent 56%), linear-gradient(145deg, #10090b 0%, #09090d 58%, #100c08 100%)' }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.035]"
-        style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '56px 56px' }}
-      />
-
-      <div className="relative z-10 w-full max-w-[420px] animate-slide-up">
-        <div className="flex flex-col items-center mb-8">
-          <div className="relative mb-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-rose-500 to-orange-500 rounded-3xl blur-2xl opacity-60" />
-            <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-rose-500 via-pink-500 to-orange-500 flex items-center justify-center shadow-2xl">
-              <Signal className="w-10 h-10 text-white" strokeWidth={2.5} />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-            Youssef
-          </h1>
-          <p className="text-white/50 text-sm mt-2">Welcome back</p>
-        </div>
-
-        <div className="relative rounded-2xl border border-white/[0.12] bg-[#111013]/80 p-6 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-7">
-          <div className="absolute top-0 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-white/70">
-                Email
-              </label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-rose-400 transition-colors" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  dir="ltr"
-                  className="w-full rounded-xl border border-white/[0.14] bg-white/[0.04] py-3.5 pl-12 pr-4 text-left text-sm text-white placeholder:text-white/45 transition-all focus:border-rose-400/70 focus:bg-white/[0.06] focus:outline-none focus:ring-4 focus:ring-rose-500/10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-white/70">
-                  Password
-                </label>
-                <Link to="/forgot-password" className="text-[11px] font-semibold text-rose-400 hover:text-rose-300 transition">
-                  Forgot?
-                </Link>
-              </div>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-rose-400 transition-colors" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  dir="ltr"
-                  className="w-full rounded-xl border border-white/[0.14] bg-white/[0.04] py-3.5 pl-12 pr-12 text-left text-sm text-white placeholder:text-white/45 transition-all focus:border-rose-400/70 focus:bg-white/[0.06] focus:outline-none focus:ring-4 focus:ring-rose-500/10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || googleLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-orange-500 py-3.5 font-semibold text-white shadow-lg shadow-rose-500/20 transition hover:brightness-110 disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
-            </button>
-          </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
-            </div>
-            <div className="relative flex justify-center text-[10px] font-semibold tracking-widest">
-              <span className="bg-[#111013] px-3 text-white/55 uppercase">or continue with</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void handleGoogle()}
-            disabled={googleLoading || loading}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/[0.14] bg-white/[0.04] py-3.5 font-semibold text-white/90 transition hover:bg-white/[0.08] disabled:opacity-50"
-          >
-            {googleLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                <span>Continue with Google</span>
-              </>
-            )}
-          </button>
-
-          <div className="mt-6 text-center text-sm text-white/65">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-rose-400 hover:text-rose-300 font-semibold transition">
-              Sign up
-            </Link>
-          </div>
-        </div>
-
-        <p className="mt-6 text-center text-[10px] uppercase tracking-widest text-white/40">
-          Youssef © 2026
-        </p>
-      </div>
-    </div>
-  );
+ const {signUp,verifyEmailOtp,resendVerificationCode}=useAuth(); const navigate=useNavigate();
+ const [language,setLanguage]=useState<Language>(()=>getStoredLanguage()); const [step,setStep]=useState<Step>(()=>localStorage.getItem('ds-language')?(window.location.pathname==='/signup'?'status':'consent'):'language');
+ const currentStep: Step = step;
+ const [username,setUsername]=useState(''); const [phone,setPhone]=useState(''); const [phoneAgain,setPhoneAgain]=useState(''); const [day,setDay]=useState(''); const [month,setMonth]=useState(''); const [year,setYear]=useState(''); const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [passwordAgain,setPasswordAgain]=useState(''); const [code,setCode]=useState(''); const [error,setError]=useState(''); const [notice,setNotice]=useState(''); const [busy,setBusy]=useState(false);
+ const t=words[language]; const rtl=language==='ar'; const progress=step==='existingEmail'?3:step==='existingCode'?8:Math.max(flow.indexOf(step),0); const go=(next:Step,msg='')=>{setStep(next);setError('');setNotice(msg)}; const choose=(l:Language)=>{setLanguage(l);setStoredLanguage(l);go('consent')};
+ const submit=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();setError('');setNotice('');
+  if(step==='username'){const v=username.trim().toLowerCase();if(!/^[a-z0-9_]{3,30}$/.test(v))return setError(t.badUsername);setUsername(v);go('phone',t.nice);return}
+  if(step==='phone'){const a=phone.replace(/[\s()-]/g,'');const b=phoneAgain.replace(/[\s()-]/g,'');if(!/^\+?[1-9]\d{6,14}$/.test(a)||a!==b)return setError(t.badPhone);setPhone(a);go('birth');return}
+  if(step==='birth'){const y=+year,m=+month,d=+day,date=new Date(y,m-1,d);if(!year||!month||!day||date.getFullYear()!==y||date.getMonth()!==m-1||date.getDate()!==d||date>new Date())return setError(t.badBirth);go('email');return}
+  if(step==='email'||step==='existingEmail'){const v=email.trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))return setError(t.badEmail);setEmail(v);if(step==='email'){go('password');return}setBusy(true);const {error:e}=await supabase.auth.signInWithOtp({email:v,options:{shouldCreateUser:false}});setBusy(false);if(e)return setError(e.message);go('existingCode');return}
+  if(step==='password'){if(password.length<8)return setError(t.badPassword);if(password!==passwordAgain)return setError(t.badMatch);setBusy(true);const birth_date=`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;const r=await signUp(email,password,username,{phone,birth_date});setBusy(false);if(r.error)return setError(r.error.message);go('verification');return}
+  if(step==='existingCode'||step==='verification'){if(!/^\d{6}$/.test(code))return setError(t.badCode);setBusy(true);const r=step==='verification'?await verifyEmailOtp(email,code):await supabase.auth.verifyOtp({email,token:code,type:'email'});setBusy(false);if(r.error)return setError(r.error.message);navigate('/auth/complete',{replace:true})}
+ };
+ const field=(label:string,icon:ReactNode,props:React.InputHTMLAttributes<HTMLInputElement>)=><label className="block space-y-2 text-sm font-medium text-white/75"><span>{label}</span><span className="relative block"><span className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-white/35 ${rtl?'right-4':'left-4'}`}>{icon}</span><input {...props} required className={`w-full rounded-xl border border-white/10 bg-white/[.035] py-3.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#b9e978]/60 focus:ring-4 focus:ring-[#b9e978]/10 ${rtl?'pr-12 pl-4 text-right':'pl-12 pr-4 text-left'}`}/></span></label>;
+ const formStep=['username','phone','birth','email','password','existingEmail','existingCode','verification'].includes(step); const prompt=step==='consent'?t.welcome:step==='status'?t.status:step==='username'?t.username:step==='phone'?t.phone:step==='birth'?t.birth:step==='email'||step==='existingEmail'?t.email:step==='password'?t.password:step==='existingCode'||step==='verification'?t.code:step==='pause'?t.pause:t.assistant;
+ const previous:Partial<Record<Step,Step>>={status:'consent',username:'status',phone:'username',birth:'phone',email:'birth',password:'email',existingEmail:'status',existingCode:'existingEmail'};
+ return <main dir={rtl?'rtl':'ltr'} lang={language} className="relative min-h-screen overflow-hidden bg-[#0B1120] text-white"><div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-[.035]" style={{backgroundImage:'linear-gradient(rgba(216,236,216,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(216,236,216,.5) 1px,transparent 1px)',backgroundSize:'48px 48px'}}/><div aria-hidden="true" className="pointer-events-none absolute -left-40 top-1/4 h-96 w-96 rounded-full bg-cyan-500/[.08] blur-[120px]"/>
+  <div className={`relative z-10 mx-auto grid min-h-screen max-w-[1320px] items-center gap-4 px-4 py-8 sm:px-8 ${currentStep==='language'||currentStep==='consent'?'lg:grid-cols-1':'lg:grid-cols-2 lg:gap-10'} xl:px-12`}>
+   {(currentStep==='language'||currentStep==='consent')?<div className="mx-auto w-full max-w-2xl"><LoginWelcomeScene language={language} conversationStep={currentStep} onLanguageSelect={choose} onNoTime={()=>go('pause')} onYesTime={()=>go('status')}/></div>:<aside className="hidden lg:block"><LoginWelcomeScene language={language}/></aside>}
+   {currentStep!=='language'&&currentStep!=='consent'&&<section className="mx-auto w-full max-w-xl">
+   <header className="mb-6 flex items-center justify-between"><div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[.04]"><Bot className="h-6 w-6 text-[#b9e978]"/></span><div><p className="font-serif text-lg font-bold">Deep-Signal</p><p className="text-[10px] text-white/45">{t.assistant}</p></div></div>{step!=='language'&&<button type="button" onClick={()=>go('language')} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55">{language.toUpperCase()} ⌄</button>}</header>
+   {step!=='language'&&<div className="mb-5"><div className="mb-2 flex justify-between text-[10px] text-white/35"><span>{t.progress}</span><span>{progress+1} / {flow.length}</span></div><div className="h-1 overflow-hidden rounded-full bg-white/10"><motion.div className="h-full rounded-full bg-[#b9e978]" animate={{width:`${(progress+1)/flow.length*100}%`}} transition={{duration:.4}}/></div></div>}
+   <div className="rounded-[28px] border border-white/[.09] bg-[#0d1728]/90 p-5 shadow-[0_24px_90px_rgba(0,0,0,.35)] backdrop-blur-xl sm:p-8">{step!=='language'&&<div className="mb-6"><Robot language={language} message={prompt}/></div>}
+    <AnimatePresence mode="wait" initial={false}><motion.div key={step} initial={{opacity:0,x:rtl?18:-18}} animate={{opacity:1,x:0}} exit={{opacity:0,x:rtl?-14:14}} transition={{duration:.23,ease:'easeOut'}}>
+     {step==='language'&&<div><p className="mb-2 text-xs font-semibold tracking-[.18em] text-[#b9e978]">STEP 01 · LANGUAGE</p><h1 className="mb-6 text-2xl font-bold">{t.language}</h1><div className="grid gap-3 sm:grid-cols-3">{(['ar','fr','en'] as const).map(l=><button key={l} type="button" onClick={()=>choose(l)} className="rounded-2xl border border-white/10 bg-white/[.035] px-4 py-5 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-[#b9e978]/50">{l==='ar'?'العربية 🇲🇦':l==='fr'?'Français 🇫🇷':'English 🇺🇸'}<span className="mt-1 block text-[10px] font-normal text-white/40">{l==='ar'?'RTL':'LTR'}</span></button>)}</div></div>}
+     {step==='consent'&&<div><p className="mb-2 text-xs font-semibold tracking-[.18em] text-[#b9e978]">STEP 02 · WELCOME</p><h1 className="mb-3 text-2xl font-bold">{t.welcome}</h1><p className="mb-6 text-sm text-white/50">{t.consent}</p><div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={()=>go('pause')} className="rounded-xl border border-white/15 px-4 py-3.5 text-sm text-white/75">{t.noTime}</button><button type="button" onClick={()=>go('status')} className="rounded-xl bg-[#b9e978] px-4 py-3.5 text-sm font-bold text-[#10170b]">{t.yesTime}</button></div></div>}
+     {step==='pause'&&<div className="text-center"><Bot className="mx-auto mb-4 h-10 w-10 text-[#b9e978]"/><h1 className="mb-6 text-xl font-semibold">{t.pause}</h1><button type="button" onClick={()=>go('consent')} className="rounded-xl border border-white/15 px-5 py-3 text-sm">{t.back}</button></div>}
+     {step==='status'&&<div><p className="mb-2 text-xs font-semibold tracking-[.18em] text-[#b9e978]">STEP 03 · ACCOUNT</p><h1 className="mb-6 text-2xl font-bold">{t.status}</h1><div className="grid gap-3"><button type="button" onClick={()=>go('username')} className="rounded-xl bg-[#b9e978] px-4 py-3.5 text-sm font-bold text-[#10170b]">{t.yes}</button><button type="button" onClick={()=>go('existingEmail')} className="rounded-xl border border-white/15 px-4 py-3.5 text-sm text-white/80">{t.no}</button></div></div>}
+     {formStep&&<form onSubmit={submit} className="space-y-5"><div className="mb-5"><p className="mb-2 text-xs font-semibold tracking-[.18em] text-[#b9e978]">STEP {String(progress+1).padStart(2,'0')}</p><h1 className="text-2xl font-bold">{prompt}</h1></div>
+      {step==='username'&&field(t.username,<User className="h-5 w-5"/>,{autoFocus:true,autoComplete:'username',value:username,onChange:e=>setUsername(e.target.value),placeholder:t.usernamePlaceholder,maxLength:30})}
+      {step==='phone'&&<div className="space-y-4">{field(t.phone,<Phone className="h-5 w-5"/>,{autoFocus:true,type:'tel',autoComplete:'tel',value:phone,onChange:e=>setPhone(e.target.value),placeholder:t.phonePlaceholder})}{field(t.phoneConfirm,<Phone className="h-5 w-5"/>,{type:'tel',autoComplete:'off',value:phoneAgain,onChange:e=>setPhoneAgain(e.target.value),placeholder:t.phonePlaceholder})}</div>}
+      {step==='birth'&&<div className="grid grid-cols-3 gap-3">{[[t.day,day,setDay,31],[t.month,month,setMonth,12],[t.year,year,setYear,110]].map(([label,value,setter,max],i)=><label key={String(label)} className="space-y-2 text-xs text-white/60"><span>{String(label)}</span><select required value={String(value)} onChange={e=>(setter as (v:string)=>void)(e.target.value)} className="w-full rounded-xl border border-white/10 bg-[#111c2e] px-2 py-3.5 text-white"><option value="">—</option>{i===0?Array.from({length:Number(max)},(_,n)=>n+1).map(n=><option key={n} value={n}>{n}</option>):i===1?t.months.map((m,n)=><option key={m} value={n+1}>{m}</option>):Array.from({length:110},(_,n)=>new Date().getFullYear()-n).map(n=><option key={n} value={n}>{n}</option>)}</select></label>)}</div>}
+      {(step==='email'||step==='existingEmail')&&field(t.email,<Mail className="h-5 w-5"/>,{autoFocus:true,type:'email',autoComplete:'email',dir:'ltr',value:email,onChange:e=>setEmail(e.target.value),placeholder:t.emailPlaceholder})}
+      {step==='password'&&<div className="space-y-4">{field(t.password,<KeyRound className="h-5 w-5"/>,{autoFocus:true,type:'password',autoComplete:'new-password',minLength:8,value:password,onChange:e=>setPassword(e.target.value),placeholder:t.passwordPlaceholder})}{field(t.passwordAgain,<KeyRound className="h-5 w-5"/>,{type:'password',autoComplete:'new-password',minLength:8,value:passwordAgain,onChange:e=>setPasswordAgain(e.target.value),placeholder:'••••••••'})}</div>}
+      {(step==='existingCode'||step==='verification')&&<div className="space-y-3">{step==='existingCode'&&<p dir="ltr" className="text-xs text-white/45">{email}</p>}{field(t.code,<Mail className="h-5 w-5"/>,{autoFocus:true,type:'text',inputMode:'numeric',autoComplete:'one-time-code',pattern:'[0-9]{6}',maxLength:6,dir:'ltr',value:code,onChange:e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6)),placeholder:t.codePlaceholder})}{step==='verification'&&<button type="button" disabled={busy} onClick={async()=>{setBusy(true);const r=await resendVerificationCode(email);setBusy(false);setError(r.error?.message??'');setNotice(r.error?'':t.code)}} className="text-xs text-[#b9e978]">{t.resend}</button>}</div>}
+      {error&&<p role="alert" className="rounded-xl border border-rose-400/20 bg-rose-400/[.08] px-4 py-3 text-sm text-rose-200">{error}</p>}{notice&&<p role="status" className="rounded-xl border border-[#b9e978]/20 bg-[#b9e978]/[.06] px-4 py-3 text-sm text-[#d9f6a9]">{notice}</p>}
+      <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#b9e978] px-5 py-3.5 text-sm font-bold text-[#10170b] disabled:opacity-60">{busy?<Loader2 className="h-5 w-5 animate-spin"/>:step==='existingEmail'?t.sendCode:step==='verification'||step==='existingCode'?t.verify:t.submit}<ChevronLeft className={`h-4 w-4 ${rtl?'':'rotate-180'}`}/></button>
+     </form>}
+     {error&&!formStep&&<p role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/[.08] px-4 py-3 text-sm text-rose-200">{error}</p>}
+    </motion.div></AnimatePresence>
+    {previous[step]&&<button type="button" onClick={()=>go(previous[step]!)} className="mt-5 inline-flex items-center gap-2 text-xs text-white/45"><ArrowLeft className={`h-3.5 w-3.5 ${rtl?'':'rotate-180'}`}/>{t.back}</button>}
+  </div></section>}
+  </div></main>;
 }
+
+export function OnboardingCompletionPage(){const navigate=useNavigate();const language=getStoredLanguage();const t=words[language];return <main dir={language==='ar'?'rtl':'ltr'} lang={language} className="grid min-h-screen place-items-center bg-[#0B1120] px-4 text-white"><section className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#0d1728] p-7 text-center shadow-2xl sm:p-10"><span className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-[#b9e978]/10 text-[#b9e978]"><Check className="h-8 w-8"/></span><div className="mb-6"><Robot language={language} message={t.done}/></div><h1 className="mb-6 text-2xl font-bold">{t.done}</h1><button type="button" onClick={()=>navigate('/feed',{replace:true})} className="w-full rounded-xl bg-[#b9e978] px-5 py-3.5 font-bold text-[#10170b]">{t.explore} <span>{language==='ar'?'←':'→'}</span></button></section></main>}

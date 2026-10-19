@@ -22,7 +22,7 @@ export default function Sidebar() {
       className={({ isActive }) =>
         `group relative flex items-center gap-4 px-3 xl:px-4 py-3 rounded-xl transition-all duration-200 ${
           isActive
-            ? 'bg-gradient-to-l from-rose-500/20 via-fuchsia-500/10 to-transparent font-bold text-white'
+            ? 'bg-gradient-to-l from-cyan-300/15 via-violet-400/10 to-transparent font-bold text-white'
             : 'text-white/55 hover:bg-white/[0.05] hover:text-white'
         }`
       }
@@ -30,7 +30,7 @@ export default function Sidebar() {
       {({ isActive }) => (
         <>
           {isActive && (
-            <span className="absolute right-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-l-full bg-rose-400" />
+            <span className="absolute right-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-l-full bg-cyan-300" />
           )}
           <Icon className="w-[22px] h-[22px] shrink-0 transition-transform group-hover:scale-110" />
           <span className="text-sm font-medium">{label}</span>
@@ -40,25 +40,51 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="sticky top-[70px] h-[calc(100vh-80px)] w-[240px] overflow-y-auto border-l border-white/[0.08] bg-[#09090d]/95 px-3 py-5 backdrop-blur-2xl">
-      <NavLink to="/feed" aria-label="DeepSignal الرئيسية" className="mb-8 flex items-center gap-3 px-2">
-        <DSLogo size={40} />
-        <span className="font-serif text-xl font-bold italic text-white">DeepSignal</span>
-      </NavLink>
-
-      <nav className="space-y-2" aria-label="التنقل الرئيسي">
-        {navItem('/feed', DSHome, 'الرئيسية')}
-        {navItem('/search', DSSearch, 'البحث')}
-        {navItem('/discover', Compass, 'اكتشف')}
-        {navItem('/reels', Clapperboard, 'ريلز')}
-        {navItem('/chat', DSChat, 'الرسائل')}
-        {navItem('/rooms', DSRooms, 'الغرف الصوتية')}
-        {navItem('/games', Gamepad2, 'الألعاب')}
-        {navItem('/jokal', Sparkles, 'تخطيط الأفكار')}
-        {navItem('/settings', Settings2, 'الإعدادات')}
+    <aside dir="ltr" className="sticky top-0 flex h-screen w-[314px] overflow-hidden border-r border-white/[0.08] bg-[#09111f]/95 backdrop-blur-2xl">
+      <nav aria-label="المساحات" className="flex w-[64px] shrink-0 flex-col items-center gap-3 border-r border-white/[0.06] bg-[#070b12] py-4">
+        <NavLink to="/feed" aria-label="الرئيسية" title="الرئيسية" className="mb-2 grid h-11 w-11 place-items-center rounded-2xl bg-white/[0.06] transition hover:bg-cyan-300/15">
+          <DSLogo size={30} />
+        </NavLink>
+        {[
+          { to: '/discover', Icon: Compass, label: 'اكتشف' },
+          { to: '/rooms', Icon: DSRooms, label: 'الغرف' },
+          { to: '/chat', Icon: DSChat, label: 'الرسائل' },
+        ].map(({ to, Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            aria-label={label}
+            title={label}
+            className={({ isActive }) => `grid h-11 w-11 place-items-center rounded-2xl transition ${isActive ? 'bg-cyan-300/15 text-cyan-200' : 'text-white/50 hover:bg-white/[0.07] hover:text-white'}`}
+          >
+            <Icon className="h-5 w-5" />
+          </NavLink>
+        ))}
       </nav>
 
-      <div className="space-y-2 pt-4 border-t border-white/5">
+      <div dir="rtl" className="flex min-w-0 flex-1 flex-col overflow-y-auto px-3 py-4">
+        <NavLink to="/feed" aria-label="Deep-Signal الرئيسية" className="mb-7 flex items-center gap-3 px-2">
+          <span className="min-w-0">
+            <span className="block truncate font-serif text-lg font-bold text-white">Deep-Signal</span>
+            <span className="block text-[10px] tracking-wide text-white/35">مساحتك الاجتماعية</span>
+          </span>
+        </NavLink>
+
+        <nav className="space-y-1" aria-label="التنقل الرئيسي">
+          <p className="px-3 pb-2 text-[10px] font-semibold text-white/35">القنوات</p>
+          {navItem('/feed', DSHome, 'الرئيسية')}
+          {navItem('/search', DSSearch, 'البحث')}
+          {navItem('/discover', Compass, 'اكتشف')}
+          {navItem('/reels', Clapperboard, 'ريلز')}
+          <p className="px-3 pb-2 pt-5 text-[10px] font-semibold text-white/35">التواصل</p>
+          {navItem('/chat', DSChat, 'الرسائل')}
+          {navItem('/rooms', DSRooms, 'الغرف الصوتية')}
+          {navItem('/games', Gamepad2, 'الألعاب')}
+          {navItem('/jokal', Sparkles, 'تخطيط الأفكار')}
+        </nav>
+
+        <div className="mt-auto space-y-1 border-t border-white/[0.07] pt-3">
+          {navItem('/settings', Settings2, 'الإعدادات')}
         <button
           onClick={() => setShowParticipationInfo(true)}
           aria-label="شارك في بناء التطبيق"
@@ -83,6 +109,7 @@ export default function Sidebar() {
           </NavLink>
         )}
       </div>
+      </div>
 
       {showParticipationInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setShowParticipationInfo(false)}>
@@ -95,7 +122,7 @@ export default function Sidebar() {
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-400/10 text-rose-300">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-300/10 text-cyan-200">
                   <Code2 className="h-5 w-5" />
                 </span>
                 <h2 id="participation-title" className="text-lg font-semibold text-white">شارك في بناء التطبيق</h2>

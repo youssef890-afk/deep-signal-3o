@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { setAuthPersistence, supabase } from "../lib/supabase";
 
 interface Profile {
   id: string;
@@ -22,13 +22,14 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{
     error: Error | null;
   }>;
   signUp: (
     email: string,
     password: string,
-    username: string
+    username: string,
+    extraMetadata?: { phone?: string; birth_date?: string }
   ) => Promise<{
     error: Error | null;
     user: User | null;
@@ -184,9 +185,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe = true) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
+      setAuthPersistence(rememberMe);
 
       const { error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
@@ -213,9 +215,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (
     email: string,
     password: string,
-    username: string
+    username: string,
+    extraMetadata?: { phone?: string; birth_date?: string }
   ) => {
     try {
+      setAuthPersistence(true);
       const cleanEmail = email.trim().toLowerCase();
       const cleanUsername = username.trim().toLowerCase();
 
@@ -249,6 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           emailRedirectTo: `${window.location.origin}/auth/callback?flow=signup`,
           data: {
             username: cleanUsername,
+            ...extraMetadata,
           },
         },
       });

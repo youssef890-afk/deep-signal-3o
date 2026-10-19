@@ -15,8 +15,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
  * SECURITY MODEL
  *  - Authentication: the caller's Supabase JWT is required; there is no anon path.
  *  - Authorisation: every read/write is scoped to `auth.uid()` by RLS.
- *  - Abuse control: `consume_ai_quota()` reserves quota in Postgres before the
- *    provider is called, and `finalize_ai_usage()` records the real usage.
+ *  - Abuse control: server-only `consume_ai_quota()` reserves quota in Postgres
+ *    before the provider is called; `finalize_ai_usage()` records usage.
  *  - Prompt injection: user text is fenced in an `<idea>` data delimiter and the
  *    system prompt forbids obeying it. The model has no tools, so an injected
  *    instruction cannot cause an action.
@@ -48,7 +48,7 @@ function originHeaders(request: Request): Record<string, string> {
     .filter(Boolean);
 
   // Empty configuration keeps the historical "*" behaviour. The endpoint is
-  // authenticated, so this is not an authentication bypass.
+  // still authenticated; configure ALLOWED_ORIGINS to restrict browser origins.
   const allowOrigin =
     configured.length === 0
       ? '*'
@@ -71,7 +71,7 @@ function json(body: unknown, status: number, headers: Record<string, string>) {
   });
 }
 const SYSTEM_PROMPT = [
-  'You are Jokal, a product architect assistant inside Youssef.',
+  'You are Jokal, a product architect assistant inside Deep-Signal.',
   'Your only job is to help a person turn an idea into a clear, reviewable project proposal.',
   '',
   'Hard rules:',
@@ -241,14 +241,19 @@ Deno.serve(async (request) => {
   const authorization = request.headers.get('Authorization');
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!authorization || !supabaseUrl || !anonKey) {
     return json({ error: 'Authentication required' }, 401, headers);
   }
+  if (!serviceRoleKey) return json({ error: 'AI is not configured' }, 503, headers);
 
-  // The caller's JWT is the only identity. The same client is reused for the
-  // quota RPC so `auth.uid()` inside Postgres matches this request.
+  // Keep user-owned conversation reads/writes under RLS. Only the verified
+  // quota-ledger operations use the server-side service-role client.
   const client = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authorization } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
@@ -304,7 +309,8 @@ Deno.serve(async (request) => {
 // Quota first. Nothing reaches the provider without a reservation.
   const limit = numEnv('JOKAL_RATE_LIMIT', 20);
   const windowSeconds = numEnv('JOKAL_RATE_WINDOW', 3600);
-  const { data: quotaRow, error: quotaError } = await client.rpc('consume_ai_quota', {
+  const { data: quotaRow, error: quotaError } = await adminClient.rpc('consume_ai_quota', {
+    p_user_id: userId,
     p_bucket: QUOTA_BUCKET,
     p_limit: limit,
     p_window_seconds: windowSeconds,
@@ -332,7 +338,8 @@ Deno.serve(async (request) => {
 
   const finalize = async (inputTokens: number, outputTokens: number, status: 'succeeded' | 'failed') => {
     if (!usageId) return;
-    const { error: finalizeError } = await client.rpc('finalize_ai_usage', {
+    const { error: finalizeError } = await adminClient.rpc('finalize_ai_usage', {
+      p_user_id: userId,
       p_usage_id: usageId,
       p_input_tokens: inputTokens,
       p_output_tokens: outputTokens,

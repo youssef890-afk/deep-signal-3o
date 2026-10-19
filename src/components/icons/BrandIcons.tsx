@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useId, type CSSProperties } from 'react';
 
 interface IconProps {
   className?: string;
@@ -7,17 +7,18 @@ interface IconProps {
 }
 
 export function DSLogo({ className = '', size = 32, style }: IconProps) {
+  const gradientId = `deepSignalGradient${useId().replace(/:/g, '')}`;
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
       <defs>
-        <linearGradient id="dsLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FF3D71" />
           <stop offset="50%" stopColor="#EC4899" />
           <stop offset="100%" stopColor="#F59E0B" />
         </linearGradient>
       </defs>
-      <rect x="4" y="4" width="40" height="40" rx="14" fill="url(#dsLogoGrad)" />
-      <rect x="4" y="4" width="40" height="40" rx="14" fill="url(#dsLogoGrad)" opacity="0.3" filter="blur(8px)" />
+      <rect x="4" y="4" width="40" height="40" rx="14" fill={`url(#${gradientId})`} />
+      <rect x="4" y="4" width="40" height="40" rx="14" fill={`url(#${gradientId})`} opacity="0.3" filter="blur(8px)" />
       <path d="M16 30 Q20 22 24 26 Q28 30 32 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       <circle cx="32" cy="18" r="2.5" fill="white" />
     </svg>

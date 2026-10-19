@@ -2,8 +2,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useMessages } from '@/context/MessagesContext';
-import { DSHome, DSChat, DSProfile, DSSearch, DSRooms } from '@/components/icons/BrandIcons';
-import { Settings2, Sparkles } from 'lucide-react';
+import { DSChat, DSProfile } from '@/components/icons/BrandIcons';
+import { Clapperboard } from 'lucide-react';
 
 export default function MobileNav() {
   const { profile } = useAuth();
@@ -12,13 +12,9 @@ export default function MobileNav() {
   const location = useLocation();
 
   const items = [
-    { path: '/feed', Icon: DSHome, label: 'الرئيسية', badge: 0 },
-    { path: '/search', Icon: DSSearch, label: 'البحث', badge: 0 },
-    { path: '/chat', Icon: DSChat, label: 'الرسائل', badge: unreadCount },
-    { path: '/rooms', Icon: DSRooms, label: 'الغرف', badge: 0 },
-    { path: '/jokal', Icon: Sparkles, label: 'الأفكار', badge: 0 },
-    { path: '/settings', Icon: Settings2, label: 'الإعدادات', badge: 0 },
-    ...(profile ? [{ path: `/profile/${profile.id}`, Icon: DSProfile, label: 'ملفي', badge: 0 }] : []),
+    { path: '/chat', Icon: DSChat, label: 'المساحات', badge: unreadCount },
+    { path: '/reels', Icon: Clapperboard, label: 'ريلز', badge: 0 },
+    { path: profile ? `/profile/${profile.id}` : '/profile', Icon: DSProfile, label: 'ملفي', badge: 0 },
   ];
 
   const isItemActive = (path: string) =>
@@ -29,18 +25,19 @@ export default function MobileNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 h-[72px] z-40 lg:hidden" style={{ background: 'var(--nav-bg)', backdropFilter: 'blur(24px)', borderTop: '1px solid var(--nav-border)' }}>
-        <div className="h-full flex items-center justify-around">
+      <nav aria-label="التنقل الرئيسي" className="fixed bottom-0 left-0 right-0 z-40 h-[76px] overflow-hidden lg:hidden" style={{ background: 'var(--nav-bg)', backdropFilter: 'blur(24px)', borderTop: '1px solid var(--nav-border)' }}>
+        <div className="flex h-full items-center justify-around gap-1 px-2">
           {items.map((item) => {
             const isActive = isItemActive(item.path);
             const Icon = item.Icon;
             return (
               <motion.button
                 key={item.path}
+                type="button"
                 onClick={() => navigate(item.path)}
                 whileTap={{ scale: 0.85 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                className="relative flex flex-col items-center gap-1 px-3 pt-3 pb-2 flex-1 h-full"
+                className="relative flex h-full min-w-0 flex-1 flex-col items-center gap-1 px-2 pb-2 pt-3"
               >
                 <AnimatePresence>
                   {isActive && (
@@ -81,7 +78,7 @@ export default function MobileNav() {
                   </AnimatePresence>
                 </motion.div>
 
-                <span className="text-[10px] font-medium transition-colors duration-200" style={isActive ? { color: 'var(--accent)' } : { color: 'rgba(255,255,255,0.4)' }}>
+                <span className="max-w-full truncate text-[9px] font-medium transition-colors duration-200" style={isActive ? { color: 'var(--accent)' } : { color: 'rgba(255,255,255,0.4)' }}>
                   {item.label}
                 </span>
               </motion.button>

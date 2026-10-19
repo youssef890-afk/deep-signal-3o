@@ -13,6 +13,38 @@ import { createClient } from '@supabase/supabase-js';
  */
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const AUTH_PERSISTENCE_KEY = 'ds-auth-persistence';
+
+function persistenceMode() {
+  return window.sessionStorage.getItem(AUTH_PERSISTENCE_KEY) ?? 'local';
+}
+
+const authStorage = {
+  getItem(key: string) {
+    const sessionValue = window.sessionStorage.getItem(key);
+    const localValue = window.localStorage.getItem(key);
+    return persistenceMode() === 'session'
+      ? sessionValue ?? localValue
+      : localValue ?? sessionValue;
+  },
+  setItem(key: string, value: string) {
+    if (persistenceMode() === 'session') {
+      window.sessionStorage.setItem(key, value);
+      window.localStorage.removeItem(key);
+      return;
+    }
+    window.localStorage.setItem(key, value);
+    window.sessionStorage.removeItem(key);
+  },
+  removeItem(key: string) {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  },
+};
+
+export function setAuthPersistence(rememberMe: boolean) {
+  window.sessionStorage.setItem(AUTH_PERSISTENCE_KEY, rememberMe ? 'local' : 'session');
+}
 
 function missingKeys(): string[] {
   const missing: string[] = [];
@@ -50,6 +82,7 @@ if (missing.length > 0 && import.meta.env.PROD) {
 export const supabase = createClient(supabaseUrl as string, supabaseAnonKey as string, {
   auth: {
     persistSession: true,
+    storage: authStorage,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },

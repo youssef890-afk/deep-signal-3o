@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { CheckCircle2, Loader2, Signal } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { DSLogo } from '@/components/icons/BrandIcons';
 
 export default function AuthCallbackPage() {
   const { session, loading } = useAuth();
@@ -20,8 +21,8 @@ export default function AuthCallbackPage() {
   return (
     <main className="min-h-screen bg-[#090D16] text-white flex items-center justify-center px-4" dir="rtl">
       <section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center shadow-2xl">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500">
-          <Signal className="h-8 w-8" />
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#101b3d] via-violet-950 to-cyan-950">
+          <DSLogo size={56} />
         </div>
 
         {loading ? (

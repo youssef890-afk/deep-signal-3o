@@ -28,7 +28,7 @@ const messages = {
     reduceMotion: 'Réduire les animations', highContrast: 'Contraste élevé', screenReader: 'Améliorations du lecteur d’écran', autoTranslate: 'Traduction automatique',
     downloadData: 'Télécharger mes données', deleteAccount: 'Supprimer le compte', deleteWarning: "La suppression est définitive. Cette interface ne peut pas supprimer directement un compte d'authentification.", typeDelete: 'Saisissez DELETE pour confirmer', deleteConfirm: 'Confirmer la demande', deleteUnavailable: "Le compte n'a pas été supprimé. Contactez le support pour finaliser la demande en toute sécurité.",
     version: 'Version', terms: 'Conditions générales', privacyPolicy: 'Politique de confidentialité', contact: 'Nous contacter', rateApp: "Évaluer l'application", unavailable: "Ce service n'est pas encore activé.",
-    profileSaved: 'Modifications enregistrées', avatarError: "Impossible de changer la photo", retry: 'Réessayer', wordExists: 'Ce mot existe déjà', add: 'Ajouter', currentDevice: 'Navigateur actuel', deleteModalTitle: 'Confirmer la suppression du compte', passwordModalTitle: 'Changer le mot de passe', emailUpdateNote: "La modification de l'adresse peut nécessiter une confirmation par e-mail.",
+    profileSaved: 'Modifications enregistrées', avatarError: "Impossible de changer la photo", retry: 'Réessayer', loading: 'Chargement des paramètres', wordExists: 'Ce mot existe déjà', add: 'Ajouter', currentDevice: 'Navigateur actuel', deleteModalTitle: 'Confirmer la suppression du compte', passwordModalTitle: 'Changer le mot de passe', emailUpdateNote: "La modification de l'adresse peut nécessiter une confirmation par e-mail.",
   },
   en: {
     title: 'Settings', back: 'Back', account: 'Account', privacy: 'Privacy', security: 'Security', notifications: 'Notifications', appearance: 'Appearance', language: 'Language', content: 'Content', accessibility: 'Accessibility', data: 'Data', about: 'About',
@@ -42,7 +42,7 @@ const messages = {
     reduceMotion: 'Reduce motion', highContrast: 'High contrast', screenReader: 'Screen reader support', autoTranslate: 'Automatic translation',
     downloadData: 'Download a copy of my data', deleteAccount: 'Delete account', deleteWarning: 'Account deletion is permanent. This interface cannot directly delete an authentication account.', typeDelete: 'Type DELETE to confirm', deleteConfirm: 'Confirm request', deleteUnavailable: 'The account was not deleted. Contact support to complete the request securely.',
     version: 'Version', terms: 'Terms and conditions', privacyPolicy: 'Privacy policy', contact: 'Contact us', rateApp: 'Rate the app', unavailable: 'This service is not enabled yet.',
-    profileSaved: 'Changes saved', avatarError: 'Could not change the photo', retry: 'Retry', wordExists: 'This word already exists', add: 'Add', currentDevice: 'Current browser', deleteModalTitle: 'Confirm account deletion', passwordModalTitle: 'Change password', emailUpdateNote: 'Changing your email may require email confirmation.',
+    profileSaved: 'Changes saved', avatarError: 'Could not change the photo', retry: 'Retry', loading: 'Loading settings', wordExists: 'This word already exists', add: 'Add', currentDevice: 'Current browser', deleteModalTitle: 'Confirm account deletion', passwordModalTitle: 'Change password', emailUpdateNote: 'Changing your email may require email confirmation.',
   },
 } as const;
 

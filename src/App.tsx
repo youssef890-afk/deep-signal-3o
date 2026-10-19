@@ -8,12 +8,13 @@ import MobileNav from '@/components/MobileNav';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PageBackground from '@/components/PageBackground';
-import LoginPage from '@/pages/LoginPage';
-import SignupPage from '@/pages/SignupPage';
+import LoginPage, { OnboardingCompletionPage } from '@/pages/LoginPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
-import { Signal, Loader2 } from 'lucide-react';
+import Youssef555Page from '@/pages/Youssef555Page';
+import { Loader2 } from 'lucide-react';
+import { DSLogo } from '@/components/icons/BrandIcons';
 import { directionForLanguage, getStoredLanguage, LANGUAGE_CHANGE_EVENT, type Language } from '@/lib/i18n';
 
 /*
@@ -69,11 +70,11 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-[var(--bg-base)] text-white" dir={direction} lang={direction === 'rtl' ? 'ar' : 'en'}>
       <PageBackground />
-      <div className="mx-auto max-w-[1600px] md:grid md:grid-cols-[240px_minmax(0,1fr)] md:gap-4 lg:gap-6">
-        <div className="hidden md:block">
+      <div dir="ltr" className="mx-auto min-h-screen max-w-[1600px] lg:grid lg:grid-cols-[314px_minmax(0,1fr)]">
+        <div className="hidden lg:block" dir="rtl">
           <Sidebar />
         </div>
-        <div className="relative z-10 min-h-screen">
+        <div dir={direction} className="relative z-10 min-h-screen min-w-0">
           <Navbar direction={direction} onToggleDirection={() => setDirection((current) => current === 'rtl' ? 'ltr' : 'rtl')} />
           <main className="min-h-[calc(100vh-72px)] pb-[92px] md:pb-8">
             <AnimatePresence mode="wait">
@@ -93,6 +94,15 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
 
 function AuthGate() {
   const { session, loading } = useAuth();
+  const location = useLocation();
+
+  if (location.pathname === '/youssef555') {
+    return <Youssef555Page />;
+  }
+
+  if (location.pathname === '/auth/complete') {
+    return <OnboardingCompletionPage />;
+  }
 
   if (loading) {
     return (
@@ -103,7 +113,7 @@ function AuthGate() {
           <div className="relative mb-5">
             <div className="absolute inset-0 gradient-primary rounded-3xl blur-2xl opacity-60" />
             <div className="relative w-16 h-16 rounded-3xl gradient-primary flex items-center justify-center">
-              <Signal className="w-8 h-8 text-white" strokeWidth={2.5} />
+              <DSLogo size={56} />
             </div>
           </div>
           <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
@@ -127,7 +137,7 @@ function AuthGate() {
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />

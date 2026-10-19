@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import PostCard, { type PostCardPost } from '@/components/PostCard';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowUpLeft, Gamepad2, House, MessageCircle, Radio, Search, Sparkles, UsersRound } from 'lucide-react';
 
 const videoUrls = [
   'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
@@ -40,7 +40,6 @@ export const MOCK_POSTS: PostCardPost[] = Array.from({ length: 20 }, (_, index) 
   };
 });
 
-const stories = ['salma', 'amine', 'sara', 'yassine', 'meryem', 'adam', 'nour'];
 const suggestions = ['lina.photo', 'omar_travels', 'sara.art', 'mehdi.fit', 'nour.daily'];
 
 export default function FeedPage() {
@@ -52,7 +51,6 @@ export default function FeedPage() {
   const [feedError, setFeedError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [followedSuggestions, setFollowedSuggestions] = useState<string[]>([]);
-  const [storyNotice, setStoryNotice] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -116,48 +114,62 @@ export default function FeedPage() {
 
   return (
     <div className="min-h-screen text-white" dir="rtl">
-      <div className="mx-auto w-full max-w-[1240px] px-0 pb-24 sm:px-4 lg:pb-8">
-        <div className="sticky top-[64px] z-20 border-b border-white/10 bg-black/90 px-3 py-3 backdrop-blur-xl sm:top-[72px] sm:rounded-b-xl sm:border-x">
-          <div className="flex gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" dir="ltr" aria-label="القصص">
-            <button
-              type="button"
-              onClick={() => setStoryNotice((current) => !current)}
-              aria-label="أضف قصتك"
-              className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center"
-            >
-              <span className="relative grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-[#151515] text-white transition hover:scale-105">
-                <img src="https://picsum.photos/seed/my-story/128/128" alt="" className="h-full w-full rounded-full object-cover opacity-70" />
-                <span className="absolute bottom-0 right-0 grid h-6 w-6 place-items-center rounded-full border-2 border-black bg-sky-400 text-black"><Plus className="h-4 w-4" /></span>
-              </span>
-              <span className="w-full truncate text-[11px] text-white/70" dir="rtl">قصتك</span>
-            </button>
-            {stories.map((story, index) => (
-              <button key={story} type="button" onClick={() => navigate(`/profile/${story}`)} className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center" dir="rtl">
-                <span className="h-16 w-16 rounded-full bg-gradient-to-tr from-yellow-400 via-rose-500 to-fuchsia-600 p-[2px] transition hover:scale-105">
-                  <img src={`https://picsum.photos/seed/story-${index + 1}/128/128`} alt="" className="h-full w-full rounded-full border-2 border-black object-cover" />
-                </span>
-                <span className="w-full truncate text-[11px] text-white/80">{story}</span>
-              </button>
-            ))}
+      <div className="mx-auto w-full max-w-[1380px] px-3 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10">
+        <header
+          className="relative mb-6 overflow-hidden border-y border-white/10 bg-[#0b1217] px-5 py-7 sm:px-8 sm:py-9"
+          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
+        >
+          <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+            <div className="max-w-2xl">
+              <p className="mb-3 font-mono text-[10px] font-semibold text-[#b9e978]">DEEP-SIGNAL <span className="text-white/30">/</span> مساحة المجتمع</p>
+              <h1 className="font-serif text-3xl font-bold sm:text-4xl">الأفكار كتجمعنا</h1>
+              <p className="mt-3 max-w-xl text-sm leading-7 text-white/60">موجز هادئ باش تكتشف نقاشات الناس، تدخل لغرفة صوتية، ولا تلقى موضوع جديد يهمك.</p>
+            </div>
+            <Link to="/discover" className="inline-flex min-h-10 items-center justify-center gap-2 self-start border-r-2 border-[#b9e978] bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.08] lg:self-auto">
+              اكتشف المجتمع <ArrowUpLeft className="h-4 w-4 text-[#b9e978]" />
+            </Link>
           </div>
-          {storyNotice && <p className="mt-2 text-center text-xs text-white/55">إضافة القصص قريباً</p>}
-        </div>
+        </header>
 
-        <div className="mx-auto grid w-full max-w-[900px] grid-cols-1 gap-8 pt-4 xl:grid-cols-[minmax(0,600px)_280px] xl:gap-6">
-          <section className="min-w-0" aria-label="المنشورات">
+        <div className="mb-2 flex items-center justify-between px-1">
+          <h2 className="text-xs font-semibold text-white/65">المساحات الرئيسية</h2>
+          <span className="font-mono text-[10px] text-white/35">06 MODULES</span>
+        </div>
+        <nav className="mb-8 grid grid-cols-2 gap-x-2 sm:grid-cols-3 xl:grid-cols-6" aria-label="المساحات الرئيسية">
+          {[
+            { to: '/feed', label: 'الرئيسية', detail: 'موجز المجتمع', Icon: House, tone: 'text-cyan-200' },
+            { to: '/search', label: 'البحث', detail: 'اعثر على موضوع', Icon: Search, tone: 'text-[#b9e978]' },
+            { to: '/games', label: 'الألعاب', detail: 'العب وتواصل', Icon: Gamepad2, tone: 'text-amber-200' },
+            { to: '/rooms', label: 'الغرف الصوتية', detail: 'حوار مباشر', Icon: Radio, tone: 'text-rose-200' },
+            { to: '/jokal', label: 'تخطيط الأفكار', detail: 'رتب فكرتك', Icon: Sparkles, tone: 'text-violet-200' },
+            { to: '/chat', label: 'الرسائل', detail: 'تابع محادثاتك', Icon: MessageCircle, tone: 'text-sky-200' },
+          ].map(({ to, label, detail, Icon, tone }) => (
+            <Link key={to} to={to} className="group flex min-h-[76px] min-w-0 items-center gap-3 border-t border-white/[0.1] px-3 py-3 transition-colors hover:bg-white/[0.04]">
+              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/[0.045] ${tone}`}><Icon className="h-[18px] w-[18px]" /></span>
+              <span className="min-w-0"><span className="block truncate text-xs font-semibold text-white/90">{label}</span><span className="mt-1 block truncate text-[10px] text-white/40">{detail}</span></span>
+            </Link>
+          ))}
+        </nav>
+
+        <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <section className="min-w-0" aria-label="موجز المجتمع">
+            <div className="mb-4 flex items-end justify-between gap-3 px-1">
+              <div><h2 className="text-lg font-bold">منشورات المجتمع</h2><p className="mt-1 text-xs text-white/45">آخر الأفكار واللحظات اللي تشاركات</p></div>
+              <span className="hidden items-center gap-2 text-xs text-white/45 sm:inline-flex"><span className="h-2 w-2 rounded-full bg-cyan-300" /> موجز جديد</span>
+            </div>
             {feedError && posts.length === 0 && !loading && (
-              <div role="alert" className="mx-3 rounded-xl border border-rose-400/20 bg-[#111] p-6 text-center sm:mx-0">
+              <div role="alert" className="rounded-2xl border border-rose-400/20 bg-[#111827] p-6 text-center">
                 <p className="text-sm text-rose-200">{feedError}</p>
                 <button type="button" onClick={() => { setLoading(true); setRetryCount((count) => count + 1); }} className="mt-4 rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold transition hover:scale-[1.02] hover:bg-white/15">إعادة المحاولة</button>
               </div>
             )}
 
             {loading && (
-              <div className="space-y-4 px-3 sm:px-0" aria-label="جاري تحميل المنشورات">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2" aria-label="جاري تحميل المنشورات">
                 {Array.from({ length: 2 }, (_, index) => (
-                  <article key={index} className="animate-pulse overflow-hidden rounded-xl border border-white/10 bg-[#111]">
-                    <div className="flex h-14 items-center gap-3 px-3"><span className="h-9 w-9 rounded-full bg-white/10" /><span className="h-3 w-28 rounded bg-white/10" /></div>
-                    <div className="aspect-square bg-white/[0.06]" />
+                  <article key={index} className="animate-pulse overflow-hidden rounded-[22px] border border-white/10 bg-[#111827]">
+                    <div className="flex h-16 items-center gap-3 px-4"><span className="h-10 w-10 rounded-2xl bg-white/10" /><span className="h-3 w-28 rounded bg-white/10" /></div>
+                    <div className="aspect-[4/3] bg-white/[0.06]" />
                     <div className="space-y-3 p-3"><div className="h-5 w-24 rounded bg-white/10" /><div className="h-3 w-3/4 rounded bg-white/10" /></div>
                   </article>
                 ))}
@@ -165,11 +177,11 @@ export default function FeedPage() {
             )}
 
             {!loading && !feedError && posts.length === 0 && (
-              <div className="mx-3 rounded-xl border border-white/10 bg-[#111] p-8 text-center text-sm text-white/60 sm:mx-0">ما كاين حتى منشور</div>
+              <div className="rounded-2xl border border-white/10 bg-[#111827] p-10 text-center text-sm text-white/60">ما كاين حتى منشور دابا</div>
             )}
 
             {!loading && posts.length > 0 && (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {posts.map((post) => <PostCard key={post.id} post={post} />)}
               </div>
             )}
@@ -177,11 +189,9 @@ export default function FeedPage() {
 
           <aside className="hidden min-w-0 xl:block" aria-label="اقتراحات المتابعة">
             <div className="sticky top-[88px] space-y-5">
-              <section className="rounded-xl border border-white/10 bg-[#111] p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-sm font-bold">مقترح لك</h2>
-                  <button type="button" className="text-xs font-semibold text-sky-300">عرض الكل</button>
-                </div>
+              <section className="rounded-2xl border border-white/10 bg-[#101827]/90 p-4">
+                <div className="mb-4 flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-400/10 text-violet-200"><UsersRound className="h-4 w-4" /></span><h2 className="text-sm font-bold">وجوه جديدة</h2></div>
+                <p className="mb-4 text-xs leading-5 text-white/45">ناس عندهم اهتمامات قريبة من مجتمعك.</p>
                 <div className="space-y-4">
                   {suggestions.map((username, index) => {
                     const isFollowed = followedSuggestions.includes(username);
@@ -201,7 +211,7 @@ export default function FeedPage() {
                 <nav className="flex flex-wrap gap-x-2" aria-label="روابط مساعدة">
                   <a href="#about" className="hover:text-white/60">حول</a><a href="#help" className="hover:text-white/60">مساعدة</a><a href="#privacy" className="hover:text-white/60">خصوصية</a><a href="#terms" className="hover:text-white/60">شروط</a>
                 </nav>
-                <p className="mt-2">© 2026 DeepSignal</p>
+                <p className="mt-2">© 2026 Deep-Signal</p>
               </footer>
             </div>
           </aside>

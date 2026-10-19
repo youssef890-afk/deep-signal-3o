@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Bell, Check, CircleUserRound, Gamepad2, Heart, Loader2, MessageCircle, Sparkles, UserRoundPlus } from 'lucide-react';
+import { ArrowLeftRight, Bell, Check, CircleUserRound, Gamepad2, Heart, Loader2, MessageCircle, Search, Sparkles, UserRoundPlus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { DSLogo } from '@/components/icons/BrandIcons';
 
 interface ActivityItem {
   id: string;
@@ -77,7 +78,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           ...likeRows.map((item) => ({ id: `like-${item.id}`, kind: 'like' as const, actor: usernames.get(item.user_id) ?? 'مستخدم', actorId: item.user_id, createdAt: item.created_at, description: 'أعجب بمنشورك' })),
           ...commentRows.map((item) => ({ id: `comment-${item.id}`, kind: 'comment' as const, actor: usernames.get(item.user_id) ?? 'مستخدم', actorId: item.user_id, createdAt: item.created_at, description: 'علّق على منشورك' })),
           ...viewRows.filter((item) => item.viewer_id).map((item) => ({ id: `view-${item.id}`, kind: 'view' as const, actor: usernames.get(item.viewer_id!) ?? 'مستخدم', actorId: item.viewer_id!, createdAt: item.created_at, description: 'زار ملفك الشخصي' })),
-          { id: 'update-welcome', kind: 'update', actor: 'Youssef', createdAt: new Date().toISOString(), description: 'تحديث جديد: تصميم وتجربة Youssef أصبحا أفضل.' },
+          { id: 'update-welcome', kind: 'update', actor: 'Deep-Signal', createdAt: new Date().toISOString(), description: 'تحديث جديد: تصميم وتجربة Deep-Signal أصبحا أفضل.' },
         ];
 
         nextActivities.sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
@@ -85,7 +86,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
       } catch (error) {
         console.error('Unable to load notifications:', error);
         if (active) {
-          setActivities([{ id: 'update-welcome', kind: 'update', actor: 'Youssef', createdAt: new Date().toISOString(), description: 'مرحباً بك في Youssef.' }]);
+          setActivities([{ id: 'update-welcome', kind: 'update', actor: 'Deep-Signal', createdAt: new Date().toISOString(), description: 'مرحباً بك في Deep-Signal.' }]);
         }
       } finally {
         if (active) setNotificationsLoading(false);
@@ -153,32 +154,34 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           )}
         </div>
 
-        <div className="flex items-center justify-self-center gap-2">
-          <Link to="/feed" className="whitespace-nowrap font-serif text-[19px] font-bold italic text-white sm:text-[22px]" aria-label="Youssef الرئيسية">
-            Youssef
-          </Link>
+        <Link to="/search" aria-label="البحث" className="flex h-10 w-full max-w-[420px] items-center justify-self-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 text-right text-xs text-white/45 transition hover:border-cyan-300/25 hover:bg-white/[0.06]">
+          <DSLogo size={24} />
+          <Search className="h-4 w-4 shrink-0 text-cyan-200/70" />
+          <span className="min-w-0 flex-1 truncate">ابحث عن أشخاص أو غرف أو مقاطع</span>
+        </Link>
+
+        <div className="flex items-center justify-self-end gap-1">
           <button
             type="button"
             onClick={onToggleDirection}
             aria-label={`تبديل الاتجاه إلى ${direction === 'rtl' ? 'LTR' : 'RTL'}`}
             title={`تبديل الاتجاه إلى ${direction === 'rtl' ? 'LTR' : 'RTL'}`}
-            className="grid h-8 w-8 place-items-center rounded-full text-white/40 transition hover:bg-white/[0.06] hover:text-white"
+            className="grid h-9 w-9 place-items-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-white"
           >
             <ArrowLeftRight className="h-4 w-4" />
           </button>
-        </div>
-
-        <Link
+          <Link
           to="/games"
           dir="rtl"
           aria-label={`الألعاب، ${online ? 'متصل' : 'غير متصل'}`}
-          className="inline-flex min-h-10 items-center justify-self-end gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 text-white/80 transition hover:border-white/20 hover:bg-white/[0.07]"
-        >
-          <Gamepad2 className="h-[19px] w-[19px] text-amber-300" />
-          <span className="hidden text-xs font-medium sm:inline">الألعاب</span>
-          <span className={`h-2 w-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-white/30'}`} />
-          <span className="hidden text-[10px] text-white/45 md:inline">{online ? 'متصل' : 'أوفلاين'}</span>
-        </Link>
+          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 text-white/80 transition hover:border-white/20 hover:bg-white/[0.07]"
+          >
+            <Gamepad2 className="h-[19px] w-[19px] text-amber-300" />
+            <span className="hidden text-xs font-medium sm:inline">الألعاب</span>
+            <span className={`h-2 w-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-white/30'}`} />
+            <span className="hidden text-[10px] text-white/45 md:inline">{online ? 'متصل' : 'أوفلاين'}</span>
+          </Link>
+        </div>
       </div>
     </header>
   );

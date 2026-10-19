@@ -101,14 +101,19 @@ Deno.serve(async (request) => {
   const authorization = request.headers.get('Authorization');
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!authorization || !supabaseUrl || !anonKey) {
     return json({ error: 'Authentication required' }, 401, headers);
   }
+  if (!serviceRoleKey) return json({ error: 'AI is not configured' }, 503, headers);
 
-  // The caller's JWT is the only caller identity. The same client is reused for
-  // the quota RPC so `auth.uid()` inside the database matches this request.
+  // The caller's JWT is the only source of identity. The user client verifies
+  // it, while the separate service-role client performs server-only quota RPCs.
   const client = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authorization } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
@@ -141,10 +146,11 @@ Deno.serve(async (request) => {
     return json({ error: 'Unsupported tone' }, 400, headers);
   }
 
-  // Server-side rate limit. `consume_ai_quota` is SECURITY DEFINER and reads
-  // `auth.uid()`, so a client cannot widen its own allowance.
+  // The verified user ID is sent through the server-only service-role client;
+  // browser clients cannot call quota ledger mutation RPCs directly.
   const quota = LIMITS[kind];
-  const { data: quotaRow, error: quotaError } = await client.rpc('consume_ai_quota', {
+  const { data: quotaRow, error: quotaError } = await adminClient.rpc('consume_ai_quota', {
+    p_user_id: authData.user.id,
     p_bucket: kind === 'image' ? 'ai-assistant-image' : 'ai-assistant-text',
     p_limit: quota.limit,
     p_window_seconds: quota.windowSeconds,
@@ -171,7 +177,8 @@ Deno.serve(async (request) => {
 
   const finalize = async (inputTokens: number, outputTokens: number, status: 'succeeded' | 'failed') => {
     if (!usageId) return;
-    const { error: finalizeError } = await client.rpc('finalize_ai_usage', {
+    const { error: finalizeError } = await adminClient.rpc('finalize_ai_usage', {
+      p_user_id: authData.user.id,
       p_usage_id: usageId,
       p_input_tokens: inputTokens,
       p_output_tokens: outputTokens,

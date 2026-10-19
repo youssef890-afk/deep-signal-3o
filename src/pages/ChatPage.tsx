@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useMessages } from '@/context/MessagesContext';
 import { useDirectCall } from '@/hooks/useDirectCall';
 import Avatar from '@/components/Avatar';
-import { Send, ArrowLeft, Loader2, MessageCircle, Mic, Square, AudioLines, Video, VideoOff, MicOff, PhoneOff, Search, X, PhoneIncoming } from 'lucide-react';
+import { Send, ArrowLeft, Loader2, MessageCircle, Mic, Square, AudioLines, Video, VideoOff, MicOff, PhoneOff, PhoneCall, Smartphone, Search, X, PhoneIncoming } from 'lucide-react';
 import { formatTime } from '@/utils/format';
 import type { Profile, Message } from '@/types';
 
@@ -387,7 +387,9 @@ export default function ChatPage() {
                   <span className="mt-0.5 block truncate text-[10px] text-[#b9e978]/75">@{activeUser.username} <span className="text-white/30">· مباشر</span></span>
                 </button>
                 <div className="flex shrink-0 items-center gap-1">
+                  <button type="button" disabled aria-label="مكالمة صوتية قريباً" title="مكالمة صوتية قريباً" className="grid h-9 w-9 place-items-center rounded-md text-white/25 disabled:cursor-not-allowed"><PhoneCall className="h-[17px] w-[17px]" /></button>
                   <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady || directCall.status !== 'idle'} aria-label="بدء مكالمة فيديو" title="مكالمة فيديو" className="grid h-9 w-9 place-items-center rounded-md text-[#b9e978] transition hover:bg-[#b9e978]/10 disabled:opacity-40"><Video className="h-[18px] w-[18px]" /></button>
+                  <button type="button" disabled aria-label="مكالمة SIM قريباً" title="مكالمة SIM قريباً" className="grid h-9 w-9 place-items-center rounded-md text-white/25 disabled:cursor-not-allowed"><Smartphone className="h-[17px] w-[17px]" /></button>
                 </div>
               </header>
 
