@@ -33,6 +33,10 @@ dist-ssr
 env
 env.*
 
+# Local Gemini credentials and generated voice samples
+.env_text\ to\ speed
+voice-samples/
+
 # Local logs written during audits/builds
 *.log
 .build.log

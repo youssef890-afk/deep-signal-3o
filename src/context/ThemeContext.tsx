@@ -43,6 +43,15 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+function accentForeground(hex: string): string {
+  const channels = [1, 3, 5].map((offset) => {
+    const channel = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  return luminance > 0.179 ? '#171717' : '#FFFFFF';
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [palette, setPaletteState] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('ds-theme');
@@ -69,6 +78,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.setAttribute('data-color-mode', mode);
     root.style.colorScheme = mode === 'auto' ? 'light dark' : mode;
     root.style.setProperty('--accent', accentColor);
+    root.style.setProperty('--accent-foreground', accentForeground(accentColor));
     root.style.setProperty('--accent-soft', withAlpha(accentColor, 0.15));
     root.style.setProperty('--accent-glow', withAlpha(accentColor, 0.55));
     root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${accentColor}, ${accentColor})`);

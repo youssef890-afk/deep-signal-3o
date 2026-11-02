@@ -359,7 +359,7 @@ export default function RoomDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
       </div>
     );
   }
@@ -428,7 +428,7 @@ export default function RoomDetailPage() {
       <div className="bg-neutral-900 border border-white/10 rounded-2xl p-5 mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-semibold text-neutral-300 flex items-center gap-2">
-            <Users className="w-4 h-4 text-rose-500" />
+            <Users className="w-4 h-4 text-[var(--accent)]" />
             المقاعد (6/{members.length})
           </h2>
 
@@ -474,7 +474,7 @@ export default function RoomDetailPage() {
               >
                 {member ? (
                   <>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center text-white font-bold text-lg mb-2 relative overflow-hidden">
+                    <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] font-bold text-lg mb-2 relative overflow-hidden">
                       {member.profiles?.avatar_url ? (
                         <img
                           src={
@@ -494,7 +494,7 @@ export default function RoomDetailPage() {
 
                       {member.user_id ===
                         room.created_by && (
-                        <Crown className="w-4 h-4 text-yellow-400 absolute -top-1 -right-1" />
+                        <Crown className="w-4 h-4 text-[var(--accent-secondary)] absolute -top-1 -right-1" />
                       )}
                     </div>
 
@@ -539,7 +539,7 @@ export default function RoomDetailPage() {
               void joinRoom()
             }
             disabled={members.length >= 6}
-            className="w-full mt-5 py-3 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm"
+            className="w-full mt-5 py-3 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--accent-foreground)] rounded-xl font-medium text-sm"
           >
             صعود للمقعد
           </button>
@@ -549,14 +549,14 @@ export default function RoomDetailPage() {
       <div className="bg-neutral-900 border border-white/10 rounded-2xl p-5">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Gamepad2 className="w-5 h-5 text-rose-400" />
+            <Gamepad2 className="w-5 h-5 text-[var(--accent)]" />
             تحديات وألغاز
           </h2>
 
           {isCreator && (
             <button
               onClick={startGame}
-              className="px-3 py-1.5 bg-rose-500/20 text-rose-400 rounded-xl text-xs"
+              className="px-3 py-1.5 bg-[var(--accent)]/20 text-[var(--accent)] rounded-xl text-xs"
             >
               تحد جديد
             </button>

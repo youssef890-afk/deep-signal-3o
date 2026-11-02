@@ -1,4 +1,6 @@
-export type Language = 'ar' | 'fr' | 'en';
+import { isAvailableLanguageCode, type AvailableLanguage } from '@/i18n/languages';
+
+export type Language = AvailableLanguage;
 export type TextDirection = 'rtl' | 'ltr';
 
 const messages = {
@@ -15,6 +17,10 @@ const messages = {
     downloadData: 'تحميل نسخة من بياناتي', deleteAccount: 'حذف الحساب', deleteWarning: 'حذف الحساب نهائي ولا يمكن التراجع عنه. هاد الواجهة ما عندهاش صلاحية حذف حساب المصادقة مباشرة.', typeDelete: 'اكتب DELETE للتأكيد', deleteConfirm: 'تأكيد الطلب', deleteUnavailable: 'ما تم حذف الحساب. تواصل مع الدعم لإتمام طلب الحذف بأمان.',
     version: 'الإصدار', terms: 'الشروط والأحكام', privacyPolicy: 'سياسة الخصوصية', contact: 'اتصل بنا', rateApp: 'تقييم التطبيق', unavailable: 'هاد الخدمة مازال ما مفعّلاش.',
     profileSaved: 'تم حفظ التغييرات', avatarError: 'تعذر تغيير الصورة', retry: 'إعادة المحاولة', loading: 'جارٍ تحميل الإعدادات', wordExists: 'هاد الكلمة موجودة من قبل', add: 'إضافة', currentDevice: 'المتصفح الحالي', deleteModalTitle: 'تأكيد حذف الحساب', passwordModalTitle: 'تغيير كلمة المرور', emailUpdateNote: 'قد يطلب تحديث البريد تأكيداً عبر البريد الإلكتروني.',
+    closeDialog: 'إغلاق النافذة', profileLoading: 'جارٍ تحميل الملف الشخصي...', profileNotFound: 'هذا الملف الشخصي غير موجود أو لم يعد متاحاً.', profileLoadError: 'تعذر تحميل الملف الشخصي. تحقق من اتصالك ثم أعد المحاولة.', profileSignInRequired: 'سجّل الدخول لعرض ملفك الشخصي.', errorTitle: 'حدث خطأ تقني غير متوقع.', errorDescription: 'تعذر عرض هذه الصفحة. أعد تحميلها أو ارجع إلى الصفحة الرئيسية.', reloadPage: 'إعادة التحميل', returnHome: 'العودة إلى الرئيسية',
+    directMessages: 'المحادثات', privateConversation: 'محادثة خاصة', waitingSignal: 'هناك رسالة بانتظارك', signalProfile: 'الملف الشخصي', liveCall: 'مكالمة مباشرة',
+    searchPageTitle: 'البحث', searchPlaceholder: 'ابحث عن اسم المستخدم أو المعرّف...', searchClear: 'مسح البحث', searchError: 'تعذر جلب النتائج. حاول مرة أخرى.', searchNoResults: 'لا توجد نتائج مطابقة',
+    voicePermissionDenied: 'لم يُسمح باستخدام الميكروفون. تحقق من إذن الموقع ثم حاول مجدداً.', microphoneUnavailable: 'الميكروفون غير متاح. تحقق من توصيله أو من دعم المتصفح.', microphoneBusy: 'الميكروفون مستخدم من تطبيق آخر. أغلق التطبيق ثم حاول مجدداً.', microphoneSecureContext: 'يلزم فتح الموقع عبر اتصال آمن لاستخدام الميكروفون.', voiceUploadError: 'تعذر إرسال الرسالة الصوتية. تحقق من الاتصال وإذن الميكروفون ثم حاول مجدداً.', voicePlaybackError: 'تعذر تشغيل الرسالة الصوتية.', voiceLoading: 'جارٍ تحميل التسجيل...', ideaPlanner: 'مخطط الأفكار', ideaPlannerThinking: 'جارٍ إعداد التصور',
   },
   fr: {
     title: 'Paramètres', back: 'Retour', account: 'Compte', privacy: 'Confidentialité', security: 'Sécurité', notifications: 'Notifications', appearance: 'Apparence', language: 'Langue', content: 'Contenu', accessibility: 'Accessibilité', data: 'Données', about: 'À propos',
@@ -29,6 +35,10 @@ const messages = {
     downloadData: 'Télécharger mes données', deleteAccount: 'Supprimer le compte', deleteWarning: "La suppression est définitive. Cette interface ne peut pas supprimer directement un compte d'authentification.", typeDelete: 'Saisissez DELETE pour confirmer', deleteConfirm: 'Confirmer la demande', deleteUnavailable: "Le compte n'a pas été supprimé. Contactez le support pour finaliser la demande en toute sécurité.",
     version: 'Version', terms: 'Conditions générales', privacyPolicy: 'Politique de confidentialité', contact: 'Nous contacter', rateApp: "Évaluer l'application", unavailable: "Ce service n'est pas encore activé.",
     profileSaved: 'Modifications enregistrées', avatarError: "Impossible de changer la photo", retry: 'Réessayer', loading: 'Chargement des paramètres', wordExists: 'Ce mot existe déjà', add: 'Ajouter', currentDevice: 'Navigateur actuel', deleteModalTitle: 'Confirmer la suppression du compte', passwordModalTitle: 'Changer le mot de passe', emailUpdateNote: "La modification de l'adresse peut nécessiter une confirmation par e-mail.",
+    closeDialog: 'Fermer la fenêtre', profileLoading: 'Chargement du profil...', profileNotFound: "Ce profil n'existe pas ou n'est plus disponible.", profileLoadError: 'Impossible de charger le profil. Vérifiez votre connexion puis réessayez.', profileSignInRequired: 'Connectez-vous pour afficher votre profil.', errorTitle: 'Une erreur technique inattendue est survenue.', errorDescription: "Impossible d'afficher cette page. Rechargez-la ou retournez à l'accueil.", reloadPage: 'Recharger', returnHome: "Retour à l'accueil",
+    directMessages: 'Messages directs', privateConversation: 'Conversation privée', waitingSignal: 'Un message vous attend', signalProfile: 'Profil', liveCall: 'Appel en direct',
+    searchPageTitle: 'Recherche', searchPlaceholder: "Recherchez un nom d'utilisateur ou un identifiant...", searchClear: 'Effacer la recherche', searchError: 'Impossible de récupérer les résultats. Réessayez.', searchNoResults: 'Aucun résultat correspondant',
+    voicePermissionDenied: "L'accès au microphone a été refusé. Vérifiez l'autorisation du site puis réessayez.", microphoneUnavailable: 'Microphone indisponible. Vérifiez sa connexion ou la compatibilité du navigateur.', microphoneBusy: "Le microphone est utilisé par une autre application. Fermez-la puis réessayez.", microphoneSecureContext: 'Une connexion sécurisée est nécessaire pour utiliser le microphone.', voiceUploadError: "Impossible d'envoyer le message vocal. Vérifiez la connexion et l'autorisation du microphone puis réessayez.", voicePlaybackError: 'Impossible de lire le message vocal.', voiceLoading: 'Chargement de l’enregistrement...', ideaPlanner: "Planificateur d’idées", ideaPlannerThinking: 'Préparation de la proposition',
   },
   en: {
     title: 'Settings', back: 'Back', account: 'Account', privacy: 'Privacy', security: 'Security', notifications: 'Notifications', appearance: 'Appearance', language: 'Language', content: 'Content', accessibility: 'Accessibility', data: 'Data', about: 'About',
@@ -43,8 +53,35 @@ const messages = {
     downloadData: 'Download a copy of my data', deleteAccount: 'Delete account', deleteWarning: 'Account deletion is permanent. This interface cannot directly delete an authentication account.', typeDelete: 'Type DELETE to confirm', deleteConfirm: 'Confirm request', deleteUnavailable: 'The account was not deleted. Contact support to complete the request securely.',
     version: 'Version', terms: 'Terms and conditions', privacyPolicy: 'Privacy policy', contact: 'Contact us', rateApp: 'Rate the app', unavailable: 'This service is not enabled yet.',
     profileSaved: 'Changes saved', avatarError: 'Could not change the photo', retry: 'Retry', loading: 'Loading settings', wordExists: 'This word already exists', add: 'Add', currentDevice: 'Current browser', deleteModalTitle: 'Confirm account deletion', passwordModalTitle: 'Change password', emailUpdateNote: 'Changing your email may require email confirmation.',
+    closeDialog: 'Close dialog', profileLoading: 'Loading profile...', profileNotFound: 'This profile does not exist or is no longer available.', profileLoadError: 'Could not load the profile. Check your connection and try again.', profileSignInRequired: 'Sign in to view your profile.', errorTitle: 'An unexpected technical error occurred.', errorDescription: 'This page could not be displayed. Reload it or return to the home page.', reloadPage: 'Reload page', returnHome: 'Return home',
+    directMessages: 'Direct messages', privateConversation: 'Private conversation', waitingSignal: 'A message is waiting for you', signalProfile: 'Profile', liveCall: 'Live call',
+    searchPageTitle: 'Search', searchPlaceholder: 'Search by username or ID...', searchClear: 'Clear search', searchError: 'Could not load results. Please try again.', searchNoResults: 'No matching results',
+    voicePermissionDenied: 'Microphone access was denied. Check this site’s permission and try again.', microphoneUnavailable: 'Microphone unavailable. Check its connection or browser support.', microphoneBusy: 'The microphone is being used by another app. Close it and try again.', microphoneSecureContext: 'A secure connection is required to use the microphone.', voiceUploadError: 'Could not send the voice message. Check your connection and microphone permission, then try again.', voicePlaybackError: 'Could not play the voice message.', voiceLoading: 'Loading recording...', ideaPlanner: 'Idea planner', ideaPlannerThinking: 'Preparing the proposal',
   },
 } as const;
+
+export type LanguagePickerKey = 'searchPlaceholder' | 'comingSoon' | 'noResults' | 'noResultsSuggestion';
+
+const languagePickerMessages: Record<Language, Record<LanguagePickerKey, string>> = {
+  ar: {
+    searchPlaceholder: 'ابحث عن لغتك',
+    comingSoon: 'قريباً',
+    noResults: 'لا توجد لغة بهذا الاسم',
+    noResultsSuggestion: 'جرّب البحث بالاسم الأصلي أو الإنجليزي أو رمز اللغة.',
+  },
+  fr: {
+    searchPlaceholder: 'Recherchez votre langue',
+    comingSoon: 'Bientôt',
+    noResults: 'Aucune langue trouvée',
+    noResultsSuggestion: 'Essayez le nom natif, le nom anglais ou le code de langue.',
+  },
+  en: {
+    searchPlaceholder: 'Search for your language',
+    comingSoon: 'Coming soon',
+    noResults: 'No language found',
+    noResultsSuggestion: 'Try the native name, English name, or language code.',
+  },
+};
 
 export type TranslationKey = keyof typeof messages.ar;
 
@@ -52,17 +89,32 @@ export function translate(language: Language, key: TranslationKey): string {
   return messages[language][key];
 }
 
+export function translateLanguagePicker(language: Language, key: LanguagePickerKey): string {
+  return languagePickerMessages[language][key];
+}
+
 export function getStoredLanguage(): Language {
   try {
     const saved = localStorage.getItem('ds-language');
-    return saved === 'fr' || saved === 'en' ? saved : 'ar';
+    if (isAvailableLanguageCode(saved)) return saved;
   } catch {
     return 'ar';
   }
+  return 'ar';
 }
 
 export function directionForLanguage(language: Language): TextDirection {
   return language === 'ar' ? 'rtl' : 'ltr';
+}
+
+export function getStoredDirection(): TextDirection {
+  try {
+    const saved = localStorage.getItem('ds-direction');
+    if (saved === 'rtl' || saved === 'ltr') return saved;
+  } catch {
+    return directionForLanguage(getStoredLanguage());
+  }
+  return directionForLanguage(getStoredLanguage());
 }
 
 export const LANGUAGE_CHANGE_EVENT = 'ds-language-change';

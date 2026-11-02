@@ -8,11 +8,13 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "voices:samples": "node --env-file=.env scripts/voice-samples.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "browser-image-compression": "^2.0.2",
+    "flag-icons": "^7.6.0",
     "framer-motion": "^13.4.4",
     "livekit-client": "^2.22.3",
     "lucide-react": "^0.446.0",

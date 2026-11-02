@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Palette, Lock, ChevronRight, Loader2, Check,
@@ -8,6 +9,9 @@ import ThemeSelector from '@/components/ThemeSelector';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useModalScrollLock } from '@/hooks/useModalLayer';
+import { directionForLanguage, getStoredLanguage, translate } from '@/lib/i18n';
+import Handle from '@/components/Handle';
 
 interface Props {
   open: boolean;
@@ -47,6 +51,23 @@ export default function SettingsPanel({ open, onClose }: Props) {
   const [darkMode, setDarkMode] = useState(true);
   const [readReceipts, setReadReceipts] = useState(true);
   const [notifications, setNotifications] = useState(true);
+  useModalScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setMsg(null);
+      setNewPassword('');
+      if (view === 'main') {
+        onClose();
+      } else {
+        setView('main');
+      }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [open, onClose, view]);
 
   const handlePasswordChange = async () => {
     if (newPassword.length < 8) {
@@ -152,7 +173,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
 
   const reset = () => { setView('main'); setMsg(null); setNewPassword(''); };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -160,7 +181,8 @@ export default function SettingsPanel({ open, onClose }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100]"
+            dir={directionForLanguage(getStoredLanguage())}
+            className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md"
             onClick={() => { reset(); onClose(); }}
           />
           <motion.div
@@ -168,14 +190,15 @@ export default function SettingsPanel({ open, onClose }: Props) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-[110] rounded-t-3xl overflow-hidden"
+            dir={directionForLanguage(getStoredLanguage())}
+            className="fixed inset-x-0 bottom-0 z-[210] flex flex-col overflow-hidden rounded-t-3xl"
             style={{
               background: 'var(--bg-base)',
               borderTop: '1px solid var(--nav-border)',
-              maxHeight: '90vh',
+              maxHeight: '85dvh',
             }}
           >
-            <div className="flex flex-col" style={{ maxHeight: '90vh' }}>
+            <div className="flex min-h-0 flex-col">
               <div className="px-5 pt-5 pb-3 shrink-0">
                 <div className="w-12 h-1 rounded-full bg-white/20 mx-auto mb-5" />
                 <div className="flex items-center justify-between">
@@ -187,6 +210,8 @@ export default function SettingsPanel({ open, onClose }: Props) {
                     {view === 'moderation' && 'مراجعة التبليغات'}
                   </h2>
                   <button
+                    type="button"
+                    aria-label={translate(getStoredLanguage(), 'closeDialog')}
                     onClick={() => { if (view === 'main') { reset(); onClose(); } else reset(); }}
                     className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/60"
                   >
@@ -195,7 +220,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
                 </div>
               </div>
 
-              <div className="px-5 pb-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 100px)' }}>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
 
                 {view === 'main' && (
                   <div className="space-y-2">
@@ -341,7 +366,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
                         {blockedUser.avatar_url ? <img src={blockedUser.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-sm font-semibold text-white">{blockedUser.username.charAt(0).toUpperCase()}</div>}
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-white">{blockedUser.full_name || blockedUser.username}</p>
-                          <p className="truncate text-xs text-white/45">@{blockedUser.username}</p>
+                          <p className="truncate text-xs text-white/45"><Handle username={blockedUser.username} /></p>
                         </div>
                         <button type="button" onClick={() => void unblockUser(blockedUser.id)} disabled={loading} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/75 transition hover:bg-white/[0.08] disabled:opacity-50">فك الحظر</button>
                       </div>
@@ -413,6 +438,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

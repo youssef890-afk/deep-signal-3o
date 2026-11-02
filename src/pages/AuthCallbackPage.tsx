@@ -19,9 +19,9 @@ export default function AuthCallbackPage() {
   }, [loading, navigate, session]);
 
   return (
-    <main className="min-h-screen bg-[#090D16] text-white flex items-center justify-center px-4" dir="rtl">
+    <main className="min-h-[100dvh] bg-[var(--bg)] text-white flex items-center justify-center px-4" dir="rtl">
       <section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center shadow-2xl">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#101b3d] via-violet-950 to-cyan-950">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#101b3d] via-[var(--accent)] to-[var(--accent)]">
           <DSLogo size={56} />
         </div>
 
@@ -44,7 +44,7 @@ export default function AuthCallbackPage() {
             <p className="mt-3 text-sm text-white/60">
               {authError || 'الرابط ممكن يكون منتهي أو مستعمل. دخل للحساب وطلب رابط جديد.'}
             </p>
-            <Link to="/login" className="mt-6 inline-flex rounded-full bg-gradient-to-r from-rose-500 to-orange-500 px-6 py-3 font-semibold">
+            <Link to="/login" className="mt-6 inline-flex rounded-full bg-gradient-to-r from-rose-500 to-[var(--accent)] px-6 py-3 font-semibold">
               رجوع لتسجيل الدخول
             </Link>
           </>

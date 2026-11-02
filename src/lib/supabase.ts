@@ -60,7 +60,7 @@ if (missing.length > 0 && import.meta.env.PROD) {
   const root = document.getElementById('root');
   if (root) {
     root.innerHTML = `
-      <main dir="rtl" style="min-height:100vh;display:grid;place-items:center;background:#090D16;color:#fff;font-family:system-ui,sans-serif;padding:24px">
+      <main dir="rtl" style="min-height:100vh;display:grid;place-items:center;background:var(--bg);color:#fff;font-family:system-ui,sans-serif;padding:24px">
         <section style="max-width:520px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:28px;text-align:center">
           <h1 style="font-size:18px;margin:0 0 12px">الإعدادات ناقصة</h1>
           <p style="font-size:14px;line-height:1.9;color:#c9c9d4;margin:0 0 16px">

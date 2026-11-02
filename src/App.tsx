@@ -8,9 +8,8 @@ import MobileNav from '@/components/MobileNav';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PageBackground from '@/components/PageBackground';
-import LoginPage, { OnboardingCompletionPage } from '@/pages/LoginPage';
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
-import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import AuthEntryPage, { OnboardingCompletionPage } from '@/pages/AuthEntryPage';
+import AuthRecoveryPage from '@/pages/AuthRecoveryPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import Youssef555Page from '@/pages/Youssef555Page';
 import { Loader2 } from 'lucide-react';
@@ -41,7 +40,7 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 function RouteFallback() {
   return (
     <div className="grid min-h-[60vh] place-items-center" role="status" aria-label="جارٍ التحميل">
-      <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
+      <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
     </div>
   );
 }
@@ -68,15 +67,15 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden bg-[var(--bg-base)] text-white" dir={direction} lang={direction === 'rtl' ? 'ar' : 'en'}>
+    <div className="relative min-h-[100dvh] bg-[var(--bg-base)] text-white" dir={direction} lang={direction === 'rtl' ? 'ar' : 'en'}>
       <PageBackground />
-      <div dir="ltr" className="mx-auto min-h-screen max-w-[1600px] lg:grid lg:grid-cols-[314px_minmax(0,1fr)]">
+      <div dir="ltr" className="mx-auto min-h-[100dvh] max-w-[1600px] lg:grid lg:grid-cols-[72px_minmax(0,1fr)]">
         <div className="hidden lg:block" dir="rtl">
           <Sidebar />
         </div>
-        <div dir={direction} className="relative z-10 min-h-screen min-w-0">
+        <div dir={direction} className="relative z-10 min-h-[100dvh] min-w-0">
           <Navbar direction={direction} onToggleDirection={() => setDirection((current) => current === 'rtl' ? 'ltr' : 'rtl')} />
-          <main className="min-h-[calc(100vh-72px)] pb-[92px] md:pb-8">
+          <main className="min-h-[calc(100dvh-72px)] pb-[92px] lg:pb-8">
             <AnimatePresence mode="wait">
               <div key={location.pathname}>
                 <Suspense fallback={<RouteFallback />}>{children}</Suspense>
@@ -85,7 +84,7 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
           </main>
         </div>
       </div>
-      <div className="md:hidden">
+      <div className="lg:hidden">
         <MobileNav />
       </div>
     </div>
@@ -106,9 +105,11 @@ function AuthGate() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#090D16] flex flex-col items-center justify-center relative">
-        <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] rounded-full bg-purple-500/25 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-cyan-500/20 blur-[120px]" />
+      <div className="relative flex min-h-[100dvh] flex-col items-center justify-center bg-[var(--bg)]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] rounded-full bg-[var(--accent)]/25 blur-[120px]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[var(--accent)]/20 blur-[120px]" />
+        </div>
         <div className="relative z-10 flex flex-col items-center">
           <div className="relative mb-5">
             <div className="absolute inset-0 gradient-primary rounded-3xl blur-2xl opacity-60" />
@@ -116,7 +117,7 @@ function AuthGate() {
               <DSLogo size={56} />
             </div>
           </div>
-          <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+          <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
         </div>
       </div>
     );
@@ -126,7 +127,7 @@ function AuthGate() {
   if (sessionStorage.getItem('password_recovery') === '1') {
     return (
       <Routes>
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/reset-password" element={<AuthRecoveryPage />} />
         <Route path="*" element={<Navigate to="/reset-password" replace />} />
       </Routes>
     );
@@ -136,10 +137,10 @@ function AuthGate() {
     return (
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/login" element={<AuthEntryPage />} />
+        <Route path="/signup" element={<AuthEntryPage initialScreen="signupAccount" />} />
+        <Route path="/forgot-password" element={<AuthEntryPage initialScreen="forgotEmail" />} />
+        <Route path="/reset-password" element={<AuthRecoveryPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

@@ -72,7 +72,7 @@ export default function DiscoverPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
       </div>
     );
   }
@@ -81,7 +81,7 @@ export default function DiscoverPage() {
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
-          <Users className="w-6 h-6 text-rose-400" />
+          <Users className="w-6 h-6 text-[var(--accent)]" />
           <h1 className="text-2xl font-bold text-white">اكتشف أشخاص</h1>
         </div>
         <p className="text-sm text-white/50">تابع أشخاص جدد ووسع شبكتك</p>
@@ -127,7 +127,7 @@ export default function DiscoverPage() {
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                     isFollowing
                       ? 'bg-white/10 text-white hover:bg-white/20'
-                      : 'bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:opacity-90'
+                      : 'bg-[var(--accent)] text-[var(--accent-foreground)] hover:brightness-110'
                   }`}
                 >
                   {isFollowing ? (

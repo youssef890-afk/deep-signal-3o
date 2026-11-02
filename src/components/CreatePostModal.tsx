@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   FileText,
@@ -16,6 +17,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import SmartPostAssistant from '@/components/SmartPostAssistant';
+import { useModalScrollLock } from '@/hooks/useModalLayer';
+import { directionForLanguage, getStoredLanguage, translate } from '@/lib/i18n';
 
 type ContentType = 'none' | 'text' | 'image' | 'video' | 'audio';
 
@@ -79,6 +82,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   onPostCreated,
 }) => {
   const { user } = useAuth();
+  useModalScrollLock(isOpen);
 
   const [contentType, setContentType] =
     useState<ContentType>('none');
@@ -127,6 +131,18 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     setSelectedBackground((current) => current === 'sunset' ? current : 'sunset');
     setLoading((current) => current ? false : current);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !loading) {
+        resetState();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isOpen, loading, onClose, resetState]);
 
   function closeModal() {
     if (loading) return;
@@ -426,31 +442,25 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
-      className="
-        fixed inset-0 z-[100]
-        bg-black/80
-        backdrop-blur-md
-        flex items-end sm:items-center
-        justify-center
-      "
+      role="presentation"
+      dir={directionForLanguage(getStoredLanguage())}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) closeModal();
+      }}
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 backdrop-blur-md sm:items-center"
     >
       <div
-        className="
-          w-full sm:max-w-md
-          max-h-[92vh]
-          overflow-y-auto
-          bg-neutral-950
-          border border-white/10
-          rounded-t-3xl sm:rounded-3xl
-          shadow-2xl
-          text-white
-        "
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-post-modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
+        className="flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:max-w-md sm:rounded-3xl"
       >
 
         {/* HEADER */}
-        <div className="sticky top-0 z-20 bg-neutral-950/95 backdrop-blur-md px-5 py-4 border-b border-white/10">
+        <div className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-neutral-950/95 px-5 py-4 backdrop-blur-md">
 
           <div className="flex items-center justify-between">
 
@@ -476,7 +486,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               )}
 
               <div>
-                <h2 className="text-lg font-bold">
+                <h2 id="create-post-modal-title" className="text-lg font-bold">
                   {contentType === 'none'
                     ? 'إنشاء محتوى'
                     : contentType === 'text'
@@ -499,6 +509,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               type="button"
               onClick={closeModal}
               disabled={loading}
+              aria-label={translate(getStoredLanguage(), 'closeDialog')}
               className="
                 w-9 h-9
                 rounded-full
@@ -513,6 +524,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           </div>
         </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
         {/* TYPE SELECTOR */}
         {contentType === 'none' && (
           <div className="p-5">
@@ -535,7 +547,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   p-4
                   bg-neutral-900
                   border border-white/10
-                  hover:border-rose-500/50
+                  hover:border-[var(--accent)]/50
                   transition-all
                 "
               >
@@ -544,8 +556,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   mx-auto mb-3
                   rounded-2xl
                   bg-gradient-to-br
-                  from-rose-500
-                  to-orange-400
+                  from-[var(--accent)]
+                  to-[var(--accent)]
                   flex items-center justify-center
                 ">
                   <FileText className="w-6 h-6" />
@@ -568,7 +580,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   p-4
                   bg-neutral-900
                   border border-white/10
-                  hover:border-rose-500/50
+                  hover:border-[var(--accent)]/50
                   transition-all
                 "
               >
@@ -577,8 +589,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   mx-auto mb-3
                   rounded-2xl
                   bg-gradient-to-br
-                  from-pink-500
-                  to-purple-500
+                  from-[var(--accent)]
+                  to-[var(--accent)]
                   flex items-center justify-center
                 ">
                   <ImageIcon className="w-6 h-6" />
@@ -601,7 +613,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   p-4
                   bg-neutral-900
                   border border-white/10
-                  hover:border-rose-500/50
+                  hover:border-[var(--accent)]/50
                   transition-all
                 "
               >
@@ -610,8 +622,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   mx-auto mb-3
                   rounded-2xl
                   bg-gradient-to-br
-                  from-purple-500
-                  to-indigo-600
+                  from-[var(--accent)]
+                  to-[var(--accent)]
                   flex items-center justify-center
                 ">
                   <Video className="w-6 h-6" />
@@ -625,9 +637,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleSelectType('audio')}
-                className="group rounded-2xl border border-white/10 bg-neutral-900 p-4 transition-all hover:border-emerald-400/50"
+                className="group rounded-2xl border border-white/10 bg-neutral-900 p-4 transition-all hover:border-[var(--accent)]/50"
               >
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]">
                   <Music2 className="h-6 w-6" />
                 </div>
                 <span className="text-xs font-semibold">صوت / تلاوة</span>
@@ -690,7 +702,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 placeholder:text-neutral-600
                 resize-none
                 focus:outline-none
-                focus:border-rose-500/50
+                focus:border-[var(--accent)]/50
               "
             />
 
@@ -760,9 +772,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 py-3.5
                 rounded-2xl
                 bg-gradient-to-r
-                from-rose-500
-                via-pink-500
-                to-orange-500
+                from-[var(--accent)]
+                via-[var(--accent)]
+                to-[var(--accent)]
                 font-bold
                 flex
                 items-center
@@ -806,7 +818,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 text-sm
                 resize-none
                 focus:outline-none
-                focus:border-rose-500/50
+                focus:border-[var(--accent)]/50
               "
             />
 
@@ -885,12 +897,12 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               border-white/20
               bg-neutral-900
               cursor-pointer
-              hover:border-rose-500/50
+              hover:border-[var(--accent)]/50
               transition
             ">
               <Plus className="
                 w-8 h-8
-                text-rose-500
+                text-[var(--accent)]
                 mb-2
               " />
 
@@ -924,9 +936,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 py-3.5
                 rounded-2xl
                 bg-gradient-to-r
-                from-rose-500
-                via-pink-500
-                to-orange-500
+                from-[var(--accent)]
+                via-[var(--accent)]
+                to-[var(--accent)]
                 font-bold
                 flex
                 items-center
@@ -981,7 +993,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                     border
                     ${
                       videoType === 'reel'
-                        ? 'border-rose-500 bg-rose-500/10'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10'
                         : 'border-white/10 bg-neutral-900'
                     }
                   `}
@@ -1014,7 +1026,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                     border
                     ${
                       videoType === 'video'
-                        ? 'border-rose-500 bg-rose-500/10'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10'
                         : 'border-white/10 bg-neutral-900'
                     }
                   `}
@@ -1056,7 +1068,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 text-sm
                 resize-none
                 focus:outline-none
-                focus:border-rose-500/50
+                focus:border-[var(--accent)]/50
               "
             />
 
@@ -1095,12 +1107,12 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               border-white/20
               bg-neutral-900
               cursor-pointer
-              hover:border-rose-500/50
+              hover:border-[var(--accent)]/50
               transition
             ">
               <Video className="
                 w-8 h-8
-                text-rose-500
+                text-[var(--accent)]
                 mb-2
               " />
 
@@ -1135,9 +1147,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 py-3.5
                 rounded-2xl
                 bg-gradient-to-r
-                from-rose-500
-                via-pink-500
-                to-orange-500
+                from-[var(--accent)]
+                via-[var(--accent)]
+                to-[var(--accent)]
                 font-bold
                 flex
                 items-center
@@ -1170,18 +1182,18 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               onChange={(event) => setContent(event.target.value)}
               placeholder="عنوان أو وصف اختياري للتسجيل الصوتي..."
               maxLength={500}
-              className="min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-neutral-900 p-4 text-sm text-white placeholder:text-neutral-500 focus:border-emerald-400/50 focus:outline-none"
+              className="min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-neutral-900 p-4 text-sm text-white placeholder:text-neutral-500 focus:border-[var(--accent)]/50 focus:outline-none"
             />
 
             {previewUrls[0] && (
-              <div className="rounded-2xl border border-emerald-400/20 bg-neutral-900 p-4">
+              <div className="rounded-2xl border border-[var(--accent)]/20 bg-neutral-900 p-4">
                 <audio src={previewUrls[0]} controls className="w-full" />
                 <p className="mt-2 truncate text-xs text-white/50">{selectedFiles[0]?.name}</p>
               </div>
             )}
 
-            <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/20 bg-neutral-900 transition hover:border-emerald-400/50">
-              <Music2 className="mb-2 h-8 w-8 text-emerald-300" />
+            <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/20 bg-neutral-900 transition hover:border-[var(--accent)]/50">
+              <Music2 className="mb-2 h-8 w-8 text-[var(--accent)]" />
               <span className="text-sm font-semibold">{selectedFiles.length ? 'تغيير الملف الصوتي' : 'اختيار ملف صوتي'}</span>
               <span className="mt-1 text-[11px] text-neutral-500">MP3 أو WAV أو أي صيغة صوت يدعمها المتصفح</span>
               <input type="file" accept="audio/*" onChange={handleFilesChange} className="hidden" />
@@ -1191,7 +1203,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               type="button"
               onClick={handlePublish}
               disabled={loading || selectedFiles.length !== 1}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 py-3.5 font-bold text-white transition disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)] py-3.5 font-bold text-white transition disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               نشر التسجيل الصوتي
@@ -1199,7 +1211,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           </div>
         )}
 
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

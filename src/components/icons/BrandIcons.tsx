@@ -12,9 +12,9 @@ export function DSLogo({ className = '', size = 32, style }: IconProps) {
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className} style={style}>
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FF3D71" />
-          <stop offset="50%" stopColor="#EC4899" />
-          <stop offset="100%" stopColor="#F59E0B" />
+  <stop offset="0%" stopColor="#F5F2EB" />
+  <stop offset="50%" stopColor="#D8D3CA" />
+  <stop offset="100%" stopColor="#B8B1A5" />
         </linearGradient>
       </defs>
       <rect x="4" y="4" width="40" height="40" rx="14" fill={`url(#${gradientId})`} />

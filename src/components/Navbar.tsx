@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Bell, Check, CircleUserRound, Gamepad2, Heart, Loader2, MessageCircle, Search, Sparkles, UserRoundPlus } from 'lucide-react';
+import { ArrowLeftRight, Bell, Check, CircleUserRound, Gamepad2, Heart, Loader2, LogOut, MessageCircle, Search, Settings2, Sparkles, UserRound, UserRoundPlus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { DSLogo } from '@/components/icons/BrandIcons';
+import Avatar from '@/components/Avatar';
 
 interface ActivityItem {
   id: string;
@@ -21,12 +22,28 @@ interface UserActivityRow {
 }
 
 export default function Navbar({ direction, onToggleDirection }: { direction: 'rtl' | 'ltr'; onToggleDirection: () => void }) {
-  const { user } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [online, setOnline] = useState(() => navigator.onLine);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    setProfileMenuOpen(false);
+    navigate('/login');
+  };
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileMenuOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     const setOnlineStatus = () => setOnline(navigator.onLine);
@@ -98,15 +115,15 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
   }, [notificationsOpen, user]);
 
   const activityIcon = (kind: ActivityItem['kind']) => {
-    if (kind === 'follow') return <UserRoundPlus className="h-4 w-4 text-sky-300" />;
-    if (kind === 'like') return <Heart className="h-4 w-4 text-rose-400" />;
-    if (kind === 'comment') return <MessageCircle className="h-4 w-4 text-amber-300" />;
-    if (kind === 'view') return <CircleUserRound className="h-4 w-4 text-emerald-300" />;
-    return <Sparkles className="h-4 w-4 text-orange-300" />;
+    if (kind === 'follow') return <UserRoundPlus className="h-4 w-4 text-[var(--text)]" />;
+    if (kind === 'like') return <Heart className="h-4 w-4 text-[var(--text)]" />;
+    if (kind === 'comment') return <MessageCircle className="h-4 w-4 text-[var(--text)]" />;
+    if (kind === 'view') return <CircleUserRound className="h-4 w-4 text-[var(--text)]" />;
+    return <Sparkles className="h-4 w-4 text-[var(--text)]" />;
   };
 
   return (
-    <header className="sticky top-0 z-30 h-[68px] border-b border-white/[0.08] bg-[var(--nav-bg)] px-3 backdrop-blur-2xl sm:px-6">
+    <header className="sticky top-0 z-30 h-[68px] border-b border-[var(--text)]/[0.08] bg-[var(--nav-bg)] px-3 backdrop-blur-2xl sm:px-6">
       <div className="mx-auto grid h-full max-w-[1500px] grid-cols-3 items-center" dir="ltr">
         <div className="relative justify-self-start" dir="rtl">
           <button
@@ -114,21 +131,21 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
             onClick={() => setNotificationsOpen((open) => !open)}
             aria-label="فتح الإشعارات"
             aria-expanded={notificationsOpen}
-            className={`relative grid h-10 w-10 place-items-center rounded-full border transition ${notificationsOpen ? 'border-rose-400/40 bg-rose-400/10 text-rose-300' : 'border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.08] hover:text-white'}`}
+            className={`relative grid h-10 w-10 place-items-center rounded-full border transition ${notificationsOpen ? 'border-[var(--text)]/35 bg-[var(--text)]/10 text-[var(--text)]' : 'border-[var(--text)]/10 bg-[var(--text)]/[0.03] text-[var(--text)]/70 hover:bg-[var(--text)]/[0.08] hover:text-[var(--text)]'}`}
           >
             <Bell className="h-[19px] w-[19px]" />
-            {activities.length > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-400 ring-2 ring-[#09090d]" />}
+            {activities.length > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[var(--text)] ring-2 ring-[var(--bg)]" />}
           </button>
 
           {notificationsOpen && (
-            <section className="absolute left-0 top-12 z-50 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-white/10 bg-[#111116] text-right shadow-2xl" dir="rtl" aria-label="الإشعارات">
-              <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
-                <h2 className="text-sm font-semibold text-white">الإشعارات</h2>
-                <span className="text-[11px] text-white/40">أحدث النشاطات</span>
+            <section className="absolute left-0 top-12 z-50 w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[var(--text)]/10 bg-[var(--surface)] text-right shadow-2xl" dir="rtl" aria-label="الإشعارات">
+              <div className="flex items-center justify-between border-b border-[var(--text)]/[0.08] px-4 py-3">
+                <h2 className="text-sm font-semibold text-[var(--text)]">الإشعارات</h2>
+                <span className="text-[11px] text-[var(--text)]/40">أحدث النشاطات</span>
               </div>
               <div className="max-h-[min(420px,70vh)] overflow-y-auto">
                 {notificationsLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-white/50">
+                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-[var(--text)]/50">
                     <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل
                   </div>
                 ) : activities.map((activity) => (
@@ -139,14 +156,14 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
                       setNotificationsOpen(false);
                       navigate(activity.actorId ? `/profile/${activity.actorId}` : '/feed');
                     }}
-                    className="flex w-full items-start gap-3 border-b border-white/[0.06] px-4 py-3 text-right transition hover:bg-white/[0.04]"
+                    className="flex w-full items-start gap-3 border-b border-[var(--text)]/[0.06] px-4 py-3 text-right transition hover:bg-[var(--text)]/[0.04]"
                   >
-                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.06]">{activityIcon(activity.kind)}</span>
+                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--text)]/[0.06]">{activityIcon(activity.kind)}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-xs leading-5 text-white/85"><b className="font-semibold text-white">{activity.actor}</b> {activity.description}</span>
-                      <time className="mt-1 block text-[10px] text-white/35">{new Intl.DateTimeFormat('ar-MA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(activity.createdAt))}</time>
+                      <span className="block text-xs leading-5 text-[var(--text)]/85"><b className="font-semibold text-[var(--text)]">{activity.actor}</b> {activity.description}</span>
+                      <time className="mt-1 block text-[10px] text-[var(--text)]/35">{new Intl.DateTimeFormat('ar-MA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(activity.createdAt))}</time>
                     </span>
-                    {activity.kind === 'update' && <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-400" />}
+                    {activity.kind === 'update' && <Check className="mt-1 h-4 w-4 shrink-0 text-[var(--text)]" />}
                   </button>
                 ))}
               </div>
@@ -154,9 +171,9 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           )}
         </div>
 
-        <Link to="/search" aria-label="البحث" className="flex h-10 w-full max-w-[420px] items-center justify-self-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 text-right text-xs text-white/45 transition hover:border-cyan-300/25 hover:bg-white/[0.06]">
+        <Link to="/search" aria-label="البحث" className="flex h-10 w-full max-w-[420px] items-center justify-self-center gap-3 rounded-xl border border-[var(--text)]/[0.08] bg-[var(--text)]/[0.035] px-3 text-right text-xs text-[var(--text)]/45 transition hover:border-[var(--text)]/25 hover:bg-[var(--text)]/[0.06]">
           <DSLogo size={24} />
-          <Search className="h-4 w-4 shrink-0 text-cyan-200/70" />
+          <Search className="h-4 w-4 shrink-0 text-[var(--text)]/70" />
           <span className="min-w-0 flex-1 truncate">ابحث عن أشخاص أو غرف أو مقاطع</span>
         </Link>
 
@@ -166,7 +183,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
             onClick={onToggleDirection}
             aria-label={`تبديل الاتجاه إلى ${direction === 'rtl' ? 'LTR' : 'RTL'}`}
             title={`تبديل الاتجاه إلى ${direction === 'rtl' ? 'LTR' : 'RTL'}`}
-            className="grid h-9 w-9 place-items-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-white"
+            className="grid h-9 w-9 place-items-center rounded-lg text-[var(--text)]/45 transition hover:bg-[var(--text)]/[0.06] hover:text-[var(--text)]"
           >
             <ArrowLeftRight className="h-4 w-4" />
           </button>
@@ -174,13 +191,39 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           to="/games"
           dir="rtl"
           aria-label={`الألعاب، ${online ? 'متصل' : 'غير متصل'}`}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 text-white/80 transition hover:border-white/20 hover:bg-white/[0.07]"
+          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--text)]/10 bg-[var(--text)]/[0.03] px-3 text-[var(--text)]/80 transition hover:border-[var(--text)]/20 hover:bg-[var(--text)]/[0.07]"
           >
-            <Gamepad2 className="h-[19px] w-[19px] text-amber-300" />
+            <Gamepad2 className="h-[19px] w-[19px] text-[var(--text)]" />
             <span className="hidden text-xs font-medium sm:inline">الألعاب</span>
-            <span className={`h-2 w-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-white/30'}`} />
-            <span className="hidden text-[10px] text-white/45 md:inline">{online ? 'متصل' : 'أوفلاين'}</span>
+            <span className={`h-2 w-2 rounded-full ${online ? 'bg-[var(--success)]' : 'bg-[var(--text-muted)]/50'}`} />
+            <span className="hidden text-[10px] text-[var(--text)]/45 md:inline">{online ? 'متصل' : 'أوفلاين'}</span>
           </Link>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setProfileMenuOpen((open) => !open)}
+              aria-label="قائمة الحساب"
+              aria-expanded={profileMenuOpen}
+              className="grid h-10 w-10 place-items-center rounded-full ring-1 ring-[var(--border)] transition hover:ring-[var(--accent)]"
+            >
+              <Avatar src={profile?.avatar_url} name={profile?.username ?? user?.email ?? 'مستخدم'} size="xs" />
+            </button>
+            {profileMenuOpen && (
+              <div role="menu" aria-label="قائمة الحساب" dir="rtl" className="absolute end-0 top-12 z-50 w-48 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 text-right shadow-[var(--shadow-lg)]">
+                {profile && (
+                  <Link role="menuitem" to={`/profile/${profile.id}`} onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
+                    <UserRound className="h-4 w-4 text-[var(--accent)]" /> الملف الشخصي
+                  </Link>
+                )}
+                <Link role="menuitem" to="/settings" onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
+                  <Settings2 className="h-4 w-4 text-[var(--accent)]" /> الإعدادات
+                </Link>
+                <button role="menuitem" type="button" onClick={() => void handleSignOut()} className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
+                  <LogOut className="h-4 w-4 text-[var(--accent)]" /> تسجيل الخروج
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

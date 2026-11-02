@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Ban, Flag, LoaderCircle, MoreHorizontal, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useModalScrollLock } from '@/hooks/useModalLayer';
+import { directionForLanguage, getStoredLanguage, translate } from '@/lib/i18n';
 
 type ReportReason = 'spam' | 'harassment' | 'hate' | 'inappropriate' | 'other';
 
@@ -28,6 +31,19 @@ export default function SafetyActions({ targetUserId, targetPostId, onBlocked }:
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  useModalScrollLock(Boolean(dialog));
+
+  useEffect(() => {
+    if (!dialog) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !loading) {
+        setDialog(null);
+        setError('');
+      }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [dialog, loading]);
 
   async function handleReport() {
     if (!user) return;
@@ -105,13 +121,13 @@ export default function SafetyActions({ targetUserId, targetPostId, onBlocked }:
       {notice && <p role="status" className="absolute left-0 top-11 z-20 w-52 rounded-lg bg-emerald-950 px-3 py-2 text-xs text-emerald-200">{notice}</p>}
 
       {dialog && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 p-4" dir="rtl">
-          <section role="dialog" aria-modal="true" aria-labelledby="safety-dialog-title" className="w-full max-w-sm rounded-2xl border border-white/10 bg-neutral-900 p-5 shadow-2xl">
+        createPortal(<div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) { setDialog(null); setError(''); } }} className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/75 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]" dir={directionForLanguage(getStoredLanguage())}>
+          <section role="dialog" aria-modal="true" aria-labelledby="safety-dialog-title" onMouseDown={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-white/10 bg-neutral-900 p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 id="safety-dialog-title" className="text-base font-bold text-white">
                 {dialog === 'report' ? 'التبليغ عن المحتوى' : 'حظر المستخدم'}
               </h2>
-              <button type="button" aria-label="إغلاق" onClick={() => { setDialog(null); setError(''); }} className="grid h-8 w-8 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white">
+              <button type="button" aria-label={translate(getStoredLanguage(), 'closeDialog')} onClick={() => { setDialog(null); setError(''); }} className="grid h-8 w-8 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -142,7 +158,7 @@ export default function SafetyActions({ targetUserId, targetPostId, onBlocked }:
               </button>
             </div>
           </section>
-        </div>
+        </div>, document.body)
       )}
     </div>
   );

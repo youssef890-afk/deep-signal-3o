@@ -1,14 +1,18 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  Accessibility, ArrowLeft, Bell, Check, ChevronLeft, CircleHelp, Download, Eye, FileText,
-  Globe, Info, Languages, Lock, LogOut, MessageCircle, Monitor, Palette, Shield, Trash2,
-  User, UserRound, Volume2, X,
+  Accessibility, ArrowLeft, Bell, Check, ChevronLeft, Download, Eye,
+  Globe, Info, Lock, LogOut, Monitor, Palette, Shield, Trash2,
+  User, UserRound, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme, type ThemeMode } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
+import { Button, Input } from '@/components/ui';
+import Handle from '@/components/Handle';
+import { useModalScrollLock } from '@/hooks/useModalLayer';
 import {
   directionForLanguage, getStoredLanguage, setStoredLanguage, translate,
   type Language, type TranslationKey,
@@ -100,7 +104,7 @@ export function SettingsRow({ label, description, children }: { label: string; d
 
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="settings-card rounded-xl border border-white/10 bg-[#111] p-4 sm:p-5">
+    <section className="settings-card rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <h2 className="mb-3 text-lg font-semibold text-white">{title}</h2>
       {children}
     </section>
@@ -122,7 +126,7 @@ export function ColorPicker({ colors, selected, onSelect, label }: { colors: str
   return (
     <div className="flex flex-wrap gap-3" role="radiogroup" aria-label={label}>
       {colors.map((color) => (
-        <button key={color} type="button" role="radio" aria-checked={selected.toLowerCase() === color.toLowerCase()} aria-label={`${label} ${color}`} onClick={() => onSelect(color)} className={`grid h-9 w-9 place-items-center rounded-full transition hover:scale-110 ${selected.toLowerCase() === color.toLowerCase() ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111]' : 'ring-1 ring-white/15'}`} style={{ backgroundColor: color }}>
+        <button key={color} type="button" role="radio" aria-checked={selected.toLowerCase() === color.toLowerCase()} aria-label={`${label} ${color}`} onClick={() => onSelect(color)} className={`grid h-9 w-9 place-items-center rounded-full transition hover:scale-110 ${selected.toLowerCase() === color.toLowerCase() ? 'ring-2 ring-white ring-offset-2 ring-offset-[var(--bg)]' : 'ring-1 ring-white/15'}`} style={{ backgroundColor: color }}>
           {selected.toLowerCase() === color.toLowerCase() && <Check className="h-4 w-4 text-white drop-shadow" />}
         </button>
       ))}
@@ -158,6 +162,18 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
   const t = (key: TranslationKey) => translate(language, key);
+  useModalScrollLock(passwordOpen || deleteOpen);
+
+  useEffect(() => {
+    if (!passwordOpen && !deleteOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setPasswordOpen(false);
+      setDeleteOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [deleteOpen, passwordOpen]);
 
   useEffect(() => {
     setFullName(profile?.full_name ?? '');
@@ -374,13 +390,13 @@ export default function SettingsPage() {
                 ['phone', phone, setPhone, 'tel'],
               ] as const).map(([key, value, setter, type]) => (
                 <label key={key} className="block space-y-2 text-sm font-medium text-white/80">
-                  {t(key)}<input type={type} value={value} onChange={(event) => setter(event.target.value)} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--accent)]" />
+                  {t(key)}<Input type={type} value={value} onChange={(event) => setter(event.target.value)} />
                 </label>
               ))}
             </div>
             {email !== (user?.email ?? '') && <p className="text-xs text-white/50">{t('emailUpdateNote')}</p>}
             <label className="block space-y-2 text-sm font-medium text-white/80">{t('bio')}<textarea value={bio} onChange={(event) => setBio(event.target.value)} rows={4} className="w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--accent)]" /></label>
-            <button disabled={saving} type="submit" className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.02] disabled:opacity-50">{saving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />}{saving ? t('saving') : t('saveChanges')}</button>
+            <Button disabled={saving} type="submit">{saving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/40 border-t-current" />}{saving ? t('saving') : t('saveChanges')}</Button>
           </form>
         </SettingsSection>
       </div>
@@ -486,13 +502,13 @@ export default function SettingsPage() {
             setPreference('blockedWords', [...settings.blockedWords, word]);
             setWordInput('');
           }} className="flex gap-2">
-            <input value={wordInput} onChange={(event) => setWordInput(event.target.value)} placeholder={t('addWord')} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
-            <button type="submit" className="rounded-lg bg-white/10 px-3 text-xs font-semibold transition hover:bg-white/15">{t('add')}</button>
+            <Input value={wordInput} onChange={(event) => setWordInput(event.target.value)} placeholder={t('addWord')} className="min-w-0 flex-1" />
+            <Button type="submit" variant="secondary">{t('add')}</Button>
           </form>
           <div className="mt-3 flex flex-wrap gap-2">{settings.blockedWords.map((word) => <span key={word} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs">{word}<button type="button" aria-label={`${t('remove')} ${word}`} onClick={() => setPreference('blockedWords', settings.blockedWords.filter((item) => item !== word))}><X className="h-3.5 w-3.5 text-white/50" /></button></span>)}</div>
         </SettingsSection>
         <SettingsSection title={t('blockedAccounts')}>
-          {blockedLoading ? <div className="h-10 animate-pulse rounded-lg bg-white/5" /> : blockedError ? <p role="alert" className="text-sm text-rose-300">{t('saveError')}</p> : blockedAccounts.length === 0 ? <p className="py-3 text-sm text-white/50">{t('noBlockedAccounts')}</p> : blockedAccounts.map((account) => <div key={account.id} className="flex items-center justify-between border-b border-white/[0.07] py-3 last:border-0"><span className="text-sm">@{account.username}</span><button type="button" onClick={() => void unblock(account.id)} className="rounded-md px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/5">{t('remove')}</button></div>)}
+          {blockedLoading ? <div className="h-10 animate-pulse rounded-lg bg-white/5" /> : blockedError ? <p role="alert" className="text-sm text-rose-300">{t('saveError')}</p> : blockedAccounts.length === 0 ? <p className="py-3 text-sm text-white/50">{t('noBlockedAccounts')}</p> : blockedAccounts.map((account) => <div key={account.id} className="flex items-center justify-between border-b border-white/[0.07] py-3 last:border-0"><span className="text-sm"><Handle username={account.username} /></span><button type="button" onClick={() => void unblock(account.id)} className="rounded-md px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/5">{t('remove')}</button></div>)}
         </SettingsSection>
         <SettingsSection title={t('commentFilter')}>
           <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('commentFilter')}>
@@ -542,10 +558,10 @@ export default function SettingsPage() {
         <div><h1 className="text-xl font-semibold">{t('title')}</h1><p className="mt-1 text-xs text-white/45">{t(tabs.find((tab) => tab.id === activeTab)?.key ?? 'account')}</p></div>
       </header>
 
-      {toast && <div role={toast.error ? 'alert' : 'status'} aria-live="polite" className={`fixed left-1/2 top-20 z-[120] -translate-x-1/2 rounded-lg border px-4 py-3 text-sm shadow-xl ${toast.error ? 'border-rose-400/20 bg-[#251114] text-rose-200' : 'border-emerald-300/20 bg-[#102019] text-emerald-200'}`}>{toast.text}</div>}
+      {toast && <div role={toast.error ? 'alert' : 'status'} aria-live="polite" className={`fixed left-1/2 top-20 z-[120] -translate-x-1/2 rounded-lg border px-4 py-3 text-sm shadow-xl ${toast.error ? 'border-rose-400/20 bg-rose-500/10 text-rose-200' : 'border-emerald-300/20 bg-emerald-500/10 text-emerald-200'}`}>{toast.text}</div>}
 
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <nav aria-label={t('title')} className="flex gap-1 overflow-x-auto rounded-xl border border-white/10 bg-[#111] p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:sticky lg:top-20 lg:h-fit lg:flex-col lg:overflow-visible">
+        <nav aria-label={t('title')} className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:sticky lg:top-20 lg:h-fit lg:flex-col lg:overflow-visible">
           {tabs.map(({ id, key, icon: Icon }) => (
             <button key={id} type="button" onClick={() => setActiveTab(id)} aria-current={activeTab === id ? 'page' : undefined} className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition hover:bg-white/5 lg:w-full ${activeTab === id ? 'bg-white/[0.08] font-semibold text-white' : 'text-white/55'}`}>
               <Icon className="h-[18px] w-[18px] shrink-0" /><span>{t(key)}</span>
@@ -557,28 +573,28 @@ export default function SettingsPage() {
       </div>
 
       {passwordOpen && (
-        <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPasswordOpen(false); }} className="fixed inset-0 z-[110] grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
-          <section role="dialog" aria-modal="true" aria-labelledby="password-title" className="w-full max-w-md rounded-xl border border-white/10 bg-[#111] p-5 shadow-2xl">
+        createPortal(<div role="presentation" dir={directionForLanguage(language)} onMouseDown={(event) => { if (event.target === event.currentTarget) setPasswordOpen(false); }} className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto overscroll-contain bg-black/75 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="password-title" className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl">
             <div className="mb-5 flex items-center justify-between"><h2 id="password-title" className="text-lg font-semibold">{t('passwordModalTitle')}</h2><button type="button" onClick={() => setPasswordOpen(false)} aria-label={t('cancel')} className="rounded-lg p-2 text-white/55 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
             <form onSubmit={(event) => void handlePasswordChange(event)} className="space-y-3">
-              <input type="password" autoComplete="current-password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} placeholder={t('currentPassword')} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-3 text-sm outline-none focus:border-[var(--accent)]" />
-              <input type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder={t('newPassword')} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-3 text-sm outline-none focus:border-[var(--accent)]" />
-              <input type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t('confirmPassword')} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-3 text-sm outline-none focus:border-[var(--accent)]" />
-              <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={() => setPasswordOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/60 hover:bg-white/5">{t('cancel')}</button><button type="submit" disabled={passwordSaving} className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold disabled:opacity-50">{passwordSaving ? t('saving') : t('updatePassword')}</button></div>
+              <Input type="password" autoComplete="current-password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} placeholder={t('currentPassword')} />
+              <Input type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder={t('newPassword')} />
+              <Input type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t('confirmPassword')} />
+              <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" onClick={() => setPasswordOpen(false)}>{t('cancel')}</Button><Button type="submit" disabled={passwordSaving}>{passwordSaving ? t('saving') : t('updatePassword')}</Button></div>
             </form>
           </section>
-        </div>
+        </div>, document.body)
       )}
 
       {deleteOpen && (
-        <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteOpen(false); }} className="fixed inset-0 z-[110] grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
-          <section role="dialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-md rounded-xl border border-rose-400/20 bg-[#111] p-5 shadow-2xl">
+        createPortal(<div role="presentation" dir={directionForLanguage(language)} onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteOpen(false); }} className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto overscroll-contain bg-black/75 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-md rounded-xl border border-rose-400/20 bg-[var(--surface)] p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between"><h2 id="delete-title" className="text-lg font-semibold text-rose-200">{t('deleteModalTitle')}</h2><button type="button" onClick={() => setDeleteOpen(false)} aria-label={t('cancel')} className="rounded-lg p-2 text-white/55 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
             <p className="mb-4 text-sm leading-6 text-white/65">{t('deleteWarning')}</p>
-            <label className="mb-4 block text-sm text-white/75">{t('typeDelete')}<input value={deleteText} onChange={(event) => setDeleteText(event.target.value)} className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-3 text-sm outline-none focus:border-rose-400" /></label>
+            <label className="mb-4 block text-sm text-white/75">{t('typeDelete')}<Input value={deleteText} onChange={(event) => setDeleteText(event.target.value)} className="mt-2" /></label>
             <div className="flex justify-end gap-2"><button type="button" onClick={() => setDeleteOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/60 hover:bg-white/5">{t('cancel')}</button><button type="button" disabled={deleteText !== 'DELETE'} onClick={() => { setDeleteOpen(false); setDeleteText(''); notify(t('deleteUnavailable'), true); }} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40">{t('deleteConfirm')}</button></div>
           </section>
-        </div>
+        </div>, document.body)
       )}
     </main>
   );

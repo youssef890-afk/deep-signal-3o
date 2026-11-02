@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import SettingsPanel from '@/components/SettingsPanel';
 import SafetyActions from '@/components/SafetyActions';
+import Handle from '@/components/Handle';
 import { supabase } from '@/lib/supabase';
 import { generateAiImage } from '@/lib/aiAssistant';
 import { formatDisplayId } from '@/utils/format';
+import { getStoredLanguage, translate, type TranslationKey } from '@/lib/i18n';
 
 import {
   UserPlus,
@@ -27,10 +29,14 @@ interface ProfileData {
   username: string;
   full_name: string | null;
   avatar_url: string | null;
-  cover_url: string | null;
+  cover_url?: string | null;
   bio: string | null;
-  display_id?: number | null;
+  created_at?: string;
+  display_id?: number | string | null;
 }
+
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
 interface PostData {
   id: string;
@@ -55,15 +61,16 @@ export default function ProfilePage() {
   const user = session?.user ?? null;
   const navigate = useNavigate();
 
-  const targetUserId = userId || user?.id;
-  const isOwnProfile = user?.id === targetUserId;
+  const routeIdentifier = userId?.trim().replace(/^@/, '') || user?.id;
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [userPosts, setUserPosts] = useState<PostData[]>([]);
   const [profileBadges, setProfileBadges] = useState<ProfileBadge[]>([]);
-  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<TranslationKey | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const targetUserId = profile?.id ?? (routeIdentifier && isUuid(routeIdentifier) ? routeIdentifier : undefined);
+  const isOwnProfile = Boolean(user && (!userId || user.id === targetUserId));
 
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -79,65 +86,86 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [generatingImage, setGeneratingImage] = useState<'avatar' | 'cover' | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const t = (key: TranslationKey) => translate(getStoredLanguage(), key);
 
   // ============================================
   // تحميل معلومات البروفايل
   // ============================================
 
   const loadProfileData = useCallback(async () => {
-    if (!targetUserId) {
-      setProfileError('سجل الدخول باش تشوف الملف الشخصي ديالك.');
+    if (!routeIdentifier) {
+      setProfileError('profileSignInRequired');
       setLoading(false);
       return;
     }
 
     setLoading(true);
     setProfileError(null);
+    setProfile(null);
+    setUserPosts([]);
+    setProfileBadges([]);
+    setFollowersCount(0);
+    setFollowingCount(0);
+    setIsFollowing(false);
 
+    let profileLoaded = false;
     try {
-      // جلب البروفايل
-      const { data: prof, error: profErr } = await supabase
+      // Accept both /profile/<uuid> and /profile/<username> links.
+      const profileQuery = supabase
         .from('profiles')
-        .select('*')
-        .eq('id', targetUserId)
-        .single();
+        .select('id, username, full_name, avatar_url, bio, display_id, created_at');
+      const { data: prof, error: profErr } = isUuid(routeIdentifier)
+        ? await profileQuery.eq('id', routeIdentifier).maybeSingle()
+        : await profileQuery.eq('username', routeIdentifier).maybeSingle();
 
       if (profErr) {
         throw profErr;
       }
+      if (!prof) {
+        setProfileError('profileNotFound');
+        return;
+      }
 
-      const profileData = prof as ProfileData;
+      const profileData: ProfileData = prof;
+      const profileId = profileData.id;
 
       setProfile(profileData);
       setFullName(profileData.full_name || '');
       setBio(profileData.bio || '');
+      profileLoaded = true;
 
       // جلب منشورات المستخدم
       const { data: posts, error: postsError } = await supabase
         .from('posts')
-        .select('id, image_url, video_url, audio_url, media_urls, post_type, caption, created_at')
-        .eq('user_id', targetUserId)
+        .select('id, image_url, video_url, media_urls, post_type, caption, created_at')
+        .eq('user_id', profileId)
         .order('created_at', { ascending: false });
 
       if (postsError) {
         throw postsError;
       }
 
-      const loadedPosts = (posts as PostData[]) || [];
+      const loadedPosts = ((posts ?? []) as Omit<PostData, 'audio_url'>[]).map((post) => ({
+        ...post,
+        audio_url: null,
+      }));
       setUserPosts(loadedPosts);
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const recentPosts = loadedPosts.filter((post) => Date.parse(post.created_at) >= Date.parse(weekAgo)).length;
-      const { data: scores } = await supabase
+      const { data: scores, error: scoresError } = await supabase
         .from('game_scores')
         .select('points')
-        .eq('user_id', targetUserId)
+        .eq('user_id', profileId)
         .gte('created_at', weekAgo);
+      if (scoresError) {
+        console.warn('Weekly profile game scores are unavailable; verify the Supabase migrations:', scoresError);
+      }
       const weeklyPoints = (scores ?? []).reduce((sum, score) => sum + score.points, 0);
       const nextBadges: ProfileBadge[] = [];
-      if (loadedPosts.length >= 5) nextBadges.push({ id: 'creator', label: 'صانع محتوى', className: 'border-rose-300/20 bg-rose-300/10 text-rose-200' });
+      if (loadedPosts.length >= 5) nextBadges.push({ id: 'creator', label: 'صانع محتوى', className: 'border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]' });
       if (recentPosts >= 3) nextBadges.push({ id: 'active', label: 'نشيط هذا الأسبوع', className: 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' });
-      if (weeklyPoints >= 15) nextBadges.push({ id: 'gamer', label: 'بطل الألعاب', className: 'border-amber-300/20 bg-amber-300/10 text-amber-200' });
+      if (weeklyPoints >= 15) nextBadges.push({ id: 'gamer', label: 'بطل الألعاب', className: 'border-[var(--accent-secondary)]/20 bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]' });
       setProfileBadges(nextBadges);
 
       // عدد المتابعين
@@ -150,7 +178,7 @@ export default function ProfilePage() {
           count: 'exact',
           head: true,
         })
-        .eq('following_id', targetUserId);
+        .eq('following_id', profileId);
 
       if (followersError) {
         throw followersError;
@@ -168,7 +196,7 @@ export default function ProfilePage() {
           count: 'exact',
           head: true,
         })
-        .eq('follower_id', targetUserId);
+        .eq('follower_id', profileId);
 
       if (followingError) {
         throw followingError;
@@ -177,7 +205,7 @@ export default function ProfilePage() {
       setFollowingCount(followingCountResult || 0);
 
       // واش المستخدم الحالي متابع هاد الشخص؟
-      if (user && !isOwnProfile) {
+      if (user && user.id !== profileId) {
         const {
           data: followingData,
           error: followingCheckError,
@@ -185,7 +213,7 @@ export default function ProfilePage() {
           .from('follows')
           .select('id')
           .eq('follower_id', user.id)
-          .eq('following_id', targetUserId)
+          .eq('following_id', profileId)
           .maybeSingle();
 
         if (followingCheckError) {
@@ -197,12 +225,18 @@ export default function ProfilePage() {
         setIsFollowing(false);
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
-      setProfileError('ما قدرناش نحمّلو الملف الشخصي. تحقق من الاتصال وحاول مرة أخرى.');
+      if (profileLoaded) {
+        // Related tables can fail independently; keep the profile itself visible.
+        console.error('Profile loaded, but related profile data failed:', error);
+        setProfileError('profileLoadError');
+      } else {
+        console.error('Error loading profile:', error);
+        setProfileError('profileLoadError');
+      }
     } finally {
       setLoading(false);
     }
-  }, [targetUserId, user, isOwnProfile]);
+  }, [routeIdentifier, user]);
 
   useEffect(() => {
     if (!user?.id || !targetUserId || isOwnProfile) return;
@@ -460,10 +494,26 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <Loader2
-          className="w-8 h-8 animate-spin text-rose-500"
-        />
+      <div className="mx-auto min-h-[60vh] w-full max-w-xl space-y-5 px-4 py-6" dir={getStoredLanguage() === 'ar' ? 'rtl' : 'ltr'} role="status" aria-label={t('profileLoading')} aria-live="polite">
+        <div className="skeleton h-32 rounded-2xl" />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <div className="flex items-center gap-4">
+            <div className="skeleton h-20 w-20 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-3">
+              <div className="skeleton h-4 w-2/5 rounded" />
+              <div className="skeleton h-3 w-1/3 rounded" />
+            </div>
+          </div>
+          <div className="mt-6 space-y-3">
+            <div className="skeleton h-3 w-full rounded" />
+            <div className="skeleton h-3 w-4/5 rounded" />
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            <div className="skeleton h-16 rounded-xl" />
+            <div className="skeleton h-16 rounded-xl" />
+            <div className="skeleton h-16 rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -474,13 +524,15 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4 text-center text-neutral-500" dir="rtl">
-        <p>{profileError || 'الملف الشخصي غير موجود'}</p>
-        {profileError && (
-          <button type="button" onClick={() => void loadProfileData()} className="rounded-full bg-white/[0.08] px-4 py-2 text-xs font-semibold text-white hover:bg-white/[0.14]">
-            إعادة المحاولة
-          </button>
-        )}
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center text-stone-200" dir={getStoredLanguage() === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="max-w-md rounded-2xl border border-stone-100/10 bg-stone-100/[0.04] p-6 shadow-2xl shadow-black/20">
+          <p className="text-sm leading-7 text-stone-200/75">{t(profileError ?? 'profileNotFound')}</p>
+          {profileError && profileError !== 'profileSignInRequired' && (
+            <button type="button" onClick={() => void loadProfileData()} className="mt-4 rounded-full border border-stone-100/15 bg-stone-100/[0.08] px-5 py-2.5 text-xs font-semibold text-stone-50 transition hover:bg-stone-100/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-100/50">
+              {t('retry')}
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -501,6 +553,14 @@ export default function ProfilePage() {
         space-y-6
       "
     >
+      {profileError && (
+        <div role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-4 text-sm text-rose-100">
+          <p>{t(profileError)}</p>
+          <button type="button" onClick={() => void loadProfileData()} className="mt-3 rounded-lg border border-rose-200/20 px-3 py-2 text-xs font-semibold transition hover:bg-rose-200/10">
+            {t('retry')}
+          </button>
+        </div>
+      )}
 
       {/* ======================================
           Header
@@ -592,9 +652,9 @@ export default function ProfilePage() {
                 w-20
                 h-20
                 rounded-full
-                bg-rose-500/20
+                bg-[var(--accent)]/20
                 border-2
-                border-rose-500/50
+                border-[var(--accent)]/50
                 flex
                 items-center
                 justify-center
@@ -628,8 +688,8 @@ export default function ProfilePage() {
                   absolute
                   bottom-0
                   right-0
-                  bg-rose-500
-                  hover:bg-rose-600
+                  bg-[var(--accent)]
+                  hover:brightness-110
                   p-1.5
                   rounded-full
                   cursor-pointer
@@ -670,7 +730,7 @@ export default function ProfilePage() {
                 disabled={generatingImage !== null}
                 title="توليد صورة بروفايل بالذكاء الاصطناعي"
                 aria-label="توليد صورة بروفايل بالذكاء الاصطناعي"
-                className="absolute bottom-0 left-0 grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-emerald-600 text-white shadow-lg disabled:opacity-50"
+                className="absolute bottom-0 left-0 grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-[var(--accent)] text-[var(--accent-foreground)] shadow-lg disabled:opacity-50"
               >
                 {generatingImage === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <WandSparkles className="h-3.5 w-3.5" />}
               </button>
@@ -697,8 +757,8 @@ export default function ProfilePage() {
 
               <span
                 className="
-                  bg-rose-500/10
-                  text-rose-400
+                  bg-[var(--accent)]/10
+                  text-[var(--accent)]
                   text-[10px]
                   px-2
                   py-0.5
@@ -706,7 +766,9 @@ export default function ProfilePage() {
                   font-mono
                 "
               >
-                {formatDisplayId(profile.display_id) || `@${profile.username}`}
+                {(typeof profile.display_id === 'string' && profile.display_id.trim()
+                  ? profile.display_id.trim()
+                  : formatDisplayId(typeof profile.display_id === 'number' ? profile.display_id : null)) || <Handle username={profile.username} />}
               </span>
 
             </div>
@@ -717,7 +779,7 @@ export default function ProfilePage() {
                 text-neutral-400
               "
             >
-              @{profile.username}
+              <Handle username={profile.username} />
             </p>
 
             {profile.bio && (
@@ -870,7 +932,7 @@ export default function ProfilePage() {
                 className="
                   w-4
                   h-4
-                  text-rose-400
+                  text-[var(--accent)]
                 "
               />
 
@@ -904,8 +966,8 @@ export default function ProfilePage() {
                         border-white/10
                       `
                       : `
-                        bg-rose-500
-                        hover:bg-rose-600
+                        bg-[var(--accent)]
+                        hover:brightness-110
                         text-white
                       `
                   }
@@ -926,7 +988,7 @@ export default function ProfilePage() {
                       className="
                         w-4
                         h-4
-                        text-green-400
+                        text-[var(--accent)]
                       "
                     />
 
@@ -970,7 +1032,7 @@ export default function ProfilePage() {
                   className="
                     w-4
                     h-4
-                    text-rose-400
+                    text-[var(--accent)]
                   "
                 />
 
@@ -1064,7 +1126,7 @@ export default function ProfilePage() {
                 text-xs
                 text-white
                 focus:outline-none
-                focus:border-rose-500
+                focus:border-[var(--accent)]
               "
             />
 
@@ -1102,7 +1164,7 @@ export default function ProfilePage() {
                 text-xs
                 text-white
                 focus:outline-none
-                focus:border-rose-500
+                focus:border-[var(--accent)]
                 resize-none
                 h-24
               "
@@ -1118,8 +1180,8 @@ export default function ProfilePage() {
             }
             className="
               w-full
-              bg-rose-500
-              hover:bg-rose-600
+              bg-[var(--accent)]
+              hover:brightness-110
               py-2.5
               rounded-xl
               text-xs
@@ -1168,7 +1230,7 @@ export default function ProfilePage() {
             className="
               w-4
               h-4
-              text-rose-400
+              text-[var(--accent)]
             "
           />
 
@@ -1226,7 +1288,7 @@ export default function ProfilePage() {
               >
                 {post.audio_url ? (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-emerald-950 to-neutral-950 p-3">
-                    <Music2 className="h-8 w-8 text-emerald-300" />
+                    <Music2 className="h-8 w-8 text-[var(--accent)]" />
                     <audio src={post.audio_url} controls className="w-full" />
                   </div>
                 ) : post.video_url ? (

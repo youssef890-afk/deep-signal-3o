@@ -29,7 +29,7 @@ interface AuthContextType {
     email: string,
     password: string,
     username: string,
-    extraMetadata?: { phone?: string; birth_date?: string }
+    extraMetadata?: { phone?: string; birth_date?: string; full_name?: string; avatar_url?: string }
   ) => Promise<{
     error: Error | null;
     user: User | null;
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     username: string,
-    extraMetadata?: { phone?: string; birth_date?: string }
+    extraMetadata?: { phone?: string; birth_date?: string; full_name?: string; avatar_url?: string }
   ) => {
     try {
       setAuthPersistence(true);
@@ -253,6 +253,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           emailRedirectTo: `${window.location.origin}/auth/callback?flow=signup`,
           data: {
             username: cleanUsername,
+            full_name: extraMetadata?.full_name ?? '',
+            avatar_url: extraMetadata?.avatar_url,
             ...extraMetadata,
           },
         },

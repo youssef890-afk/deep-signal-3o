@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Search as SearchIcon, MessageSquare, Loader2 } from 'lucide-react';
 import { formatDisplayId } from '@/utils/format';
+import { getStoredLanguage, translate } from '@/lib/i18n';
+import Avatar from '@/components/Avatar';
+import Handle from '@/components/Handle';
 
 interface Profile {
   id: string;
@@ -32,6 +35,8 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const navigate = useNavigate();
+  const t = (key: 'searchPageTitle' | 'searchPlaceholder' | 'searchClear' | 'searchError' | 'searchNoResults' | 'directMessages') =>
+    translate(getStoredLanguage(), key);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +80,7 @@ export default function SearchPage() {
         if (!cancelled) {
           console.error('Error searching users:', err);
           setResults([]);
-          setSearchError('ما قدرناش نجيبو النتائج. حاول من بعد.');
+          setSearchError(translate(getStoredLanguage(), 'searchError'));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -91,24 +96,25 @@ export default function SearchPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 pb-28 text-white space-y-5">
-      <h1 className="text-xl font-bold">Search</h1>
+      <h1 className="text-xl font-bold">{t('searchPageTitle')}</h1>
 
       {/* مربع البحث */}
       <div className="relative flex items-center">
-        <SearchIcon className="absolute left-3 w-4 h-4 text-neutral-400" />
+        <SearchIcon className="absolute start-3 w-4 h-4 text-[var(--text-muted)]" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="ابحث عن اسم المستخدم أو ID..."
-          className="w-full bg-neutral-900 border border-white/10 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500 transition-colors"
+          placeholder={t('searchPlaceholder')}
+          className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl ps-9 pe-10 py-2.5 text-xs text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors"
         />
         {searchTerm && (
           <button
             onClick={() => setSearchTerm('')}
-            className="absolute right-3 text-neutral-400 hover:text-white text-xs font-semibold"
+            aria-label={t('searchClear')}
+            className="absolute end-3 text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold"
           >
-            Clear
+            {t('searchClear')}
           </button>
         )}
       </div>
@@ -116,35 +122,29 @@ export default function SearchPage() {
       {/* قائمة النتائج */}
       {loading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-rose-500" />
+          <Loader2 className="w-6 h-6 animate-spin text-[var(--accent)]" />
         </div>
       ) : (
         <div className="space-y-2">
           {searchError ? (
-            <p role="alert" className="text-center text-xs text-rose-300 py-6">{searchError}</p>
+            <p role="alert" className="text-center text-xs text-[var(--error)] py-6">{searchError}</p>
           ) : results.length === 0 ? (
-            <p className="text-center text-xs text-neutral-500 py-6">لا توجد نتائج مطابقة</p>
+            <p className="text-center text-xs text-[var(--text-muted)] py-6">{t('searchNoResults')}</p>
           ) : (
             results.map((item) => (
               <div
                 key={item.id}
                 onClick={() => navigate(`/profile/${item.id}`)}
-                className="bg-neutral-900 hover:bg-neutral-800 border border-white/10 rounded-xl p-3 flex items-center justify-between cursor-pointer transition-colors"
+                className="bg-[var(--surface)] hover:bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-3 flex items-center justify-between cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center font-bold text-xs text-rose-400 overflow-hidden border border-rose-500/30">
-                    {item.avatar_url ? (
-                      <img src={item.avatar_url} alt={item.username} className="w-full h-full object-cover" />
-                    ) : (
-                      item.username?.charAt(0).toUpperCase() || 'U'
-                    )}
-                  </div>
+                  <Avatar src={item.avatar_url} name={item.full_name || item.username} size="sm" />
                   <div>
                     <h3 className="text-xs font-bold text-white">
                       {item.full_name || item.username}
                     </h3>
                     <p className="text-[10px] text-neutral-400">
-                      {formatDisplayId(item.display_id) || `@${item.username}`}
+                      {formatDisplayId(item.display_id) || <Handle username={item.username} />}
                     </p>
                   </div>
                 </div>
@@ -154,7 +154,8 @@ export default function SearchPage() {
                     e.stopPropagation();
                     navigate(`/chat`);
                   }}
-                  className="bg-neutral-800 hover:bg-neutral-700 p-2 rounded-lg text-neutral-300 border border-white/5"
+                  aria-label={t('directMessages')}
+                  className="bg-[var(--surface-2)] hover:brightness-110 p-2 rounded-lg text-[var(--text-muted)] border border-[var(--border)]"
                 >
                   <MessageSquare className="w-4 h-4" />
                 </button>

@@ -14,6 +14,12 @@ controls — plus **Jokal AI**, the idea-to-proposal assistant foundation.
 | Voice | `livekit-client` + server-side token function, WebRTC P2P for social rooms |
 | AI | Supabase Edge Functions calling a provider abstraction (never from the browser) |
 
+## Design system
+
+The shared dark-first design tokens are defined in `src/index.css`. The current
+accent color is selected in Settings and applied through `ThemeContext`; shared
+controls and layout primitives are exported from `src/components/ui.tsx`.
+
 ## Getting started
 
 ```bash

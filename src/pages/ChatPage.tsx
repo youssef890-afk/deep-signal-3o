@@ -1,13 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useMessages } from '@/context/MessagesContext';
 import { useDirectCall } from '@/hooks/useDirectCall';
 import Avatar from '@/components/Avatar';
+import Handle from '@/components/Handle';
 import { Send, ArrowLeft, Loader2, MessageCircle, Mic, Square, AudioLines, Video, VideoOff, MicOff, PhoneOff, PhoneCall, Smartphone, Search, X, PhoneIncoming } from 'lucide-react';
 import { formatTime } from '@/utils/format';
 import type { Profile, Message } from '@/types';
+import { useModalScrollLock } from '@/hooks/useModalLayer';
+import { getStoredDirection, getStoredLanguage, translate, type TranslationKey } from '@/lib/i18n';
+
+function voiceErrorKey(error: unknown): TranslationKey {
+  const errorName = typeof error === 'object' && error !== null && 'name' in error
+    ? String(error.name)
+    : '';
+
+  if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') return 'voicePermissionDenied';
+  if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') return 'microphoneUnavailable';
+  if (errorName === 'NotReadableError' || errorName === 'TrackStartError') return 'microphoneBusy';
+  if (errorName === 'SecurityError' && !window.isSecureContext) return 'microphoneSecureContext';
+  return 'voiceUploadError';
+}
 
 export default function ChatPage() {
   const { user, profile: myProfile } = useAuth();
@@ -24,7 +40,7 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioFilter, setAudioFilter] = useState<'natural' | 'warm' | 'bright'>('natural');
-  const [voiceError, setVoiceError] = useState('');
+  const [voiceError, setVoiceError] = useState<TranslationKey | null>(null);
   const [conversationSearch, setConversationSearch] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -33,6 +49,7 @@ export default function ChatPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStartedAtRef = useRef(0);
   const directCall = useDirectCall(user?.id, activeUserId);
+  const t = (key: TranslationKey) => translate(getStoredLanguage(), key);
 
   const filteredConversations = conversations.filter(({ otherUser }) =>
     `${otherUser.username} ${otherUser.full_name ?? ''}`.toLocaleLowerCase().includes(conversationSearch.trim().toLocaleLowerCase())
@@ -229,7 +246,15 @@ export default function ChatPage() {
 
   const startVoiceRecording = async () => {
     if (!user || !activeUserId || isRecording || sending) return;
-    setVoiceError('');
+    setVoiceError(null);
+    if (!window.isSecureContext && location.hostname !== 'localhost') {
+      setVoiceError('microphoneSecureContext');
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setVoiceError('microphoneUnavailable');
+      return;
+    }
     try {
       const microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
       microphoneRef.current = microphone;
@@ -265,7 +290,7 @@ export default function ChatPage() {
         audioContextRef.current = null;
         setSending(true);
         void sendVoiceNote(voiceBlob, duration)
-          .catch((error) => setVoiceError(error instanceof Error ? error.message : 'تعذر إرسال التسجيل'))
+          .catch((error: unknown) => setVoiceError(voiceErrorKey(error)))
           .finally(() => setSending(false));
       };
       recordingStartedAtRef.current = Date.now();
@@ -274,7 +299,7 @@ export default function ChatPage() {
       setIsRecording(true);
     } catch (error) {
       microphoneRef.current?.getTracks().forEach((track) => track.stop());
-      setVoiceError(error instanceof Error ? error.message : 'تحقق من إذن استخدام الميكروفون');
+      setVoiceError(voiceErrorKey(error));
     }
   };
 
@@ -308,25 +333,25 @@ export default function ChatPage() {
   const displayName = (p: Profile) => p.full_name || p.username;
 
   return (
-    <div className="h-[calc(100dvh-154px)] min-h-[480px] overflow-hidden border-y border-white/[0.09] bg-[#0b1012] text-white shadow-[0_18px_60px_rgba(0,0,0,0.24)] md:h-[calc(100vh-104px)] md:min-h-[540px]" dir="rtl">
+    <div className="h-[calc(100dvh-154px)] min-h-[480px] overflow-hidden border-y border-white/[0.09] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-lg)] md:h-[calc(100dvh-104px)] md:min-h-[540px]">
       <div className="flex h-full min-w-0">
-        <aside className={`flex w-full shrink-0 flex-col border-l border-white/[0.08] bg-[#0d1315] md:w-[260px] xl:w-[286px] ${activeUserId ? 'hidden md:flex' : 'flex'}`}>
+        <aside className={`flex w-full shrink-0 flex-col border-l border-white/[0.08] bg-[var(--surface)] md:w-[260px] xl:w-[286px] ${activeUserId ? 'hidden md:flex' : 'flex'}`}>
           <header className="border-b border-white/[0.08] px-4 pb-4 pt-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="font-mono text-[9px] font-semibold text-[#b9e978]">DS / DIRECT</p>
+                <p className="font-mono text-[9px] font-semibold text-[var(--accent)]">{t('directMessages')}</p>
                 <h1 className="mt-1 font-serif text-xl font-bold">المحادثات</h1>
               </div>
-              <span className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-[#b9e978]"><MessageCircle className="h-[18px] w-[18px]" /></span>
+              <span className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-[var(--accent)]"><MessageCircle className="h-[18px] w-[18px]" /></span>
             </div>
             <label className="relative block">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
               <input
                 type="search"
                 value={conversationSearch}
                 onChange={(event) => setConversationSearch(event.target.value)}
                 placeholder="قلب على محادثة"
-                className="h-10 w-full rounded-md border border-white/[0.08] bg-black/20 pe-9 ps-3 text-xs text-white outline-none placeholder:text-white/30 focus:border-[#b9e978]/45"
+                className="h-10 w-full rounded-md border border-white/[0.08] bg-black/20 ps-9 pe-3 text-xs text-white outline-none placeholder:text-white/30 focus:border-[var(--accent)]/45"
               />
             </label>
           </header>
@@ -337,12 +362,12 @@ export default function ChatPage() {
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
             {loading ? (
-              <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-[#b9e978]" /></div>
+              <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" /></div>
             ) : filteredConversations.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <MessageCircle className="mx-auto mb-3 h-7 w-7 text-white/20" />
                 <p className="text-xs leading-5 text-white/45">{conversationSearch ? 'ما لقينا حتى محادثة بهاد الاسم.' : 'مازال ما عندك محادثات. قلب على شخص وبدا أول حديث.'}</p>
-                <button type="button" onClick={() => navigate('/search')} className="mt-4 border-b border-[#b9e978]/60 pb-1 text-xs font-semibold text-[#b9e978]">البحث عن أشخاص</button>
+                <button type="button" onClick={() => navigate('/search')} className="mt-4 border-b border-[var(--accent)]/60 pb-1 text-xs font-semibold text-[var(--accent)]">البحث عن أشخاص</button>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -352,9 +377,9 @@ export default function ChatPage() {
                     key={conv.otherUser.id}
                     type="button"
                     onClick={() => navigate(`/chat/${conv.otherUser.id}`)}
-                    className={`mb-1 flex w-full items-center gap-3 border-r-2 px-3 py-3 text-right transition ${isActive ? 'border-[#b9e978] bg-[#b9e978]/[0.07]' : 'border-transparent hover:bg-white/[0.035]'}`}
+                    className={`mb-1 flex w-full items-center gap-3 border-r-2 px-3 py-3 text-right transition ${isActive ? 'border-[var(--accent)] bg-[var(--accent)]/[0.07]' : 'border-transparent hover:bg-white/[0.035]'}`}
                   >
-                    <span className="relative shrink-0"><Avatar src={conv.otherUser.avatar_url} name={displayName(conv.otherUser)} size="md" /><span className="absolute bottom-0 left-0 h-2.5 w-2.5 rounded-full border-2 border-[#0d1315] bg-[#b9e978]" /></span>
+                    <span className="relative shrink-0"><Avatar src={conv.otherUser.avatar_url} name={displayName(conv.otherUser)} size="md" /><span className="absolute bottom-0 start-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--success)]" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
                         <span className={`truncate text-xs font-semibold ${isActive ? 'text-white' : 'text-white/80'}`}>{displayName(conv.otherUser)}</span>
@@ -365,18 +390,18 @@ export default function ChatPage() {
                         {conv.lastMessage?.message_type === 'audio' ? 'رسالة صوتية' : conv.lastMessage?.content || 'ابدأ محادثة'}
                       </span>
                     </span>
-                    {conv.unreadCount > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[#b9e978] px-1 text-[9px] font-bold text-[#11180c]">{conv.unreadCount}</span>}
+                    {conv.unreadCount > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-foreground)]">{conv.unreadCount}</span>}
                   </button>
                 );
               })
             )}
           </div>
           <footer className="border-t border-white/[0.08] px-4 py-3 text-[9px] text-white/30">
-            <span className="font-mono">PRIVATE SIGNAL</span><span className="float-left text-[#b9e978]">● متصل</span>
+            <span className="font-mono">{t('privateConversation')}</span><span className="float-end text-[var(--success)]">● متصل</span>
           </footer>
         </aside>
 
-        <section className={`min-w-0 flex-1 flex-col bg-[#0a0f11] ${activeUserId ? 'flex' : 'hidden md:flex'}`}>
+        <section className={`min-w-0 flex-1 flex-col bg-[var(--bg)] ${activeUserId ? 'flex' : 'hidden md:flex'}`}>
           {activeUser ? (
             <>
               <header className="flex min-h-[68px] items-center gap-3 border-b border-white/[0.08] px-3 sm:px-5">
@@ -384,24 +409,24 @@ export default function ChatPage() {
                 <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="shrink-0"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="sm" /></button>
                 <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="min-w-0 flex-1 text-right">
                   <span className="block truncate text-sm font-bold text-white">{displayName(activeUser)}</span>
-                  <span className="mt-0.5 block truncate text-[10px] text-[#b9e978]/75">@{activeUser.username} <span className="text-white/30">· مباشر</span></span>
+                  <span className="mt-0.5 block truncate text-[10px] text-[var(--accent)]/75"><Handle username={activeUser.username} /> <span className="text-white/30">· مباشر</span></span>
                 </button>
                 <div className="flex shrink-0 items-center gap-1">
                   <button type="button" disabled aria-label="مكالمة صوتية قريباً" title="مكالمة صوتية قريباً" className="grid h-9 w-9 place-items-center rounded-md text-white/25 disabled:cursor-not-allowed"><PhoneCall className="h-[17px] w-[17px]" /></button>
-                  <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady || directCall.status !== 'idle'} aria-label="بدء مكالمة فيديو" title="مكالمة فيديو" className="grid h-9 w-9 place-items-center rounded-md text-[#b9e978] transition hover:bg-[#b9e978]/10 disabled:opacity-40"><Video className="h-[18px] w-[18px]" /></button>
+                  <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady || directCall.status !== 'idle'} aria-label="بدء مكالمة فيديو" title="مكالمة فيديو" className="grid h-9 w-9 place-items-center rounded-md text-[var(--accent)] transition hover:bg-[var(--accent)]/10 disabled:opacity-40"><Video className="h-[18px] w-[18px]" /></button>
                   <button type="button" disabled aria-label="مكالمة SIM قريباً" title="مكالمة SIM قريباً" className="grid h-9 w-9 place-items-center rounded-md text-white/25 disabled:cursor-not-allowed"><Smartphone className="h-[17px] w-[17px]" /></button>
                 </div>
               </header>
 
               {directCall.error && <p role="alert" className="border-b border-rose-400/15 bg-rose-400/[0.05] px-4 py-2 text-xs text-rose-200">{directCall.error}</p>}
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6" style={{ backgroundImage: 'radial-gradient(rgba(185,233,120,0.055) 0.7px, transparent 0.7px)', backgroundSize: '18px 18px' }}>
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 0.7px, transparent 0.7px)', backgroundSize: '18px 18px' }}>
                 {messages.length === 0 ? (
                   <div className="flex h-full min-h-64 flex-col items-center justify-center text-center">
-                    <span className="mb-4 rounded-full border border-[#b9e978]/20 bg-[#b9e978]/[0.06] p-1"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span>
+                    <span className="mb-4 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-1"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span>
                     <p className="font-serif text-lg font-bold text-white">{displayName(activeUser)}</p>
                     <p className="mt-2 max-w-xs text-xs leading-5 text-white/45">بداية إشارة جديدة. كتب رسالة أو بدا مكالمة فيديو مباشرة.</p>
-                    <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady} className="mt-5 inline-flex items-center gap-2 border border-[#b9e978]/25 px-3 py-2 text-xs font-semibold text-[#b9e978] transition hover:bg-[#b9e978]/10 disabled:opacity-40"><Video className="h-4 w-4" /> مكالمة فيديو</button>
+                    <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady} className="mt-5 inline-flex items-center gap-2 border border-[var(--accent)]/25 px-3 py-2 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/10 disabled:opacity-40"><Video className="h-4 w-4" /> مكالمة فيديو</button>
                   </div>
                 ) : (
                   <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-end gap-3">
@@ -415,9 +440,9 @@ export default function ChatPage() {
                       return (
                         <div key={msg.id} className={`flex items-end gap-2 ${isMine ? 'justify-start' : 'justify-end'} animate-slide-up`}>
                           {!isMine && <div className="w-7 shrink-0">{showAvatar && <Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xs" />}</div>}
-                          <div className={`max-w-[min(78%,560px)] px-4 py-2.5 text-sm leading-6 ${isMine ? 'rounded-[14px_14px_4px_14px] border border-[#b9e978]/15 bg-[#b9e978]/[0.09] text-white' : 'rounded-[14px_14px_14px_4px] border border-white/[0.08] bg-white/[0.045] text-white/90'}`}>
+                          <div className={`max-w-[min(78%,560px)] px-4 py-2.5 text-sm leading-6 ${isMine ? 'rounded-[14px_14px_4px_14px] border border-[var(--accent)]/15 bg-[var(--accent)]/[0.09] text-white' : 'rounded-[14px_14px_14px_4px] border border-white/[0.08] bg-white/[0.045] text-white/90'}`}>
                             {msg.message_type === 'audio' && msg.audio_url ? <VoiceNotePlayer path={msg.audio_url} durationMs={msg.audio_duration_ms ?? 0} /> : <p className="whitespace-pre-wrap break-words">{msg.content}</p>}
-                            <time className={`mt-1 block text-[9px] ${isMine ? 'text-[#b9e978]/55' : 'text-white/35'}`}>{formatTime(msg.created_at)}</time>
+                            <time className={`mt-1 block text-[9px] ${isMine ? 'text-[var(--accent)]/55' : 'text-white/35'}`}>{formatTime(msg.created_at)}</time>
                           </div>
                         </div>
                       );
@@ -427,21 +452,21 @@ export default function ChatPage() {
                 )}
               </div>
 
-              <div className="border-t border-white/[0.08] bg-[#0c1214] px-3 py-3 sm:px-5">
+              <div className="border-t border-white/[0.08] bg-[var(--surface)] px-3 py-3 sm:px-5">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-2 text-[10px] text-white/45">
-                    <AudioLines className="h-3.5 w-3.5 text-[#b9e978]" /> فلتر الصوت
-                    <select value={audioFilter} onChange={(event) => setAudioFilter(event.target.value as typeof audioFilter)} disabled={isRecording} className="rounded border border-white/10 bg-[#11191a] px-2 py-1 text-[10px] text-white/75 outline-none disabled:opacity-40">
+                    <AudioLines className="h-3.5 w-3.5 text-[var(--accent)]" /> فلتر الصوت
+                    <select value={audioFilter} onChange={(event) => setAudioFilter(event.target.value as typeof audioFilter)} disabled={isRecording} className="rounded border border-white/10 bg-[var(--surface-2)] px-2 py-1 text-[10px] text-white/75 outline-none disabled:opacity-40">
                       <option value="natural">طبيعي</option><option value="warm">دافئ</option><option value="bright">واضح</option>
                     </select>
                   </label>
-                  <button type="button" onClick={isRecording ? stopVoiceRecording : () => void startVoiceRecording()} disabled={sending || !activeUserId} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[10px] font-semibold transition disabled:opacity-40 ${isRecording ? 'bg-rose-500/15 text-rose-200' : 'text-[#b9e978] hover:bg-white/[0.05]'}`}>
+                  <button type="button" onClick={isRecording ? stopVoiceRecording : () => void startVoiceRecording()} disabled={sending || !activeUserId} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[10px] font-semibold transition disabled:opacity-40 ${isRecording ? 'bg-rose-500/15 text-rose-200' : 'text-[var(--accent)] hover:bg-white/[0.05]'}`}>
                     {isRecording ? <Square className="h-3 w-3 fill-current" /> : <Mic className="h-3.5 w-3.5" />}
                     {isRecording ? `إيقاف ${recordingSeconds}s` : sending ? 'جارٍ الإرسال...' : 'رسالة صوتية'}
                   </button>
-                  {voiceError && <p role="alert" className="w-full text-[10px] text-rose-300">{voiceError}</p>}
+                  {voiceError && <p role="alert" className="w-full text-[10px] text-rose-300">{t(voiceError)}</p>}
                 </div>
-                <div className="flex items-end gap-2 rounded-md border border-white/[0.1] bg-white/[0.035] p-1.5 focus-within:border-[#b9e978]/35">
+                <div className="flex items-end gap-2 rounded-md border border-white/[0.1] bg-white/[0.035] p-1.5 focus-within:border-[var(--accent)]/35">
                   <textarea
                     value={newMessage}
                     onChange={(event) => { setNewMessage(event.target.value); setMessageError(''); }}
@@ -450,34 +475,34 @@ export default function ChatPage() {
                     rows={1}
                     className="max-h-28 min-h-10 flex-1 resize-y bg-transparent px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30"
                   />
-                  <button type="button" onClick={() => void handleSend()} disabled={!newMessage.trim() || sending} aria-label="إرسال الرسالة" className="grid h-10 w-10 shrink-0 place-items-center rounded bg-[#b9e978] text-[#10170b] transition hover:bg-[#d0f29b] disabled:opacity-35"><Send className="h-[17px] w-[17px]" /></button>
+                  <button type="button" onClick={() => void handleSend()} disabled={!newMessage.trim() || sending} aria-label="إرسال الرسالة" className="grid h-10 w-10 shrink-0 place-items-center rounded bg-[var(--accent)] text-[var(--accent-foreground)] transition hover:brightness-110 disabled:opacity-35"><Send className="h-[17px] w-[17px]" /></button>
                 </div>
                 {messageError && <p role="alert" className="mt-2 text-xs text-rose-300">{messageError}</p>}
               </div>
             </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-              <div className="relative mb-5 grid h-20 w-20 place-items-center border border-[#b9e978]/20 bg-[#b9e978]/[0.055] text-[#b9e978]"><MessageCircle className="h-8 w-8" /><span className="absolute -left-1 -top-1 h-3 w-3 border-2 border-[#0a0f11] bg-[#ff8068]" /></div>
-              <p className="mb-2 font-mono text-[9px] text-[#b9e978]">A SIGNAL IS WAITING</p>
+              <div className="relative mb-5 grid h-20 w-20 place-items-center border border-[var(--accent)]/20 bg-[var(--accent)]/[0.055] text-[var(--accent)]"><MessageCircle className="h-8 w-8" /><span className="absolute -left-1 -top-1 h-3 w-3 border-2 border-[var(--bg)] bg-[var(--success)]" /></div>
+              <p className="mb-2 font-mono text-[9px] text-[var(--accent)]">{t('waitingSignal')}</p>
               <h2 className="font-serif text-2xl font-bold">مساحتك، على ترددك</h2>
               <p className="mt-3 max-w-sm text-xs leading-6 text-white/45">اختار محادثة من اللائحة، أو قلب على شخص وابدأ حديث خاص بالصوت والصورة.</p>
-              {myProfile && <p className="mt-6 border-t border-white/[0.08] pt-4 text-[10px] text-white/30">متصل باسم @{myProfile.username}</p>}
+              {myProfile && <p className="mt-6 border-t border-white/[0.08] pt-4 text-[10px] text-white/30">متصل باسم <Handle username={myProfile.username} /></p>}
             </div>
           )}
         </section>
 
         {activeUser && (
-          <aside className="hidden w-[220px] shrink-0 flex-col border-r border-white/[0.08] bg-[#0d1315] xl:flex">
+          <aside className="hidden w-[220px] shrink-0 flex-col border-r border-white/[0.08] bg-[var(--surface)] xl:flex">
             <div className="border-b border-white/[0.08] px-4 py-5">
-              <p className="font-mono text-[9px] text-white/35">SIGNAL PROFILE</p>
-              <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="mt-5 flex w-full flex-col items-center text-center"><span className="rounded-full border border-[#b9e978]/20 p-1"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span><span className="mt-3 max-w-full truncate text-sm font-bold text-white">{displayName(activeUser)}</span><span className="mt-1 max-w-full truncate text-[10px] text-white/40">@{activeUser.username}</span></button>
+              <p className="font-mono text-[9px] text-white/35">{t('signalProfile')}</p>
+              <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="mt-5 flex w-full flex-col items-center text-center"><span className="rounded-full border border-[var(--accent)]/20 p-1"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span><span className="mt-3 max-w-full truncate text-sm font-bold text-white">{displayName(activeUser)}</span><span className="mt-1 max-w-full truncate text-[10px] text-white/40"><Handle username={activeUser.username} /></span></button>
             </div>
             <div className="px-4 py-5">
               <p className="mb-3 text-[9px] font-bold text-white/40">الاتصال</p>
-              <div className="flex items-center gap-2 text-[10px] text-white/65"><span className="h-2 w-2 rounded-full bg-[#b9e978]" /> متاح للمحادثة</div>
-              <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady || directCall.status !== 'idle'} className="mt-4 flex w-full items-center justify-center gap-2 border border-[#b9e978]/20 py-2.5 text-[10px] font-semibold text-[#b9e978] transition hover:bg-[#b9e978]/[0.08] disabled:opacity-40"><Video className="h-3.5 w-3.5" /> بدء مكالمة فيديو</button>
+              <div className="flex items-center gap-2 text-[10px] text-white/65"><span className="h-2 w-2 rounded-full bg-[var(--success)]" /> متاح للمحادثة</div>
+              <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady || directCall.status !== 'idle'} className="mt-4 flex w-full items-center justify-center gap-2 border border-[var(--accent)]/20 py-2.5 text-[10px] font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/[0.08] disabled:opacity-40"><Video className="h-3.5 w-3.5" /> بدء مكالمة فيديو</button>
             </div>
-            <div className="mt-auto border-t border-white/[0.08] px-4 py-3 font-mono text-[8px] text-white/25">END-TO-END SIGNAL / DS</div>
+            <div className="mt-auto border-t border-white/[0.08] px-4 py-3 font-mono text-[8px] text-white/25">{t('privateConversation')}</div>
           </aside>
         )}
       </div>
@@ -529,14 +554,16 @@ function DirectCallOverlay({
   onToggleMicrophone: () => void;
   onToggleCamera: () => void;
 }) {
+  useModalScrollLock(true);
+  const t = (key: TranslationKey) => translate(getStoredLanguage(), key);
   const statusLabel = status === 'incoming' ? 'مكالمة فيديو واردة' : status === 'calling' ? 'كنعيطو...' : status === 'connected' ? 'المكالمة مباشرة' : 'كنربطو الاتصال...';
 
-  return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#050808]/90 p-3 backdrop-blur-md sm:p-6" dir="rtl">
-      <section role="dialog" aria-modal="true" aria-label="مكالمة فيديو" className="flex max-h-[min(780px,95dvh)] w-full max-w-5xl flex-col overflow-hidden border border-white/[0.12] bg-[#0b1112] shadow-2xl">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/90 p-3 pb-[calc(.75rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:p-6" dir={getStoredDirection()}>
+      <section role="dialog" aria-modal="true" aria-label="مكالمة فيديو" className="flex max-h-[min(780px,95dvh)] w-full max-w-5xl flex-col overflow-hidden border border-white/[0.12] bg-[var(--surface)] text-[var(--text)] shadow-2xl">
         <header className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 sm:px-5">
-          <div className="min-w-0"><p className="font-mono text-[9px] text-[#b9e978]">DEEP-SIGNAL / LIVE</p><h2 className="mt-1 truncate text-sm font-bold">{name}</h2></div>
-          <span className="flex shrink-0 items-center gap-2 text-[10px] text-white/55"><span className={`h-2 w-2 rounded-full ${status === 'connected' ? 'bg-[#b9e978]' : 'animate-pulse bg-[#ff8068]'}`} />{statusLabel}</span>
+          <div className="min-w-0"><p className="font-mono text-[9px] text-[var(--accent)]">{t('liveCall')}</p><h2 className="mt-1 truncate text-sm font-bold">{name}</h2></div>
+          <span className="flex shrink-0 items-center gap-2 text-[10px] text-white/55"><span className={`h-2 w-2 rounded-full ${status === 'connected' ? 'bg-[var(--success)]' : 'animate-pulse bg-[var(--accent)]'}`} />{statusLabel}</span>
           <button type="button" onClick={onEnd} aria-label="إغلاق المكالمة" className="grid h-8 w-8 shrink-0 place-items-center text-white/40 transition hover:bg-white/[0.06] hover:text-white"><X className="h-4 w-4" /></button>
         </header>
 
@@ -550,7 +577,7 @@ function DirectCallOverlay({
           {status === 'incoming' ? (
             <>
               <button type="button" onClick={onDecline} className="inline-flex items-center gap-2 bg-rose-500/15 px-4 py-2.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/25"><PhoneOff className="h-4 w-4" /> رفض</button>
-              <button type="button" onClick={onAccept} className="inline-flex items-center gap-2 bg-[#b9e978] px-4 py-2.5 text-xs font-bold text-[#10170b] transition hover:bg-[#d0f29b]"><PhoneIncoming className="h-4 w-4" /> قبول المكالمة</button>
+              <button type="button" onClick={onAccept} className="inline-flex items-center gap-2 bg-[var(--success)] px-4 py-2.5 text-xs font-bold text-[var(--accent-foreground)] transition hover:brightness-110"><PhoneIncoming className="h-4 w-4" /> قبول المكالمة</button>
             </>
           ) : (
             <>
@@ -561,7 +588,8 @@ function DirectCallOverlay({
           )}
         </footer>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -577,12 +605,12 @@ function VideoTile({ stream, name, label, muted = false, mirror = false }: { str
   }, [stream]);
 
   return (
-    <div className="relative min-h-[220px] overflow-hidden border border-white/[0.08] bg-[#11191a] sm:min-h-[300px]">
+    <div className="relative min-h-[220px] overflow-hidden border border-white/[0.08] bg-[var(--surface-2)] sm:min-h-[300px]">
       {stream ? (
         <video ref={videoRef} autoPlay playsInline muted={muted || mirror} className={`h-full min-h-[220px] w-full object-cover sm:min-h-[300px] ${mirror ? '-scale-x-100' : ''}`} />
       ) : (
         <div className="grid h-full min-h-[220px] place-items-center sm:min-h-[300px]">
-          <div className="text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-[#b9e978]/15 bg-[#b9e978]/[0.06] text-xl font-bold text-[#b9e978]">{name.slice(0, 1).toUpperCase()}</span><p className="mt-3 text-xs font-semibold text-white/75">{name}</p><p className="mt-1 text-[10px] text-white/35">{label === 'كاميرتك' ? 'بانتظار تشغيل الكاميرا' : 'بانتظار الطرف الآخر'}</p></div>
+          <div className="text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-[var(--accent)]/15 bg-[var(--accent)]/[0.06] text-xl font-bold text-[var(--accent)]">{name.slice(0, 1).toUpperCase()}</span><p className="mt-3 text-xs font-semibold text-white/75">{name}</p><p className="mt-1 text-[10px] text-white/35">{label === 'كاميرتك' ? 'بانتظار تشغيل الكاميرا' : 'بانتظار الطرف الآخر'}</p></div>
         </div>
       )}
       <span className="absolute bottom-3 right-3 bg-black/55 px-2.5 py-1.5 text-[10px] text-white/85 backdrop-blur-sm">{label}</span>
@@ -592,22 +620,24 @@ function VideoTile({ stream, name, label, muted = false, mirror = false }: { str
 
 function VoiceNotePlayer({ path, durationMs }: { path: string; durationMs: number }) {
   const [url, setUrl] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void supabase.storage.from('voice-notes').createSignedUrl(path, 60 * 60).then(({ data, error: signingError }) => {
-      if (!active) return;
-      if (signingError || !data?.signedUrl) setError('تعذر فتح الرسالة الصوتية');
-      else setUrl(data.signedUrl);
-    });
+    void supabase.storage.from('voice-notes').createSignedUrl(path, 60 * 60)
+      .then(({ data, error: signingError }) => {
+        if (!active) return;
+        if (signingError || !data?.signedUrl) setError(true);
+        else setUrl(data.signedUrl);
+      })
+      .catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [path]);
 
-  if (error) return <p className="text-xs text-white/60">{error}</p>;
+  if (error) return <p className="text-xs text-white/60">{translate(getStoredLanguage(), 'voicePlaybackError')}</p>;
   return (
     <div className="min-w-[220px] space-y-1">
-      {url ? <audio src={url} controls preload="none" className="h-9 w-full" /> : <span className="text-xs text-white/50">جارٍ تحميل التسجيل...</span>}
+      {url ? <audio src={url} controls preload="none" className="h-9 w-full" /> : <span className="text-xs text-white/50">{translate(getStoredLanguage(), 'voiceLoading')}</span>}
       {durationMs > 0 && <span className="block text-[9px] text-white/45">{Math.round(durationMs / 1000)} ثانية</span>}
     </div>
   );

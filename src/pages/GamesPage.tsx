@@ -34,7 +34,7 @@ interface MatchPlayer extends MatchPresence {
 }
 
 const playerMarks = ['X', 'O', '△', '□'];
-const playerColors = ['text-purple-400', 'text-cyan-400', 'text-amber-300', 'text-rose-400'];
+const playerColors = ['text-[var(--accent)]', 'text-[var(--accent-secondary)]', 'text-[var(--text-muted)]', 'text-[var(--text)]'];
 
 const gameCatalog = [
   { name: 'إكس-أو المتقدمة', category: 'ألعاب لوحية', status: 'متاحة', icon: '❌⭕', href: '#tic-tac-toe' },
@@ -501,7 +501,7 @@ export default function GamesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090D16] text-white py-10 px-4" dir="rtl">
+    <div className="min-h-[100dvh] bg-[var(--bg)] text-[var(--text)] py-10 px-4" dir="rtl">
       <AnimatePresence>
         {winner && (
           <motion.div
@@ -520,7 +520,7 @@ export default function GamesPage() {
               <motion.span
                 key={index}
                 className="absolute top-[-5%] h-2.5 w-2 rounded-sm"
-                style={{ left: `${(index * 41) % 100}%`, backgroundColor: ['#fbbf24', '#34d399', '#fb7185', '#67e8f9'][index % 4] }}
+                style={{ left: `${(index * 41) % 100}%`, backgroundColor: index % 2 ? 'var(--accent-secondary)' : 'var(--accent)' }}
                 animate={{ y: ['0vh', '110vh'], rotate: [0, 540] }}
                 transition={{ duration: 1.8 + (index % 5) * 0.25, delay: (index % 8) * 0.08, ease: 'linear' }}
               />
@@ -540,10 +540,10 @@ export default function GamesPage() {
 
         {/* عنوان قسم الألعاب */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-sm font-medium">
             <Gamepad2 className="w-4 h-4" /> مركز الألعاب السريعة
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-[var(--accent)] to-[var(--accent)] bg-clip-text text-transparent">
             العاب وتحديات
           </h1>
         </div>
@@ -555,16 +555,16 @@ export default function GamesPage() {
             ['#game-progress', 'المستويات والمهام'],
             ['#game-leaderboard', 'الترتيب والجوائز'],
           ].map(([href, label]) => (
-            <a key={href} href={href} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/65 transition-colors hover:border-cyan-300/30 hover:text-white">
+            <a key={href} href={href} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/65 transition-colors hover:border-[var(--accent)]/30 hover:text-white">
               {label}
             </a>
           ))}
         </nav>
 
-        <Link to="/games/voice-card-clash" className="mx-auto flex max-w-2xl items-center gap-3 rounded-xl border border-emerald-200/15 bg-emerald-200/[0.045] px-4 py-3 transition hover:border-emerald-200/30 hover:bg-emerald-200/[0.08]">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-emerald-200/10 text-emerald-100"><Gamepad2 className="h-5 w-5" /></span>
+        <Link to="/games/voice-card-clash" className="mx-auto flex max-w-2xl items-center gap-3 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.045] px-4 py-3 transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.08]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]"><Gamepad2 className="h-5 w-5" /></span>
           <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-white">Voice Card Clash · 4 ضد 4</span><span className="mt-0.5 block text-[11px] text-white/45">مزايدات، خدع، وصوت جماعي مع فريقك</span></span>
-          <span className="shrink-0 text-xs font-semibold text-emerald-100">فتح اللعبة</span>
+          <span className="shrink-0 text-xs font-semibold text-[var(--accent)]">فتح اللعبة</span>
         </Link>
 
         <section id="game-library" className="scroll-mt-24 space-y-3">
@@ -590,7 +590,7 @@ export default function GamesPage() {
                 </>
               );
 
-              const tileClassName = 'min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-cyan-300/30 hover:bg-white/[0.06] sm:p-4';
+              const tileClassName = 'min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-[var(--accent)]/30 hover:bg-white/[0.06] sm:p-4';
 
               if (game.href?.startsWith('#')) {
                 return <a key={game.name} href={game.href} className={tileClassName}>{content}</a>;
@@ -618,7 +618,7 @@ export default function GamesPage() {
               }}
               disabled={onlineMode}
               aria-pressed={boardSize === size}
-              className={`rounded-full border px-4 py-2 text-xs transition-colors disabled:opacity-40 ${boardSize === size ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-100' : 'border-white/10 bg-white/[0.03] text-white/55'}`}
+              className={`rounded-full border px-4 py-2 text-xs transition-colors disabled:opacity-40 ${boardSize === size ? 'border-[var(--accent)]/50 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-white/10 bg-white/[0.03] text-white/55'}`}
             >
               {size} × {size}
             </button>
@@ -627,24 +627,24 @@ export default function GamesPage() {
         </div>
 
         <div className="mx-auto flex max-w-md items-center justify-center gap-2" role="group" aria-label="وضع اللعب">
-          <button type="button" onClick={() => { if (onlineMode) leaveOnlineMatch(); setVsAI(true); resetGame(); }} className={`rounded-full border px-3 py-2 text-xs ${!onlineMode && vsAI ? 'border-rose-400/40 bg-rose-400/10 text-rose-200' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
+          <button type="button" onClick={() => { if (onlineMode) leaveOnlineMatch(); setVsAI(true); resetGame(); }} className={`rounded-full border px-3 py-2 text-xs ${!onlineMode && vsAI ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
             أوفلاين ضد الحاسوب
           </button>
-          <button type="button" onClick={() => { if (onlineMode) leaveOnlineMatch(); setVsAI(false); resetGame(); }} className={`rounded-full border px-3 py-2 text-xs ${!onlineMode && !vsAI ? 'border-rose-400/40 bg-rose-400/10 text-rose-200' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
+          <button type="button" onClick={() => { if (onlineMode) leaveOnlineMatch(); setVsAI(false); resetGame(); }} className={`rounded-full border px-3 py-2 text-xs ${!onlineMode && !vsAI ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
             أوفلاين محلي
           </button>
-          <button type="button" onClick={() => { setOnlineMode(true); setVsAI(false); }} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs ${onlineMode ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
+          <button type="button" onClick={() => { setOnlineMode(true); setVsAI(false); }} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs ${onlineMode ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
             <Wifi className="h-3.5 w-3.5" /> مباشر
           </button>
         </div>
 
         {onlineMode && (
-          <section className="mx-auto max-w-md space-y-3 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.035] p-4" dir="rtl">
+          <section className="mx-auto max-w-md space-y-3 rounded-2xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.035] p-4" dir="rtl">
             <div className="space-y-2">
               <p className="text-xs font-semibold text-white/75">عدد اللاعبين فالغرفة</p>
               <div className="grid grid-cols-3 gap-2" role="group" aria-label="عدد اللاعبين">
                 {[2, 3, 4].map((count) => (
-                  <button key={count} type="button" disabled={onlineRole !== null} onClick={() => setRoomSize(count)} aria-pressed={roomSize === count} className={`rounded-lg border px-3 py-2 text-xs transition disabled:opacity-40 ${roomSize === count ? 'border-emerald-300/50 bg-emerald-300/10 text-emerald-100' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
+                  <button key={count} type="button" disabled={onlineRole !== null} onClick={() => setRoomSize(count)} aria-pressed={roomSize === count} className={`rounded-lg border px-3 py-2 text-xs transition disabled:opacity-40 ${roomSize === count ? 'border-[var(--accent)]/50 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-white/10 bg-white/[0.03] text-white/55'}`}>
                     {count} لاعبين
                   </button>
                 ))}
@@ -652,10 +652,10 @@ export default function GamesPage() {
               {roomSize > 2 && <p className="text-[10px] leading-5 text-white/45">مواجهة جماعية على لوحة 5×5، وربط 4 علامات للفوز.</p>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={createOnlineMatch} disabled={!user || onlineRole !== null} className="flex-1 rounded-xl bg-emerald-500/15 px-3 py-2.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-40">
+              <button type="button" onClick={createOnlineMatch} disabled={!user || onlineRole !== null} className="flex-1 rounded-xl bg-[var(--accent)]/15 px-3 py-2.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/25 disabled:opacity-40">
                 {onlineRole === 'host' ? 'الغرفة ديالك' : 'إنشاء غرفة'}
               </button>
-              <input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} maxLength={6} placeholder="كود الدعوة" disabled={onlineRole !== null} className="w-28 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-center font-mono text-sm uppercase text-white outline-none focus:border-emerald-300/40 disabled:opacity-40" />
+              <input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} maxLength={6} placeholder="كود الدعوة" disabled={onlineRole !== null} className="w-28 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-center font-mono text-sm uppercase text-white outline-none focus:border-[var(--accent)]/40 disabled:opacity-40" />
               <button type="button" onClick={joinOnlineMatch} disabled={joinCode.length !== 6 || onlineRole !== null} className="rounded-xl bg-white/[0.08] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-35">
                 انضمام
               </button>
@@ -696,7 +696,7 @@ export default function GamesPage() {
               disabled={onlineMode}
               className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 transition-all"
             >
-              {vsAI ? <Bot className="w-4 h-4 text-cyan-400" /> : <Users className="w-4 h-4 text-purple-400" />}
+              {vsAI ? <Bot className="w-4 h-4 text-[var(--accent)]" /> : <Users className="w-4 h-4 text-[var(--accent)]" />}
               {vsAI ? 'ضد الحاسوب' : 'ضد صديق'}
             </button>
           </div>
@@ -706,12 +706,12 @@ export default function GamesPage() {
             {winner ? (
               <span className="text-emerald-400">الفائز هو: {onlineMode ? winningPlayer?.username ?? winner : winner} 🎉</span>
             ) : isDraw ? (
-              <span className="text-amber-400">تعادل! 🤝</span>
+              <span className="text-[var(--accent-secondary)]">تعادل! 🤝</span>
             ) : onlineMode && !gameStarted ? (
               <span className="text-amber-200">كنستناو حتى يكملو اللاعبين باش تبدا اللعبة</span>
             ) : (
               <span className="text-white/70">
-                الدور على: <strong className={onlineMode ? playerColors[currentTurn % playerColors.length] : isXNext ? 'text-purple-400' : 'text-cyan-400'}>{onlineMode ? `${onlinePlayers[currentTurn]?.userId === user?.id ? 'أنت' : onlinePlayers[currentTurn]?.username} (${onlinePlayers[currentTurn]?.mark})` : isXNext ? 'X' : 'O'}</strong>
+                الدور على: <strong className={onlineMode ? playerColors[currentTurn % playerColors.length] : isXNext ? 'text-[var(--accent)]' : 'text-[var(--accent-secondary)]'}>{onlineMode ? `${onlinePlayers[currentTurn]?.userId === user?.id ? 'أنت' : onlinePlayers[currentTurn]?.username} (${onlinePlayers[currentTurn]?.mark})` : isXNext ? 'X' : 'O'}</strong>
               </span>
             )}
           </div>
@@ -730,7 +730,7 @@ export default function GamesPage() {
                   type="button"
                   onClick={() => handleClick(index)}
                   disabled={Boolean(board[index] || winner || (onlineMode && (!gameStarted || onlinePlayers[currentTurn]?.userId !== user?.id)))}
-                  className={`aspect-square min-h-0 rounded-xl border border-white/10 bg-black/40 text-2xl font-black transition-all hover:border-purple-500/50 hover:bg-white/5 active:scale-95 disabled:cursor-not-allowed sm:rounded-2xl sm:text-3xl ${markColor}`}
+                  className={`aspect-square min-h-0 rounded-xl border border-white/10 bg-black/40 text-2xl font-black transition-all hover:border-[var(--accent)]/50 hover:bg-white/5 active:scale-95 disabled:cursor-not-allowed sm:rounded-2xl sm:text-3xl ${markColor}`}
                 >
                   {value}
                 </button>
@@ -754,7 +754,7 @@ export default function GamesPage() {
               <h2 className="text-sm font-semibold">المستويات والمهام</h2>
               <p className="mt-1 text-[11px] text-white/40">كل 100 نقطة كتفتح مستوى جديد</p>
             </div>
-            {gameStats && <span className="rounded-full bg-cyan-300/10 px-3 py-1.5 text-xs font-bold text-cyan-100">المستوى {Math.floor(gameStats.totalPoints / 100) + 1}</span>}
+            {gameStats && <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-bold text-[var(--accent)]">المستوى {Math.floor(gameStats.totalPoints / 100) + 1}</span>}
           </div>
           {progressError ? (
             <p className="text-xs leading-5 text-amber-200/80">{progressError}</p>
@@ -774,7 +774,7 @@ export default function GamesPage() {
                 aria-valuenow={gameStats.totalPoints % 100}
                 className="h-2 overflow-hidden rounded-full bg-white/10"
               >
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300 transition-[width]" style={{ width: `${gameStats.totalPoints % 100}%` }} />
+                <div className="h-full rounded-full bg-[var(--accent)] transition-[width]" style={{ width: `${gameStats.totalPoints % 100}%` }} />
               </div>
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="rounded-lg bg-black/20 px-3 py-2"><p className="text-lg font-bold">{gameStats.totalGames}</p><p className="text-[10px] text-white/40">جولة إجمالاً</p></div>
@@ -798,7 +798,7 @@ export default function GamesPage() {
 
         <section id="game-leaderboard" className="mx-auto max-w-md scroll-mt-24 rounded-2xl border border-white/10 bg-white/[0.03] p-5" dir="rtl">
           <div className="mb-4 flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-amber-300" />
+            <Trophy className="h-4 w-4 text-[var(--accent-secondary)]" />
             <h2 className="text-sm font-semibold">ترتيب الأصدقاء هذا الأسبوع</h2>
           </div>
           {leaderboardError ? (
@@ -809,7 +809,7 @@ export default function GamesPage() {
             <ol className="space-y-2">
               {leaderboard.map((entry, index) => (
                 <li key={entry.userId} className="flex items-center gap-3 rounded-lg bg-black/20 px-3 py-2">
-                  <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${index === 0 ? 'bg-amber-300/15 text-amber-200' : 'bg-white/[0.05] text-white/50'}`}>{index + 1}</span>
+                  <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold ${index === 0 ? 'bg-[var(--accent-secondary)]/15 text-[var(--accent-secondary)]' : 'bg-white/[0.05] text-white/50'}`}>{index + 1}</span>
                   <span className="flex-1 truncate text-xs text-white/80">{entry.username}{entry.userId === user?.id ? ' (أنت)' : ''}</span>
                   <span className="text-xs font-semibold text-emerald-200">{entry.points} نقطة</span>
                 </li>

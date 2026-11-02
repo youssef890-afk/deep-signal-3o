@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import Avatar from '@/components/Avatar';
+import Handle from '@/components/Handle';
 import PostSummarizer from '@/components/PostSummarizer';
 
 interface Reel {
@@ -405,7 +406,7 @@ function ReelItem({
             font-bold
             text-sm
           ">
-            @{username}
+            <Handle username={username} />
           </span>
         </div>
 
