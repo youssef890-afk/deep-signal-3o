@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Languages } from 'lucide-react';
+import { Check, ChevronDown, Globe2, Languages } from 'lucide-react';
 import 'flag-icons/css/flag-icons.min.css';
 import { getBrowserLanguageCodes, languages, type LanguageOption } from '@/i18n/languages';
 import { translate, translateLanguagePicker, type Language } from '@/lib/i18n';
+import { translateAuth } from '@/i18n/auth';
 
 type Props = {
   language: Language;
@@ -26,31 +27,38 @@ type MenuPosition = {
   placement: 'below' | 'bubble';
 };
 
-const languageLabels: LanguageLabel[] = languages.map((language) => {
-  let nativeName: string = language.code;
-  let englishName: string = language.code;
+function getLanguageLabels(currentLanguage: Language): LanguageLabel[] {
+  return languages.map((language) => {
+    let nativeName: string = language.code;
+    let englishName: string = language.code;
 
-  if (typeof Intl.DisplayNames === 'function') {
-    try {
-      nativeName = new Intl.DisplayNames([language.code], { type: 'language' }).of(language.code) ?? language.code;
-    } catch {
-      nativeName = language.code;
+    if (typeof Intl.DisplayNames === 'function') {
+      try {
+        nativeName = new Intl.DisplayNames([language.code], { type: 'language' }).of(language.code) ?? language.code;
+      } catch {
+        nativeName = language.code;
+      }
+
+      try {
+        englishName = new Intl.DisplayNames(['en'], { type: 'language' }).of(language.code) ?? language.code;
+      } catch {
+        englishName = language.code;
+      }
     }
 
-    try {
-      englishName = new Intl.DisplayNames(['en'], { type: 'language' }).of(language.code) ?? language.code;
-    } catch {
-      englishName = language.code;
+    const firstCharacter = [...nativeName][0];
+    if (firstCharacter) {
+      nativeName = firstCharacter.toLocaleUpperCase(language.code) + nativeName.slice(firstCharacter.length);
     }
-  }
 
-  const firstCharacter = [...nativeName][0];
-  if (firstCharacter) {
-    nativeName = firstCharacter.toLocaleUpperCase(language.code) + nativeName.slice(firstCharacter.length);
-  }
+    if (language.code === 'ary') {
+      nativeName = translateAuth(currentLanguage, 'darijaLanguageName');
+      englishName = translateAuth('en', 'darijaLanguageEnglishName');
+    }
 
-  return { ...language, nativeName, englishName };
-});
+    return { ...language, nativeName, englishName };
+  });
+}
 
 function normalize(value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase();
@@ -60,7 +68,8 @@ function isAvailableLanguage(code: string): code is Language {
   return languages.some((option) => option.code === code && option.available);
 }
 
-function getOrderedLanguages(): LanguageLabel[] {
+function getOrderedLanguages(currentLanguage: Language): LanguageLabel[] {
+  const languageLabels = getLanguageLabels(currentLanguage);
   const browserCodes = getBrowserLanguageCodes();
   const browserPreference = languageLabels.find(
     (language) => !language.available && language.code === browserCodes[0],
@@ -82,10 +91,10 @@ export default function LoginLanguagePicker({ language, onSelect, onOpenChange, 
   const [activeIndex, setActiveIndex] = useState(0);
   const [position, setPosition] = useState<MenuPosition | null>(null);
   const orderedLanguages = useMemo(() => {
-    const ordered = getOrderedLanguages();
+    const ordered = getOrderedLanguages(language);
     return [...ordered].sort((a, b) => Number(b.code === language) - Number(a.code === language));
   }, [language]);
-  const selected = languageLabels.find((option) => option.code === language) ?? languageLabels[0];
+  const selected = orderedLanguages.find((option) => option.code === language) ?? orderedLanguages[0];
   const results = useMemo(() => {
     const search = normalize(query.trim());
     if (!search) return orderedLanguages;
@@ -107,7 +116,7 @@ export default function LoginLanguagePicker({ language, onSelect, onOpenChange, 
     const viewportBottom = viewportTop + viewportHeight;
     const below = Math.max(0, viewportBottom - rect.bottom - 8);
     const maxAllowed = Math.min(viewportHeight * 0.4, viewportHeight - 24);
-    const width = Math.min(rect.width, window.innerWidth - 24);
+    const width = Math.min(Math.max(rect.width, 272), window.innerWidth - 24);
     const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
 
     if (below >= Math.min(220, maxAllowed)) {
@@ -237,11 +246,13 @@ export default function LoginLanguagePicker({ language, onSelect, onOpenChange, 
 
   return (
     <>
-      <div className="flex h-[54px] items-center gap-3 rounded-2xl border border-[var(--text)]/10 bg-[var(--text)]/[.035] px-3 transition focus-within:border-[var(--accent)]/45 focus-within:bg-[var(--text)]/[.06] focus-within:ring-4 focus-within:ring-[var(--accent)]/10">
-        {selected.genericFlag ? (
+      <div className="flex h-9 w-[168px] max-w-full items-center gap-1.5 rounded-full border border-[var(--text)]/15 bg-[var(--text)]/[.04] px-3 transition focus-within:border-[var(--accent)]/55 focus-within:bg-[var(--text)]/[.08] focus-within:ring-2 focus-within:ring-[var(--accent)]/25">
+        {selected.code === 'ar' ? (
+          <Globe2 aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--text)]/70" />
+        ) : selected.genericFlag ? (
           <Languages aria-hidden="true" className="h-[18px] w-6 shrink-0 text-[var(--text)]/60" />
         ) : (
-          <span aria-hidden="true" className={`fi fi-${selected.country} h-[18px] w-6 shrink-0 rounded-sm border border-[var(--text)]/15`} />
+          <span aria-hidden="true" className={`fi fi-${selected.country} h-3.5 w-5 shrink-0 rounded-sm border border-[var(--text)]/15`} />
         )}
         <input
           ref={inputRef}
@@ -263,9 +274,9 @@ export default function LoginLanguagePicker({ language, onSelect, onOpenChange, 
             setOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className="h-full min-w-0 flex-1 bg-transparent py-3 text-sm font-semibold text-[var(--text)] outline-none placeholder:font-normal placeholder:text-[var(--text)]/40"
+          className="h-full min-w-0 flex-1 bg-transparent py-0 text-xs font-semibold text-[var(--text)] outline-none placeholder:font-normal placeholder:text-[var(--text)]/55"
         />
-        <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-[var(--text)]/45 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 text-[var(--text)]/60 transition-transform ${open ? 'rotate-180' : ''}`} />
       </div>
       {open && position && createPortal(
         <div
@@ -274,6 +285,7 @@ export default function LoginLanguagePicker({ language, onSelect, onOpenChange, 
           id={listboxId}
           role="listbox"
           aria-label={translate(language, 'language')}
+          dir={language === 'ar' || language === 'ary' ? 'rtl' : 'ltr'}
           style={{
             position: 'fixed',
             top: position.top,
@@ -298,10 +310,12 @@ export default function LoginLanguagePicker({ language, onSelect, onOpenChange, 
                 onClick={() => selectLanguage(option)}
                 className={`flex h-14 cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 transition ${isSelected ? 'bg-[var(--accent)]/10' : ''} ${isActive ? 'border-[var(--accent)]/35 bg-[var(--text)]/[.09] ring-1 ring-[var(--accent)]/25' : 'hover:bg-[var(--text)]/[.06]'} ${option.available ? 'text-[var(--text)]' : 'cursor-not-allowed text-[var(--text)]/40'}`}
               >
-                {option.genericFlag ? (
+                {option.code === 'ar' ? (
+                  <Globe2 aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--text)]/65" />
+                ) : option.genericFlag ? (
                   <Languages aria-hidden="true" className="h-[18px] w-6 shrink-0 text-[var(--text)]/55" />
                 ) : (
-                  <span aria-hidden="true" className={`fi fi-${option.country} h-[18px] w-6 shrink-0 rounded-sm border border-[var(--text)]/15`} />
+                  <span aria-hidden="true" className={`fi fi-${option.country} h-3.5 w-5 shrink-0 rounded-sm border border-[var(--text)]/15`} />
                 )}
                 <span className="min-w-0 flex-1 text-start">
                   <span lang={option.code} className="block truncate font-sans text-sm font-semibold">{option.nativeName}</span>

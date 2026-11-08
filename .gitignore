@@ -43,3 +43,5 @@ voice-samples/
 .audit.log
 .dep.log
 .gitfiles.log
+.vercel
+.env*

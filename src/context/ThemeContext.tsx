@@ -18,7 +18,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   theme: 'obsidian',
   mode: 'dark',
   palette: 'obsidian',
-  accentColor: '#FB7185',
+  accentColor: '#22C55E',
   setTheme: () => undefined,
   setMode: () => undefined,
   setAccentColor: () => undefined,
@@ -69,7 +69,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
   const [accentColor, setAccentColorState] = useState(() => {
     const saved = localStorage.getItem('ds-accent-color');
-    return saved && /^#[0-9a-fA-F]{6}$/.test(saved) ? saved : '#FB7185';
+    if (saved?.toUpperCase() === '#FB7185') return '#22C55E';
+    return saved && /^#[0-9a-fA-F]{6}$/.test(saved) ? saved : '#22C55E';
   });
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--accent', accentColor);
     root.style.setProperty('--accent-foreground', accentForeground(accentColor));
     root.style.setProperty('--accent-soft', withAlpha(accentColor, 0.15));
+    root.style.setProperty('--accent-ring', withAlpha(accentColor, 0.38));
     root.style.setProperty('--accent-glow', withAlpha(accentColor, 0.55));
     root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${accentColor}, ${accentColor})`);
     localStorage.setItem('ds-theme', palette);

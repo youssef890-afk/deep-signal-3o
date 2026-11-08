@@ -554,9 +554,9 @@ export default function ProfilePage() {
       "
     >
       {profileError && (
-        <div role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-4 text-sm text-rose-100">
+        <div role="alert" className="rounded-xl border border-[var(--error)]/20 bg-[var(--error)]/[0.06] p-4 text-sm text-[var(--error)]">
           <p>{t(profileError)}</p>
-          <button type="button" onClick={() => void loadProfileData()} className="mt-3 rounded-lg border border-rose-200/20 px-3 py-2 text-xs font-semibold transition hover:bg-rose-200/10">
+          <button type="button" onClick={() => void loadProfileData()} className="mt-3 rounded-lg border border-[var(--error)]/20 px-3 py-2 text-xs font-semibold transition hover:bg-[var(--error)]/10">
             {t('retry')}
           </button>
         </div>
@@ -622,7 +622,7 @@ export default function ProfilePage() {
       >
 
         <div
-          className="relative mb-5 flex h-32 items-end overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-emerald-950 via-neutral-900 to-rose-950 bg-cover bg-center p-3"
+          className="relative mb-5 flex h-32 items-end overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-emerald-950 via-neutral-900 to-neutral-950 bg-cover bg-center p-3"
           style={profile.cover_url ? { backgroundImage: `linear-gradient(0deg, rgba(0,0,0,.7), transparent), url(${profile.cover_url})` } : undefined}
         >
           <span className="text-[10px] font-medium text-white/65">غلاف الملف الشخصي</span>

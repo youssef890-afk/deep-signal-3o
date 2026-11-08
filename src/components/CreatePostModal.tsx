@@ -40,14 +40,14 @@ interface TextBackground {
 const TEXT_BACKGROUNDS: TextBackground[] = [
   {
     id: 'sunset',
-    className: 'bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400',
-    previewClass: 'bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400',
+    className: 'bg-gradient-to-br from-accent via-accent to-orange-400',
+    previewClass: 'bg-gradient-to-br from-accent via-accent to-orange-400',
     label: 'غروب',
   },
   {
     id: 'purple',
-    className: 'bg-gradient-to-br from-purple-600 via-fuchsia-500 to-pink-500',
-    previewClass: 'bg-gradient-to-br from-purple-600 via-fuchsia-500 to-pink-500',
+    className: 'bg-gradient-to-br from-purple-600 via-fuchsia-500 to-accent',
+    previewClass: 'bg-gradient-to-br from-purple-600 via-fuchsia-500 to-accent',
     label: 'بنفسجي',
   },
   {

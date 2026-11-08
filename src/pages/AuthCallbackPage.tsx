@@ -27,7 +27,7 @@ export default function AuthCallbackPage() {
 
         {loading ? (
           <>
-            <Loader2 className="mx-auto mb-4 h-7 w-7 animate-spin text-rose-400" />
+            <Loader2 className="mx-auto mb-4 h-7 w-7 animate-spin text-accent" />
             <h1 className="text-xl font-bold">كنأكدو من الحساب...</h1>
           </>
         ) : session ? (
@@ -44,7 +44,7 @@ export default function AuthCallbackPage() {
             <p className="mt-3 text-sm text-white/60">
               {authError || 'الرابط ممكن يكون منتهي أو مستعمل. دخل للحساب وطلب رابط جديد.'}
             </p>
-            <Link to="/login" className="mt-6 inline-flex rounded-full bg-gradient-to-r from-rose-500 to-[var(--accent)] px-6 py-3 font-semibold">
+            <Link to="/login" className="mt-6 inline-flex rounded-full bg-accent px-6 py-3 font-semibold text-accent-foreground">
               رجوع لتسجيل الدخول
             </Link>
           </>

@@ -11,6 +11,7 @@ import PageBackground from '@/components/PageBackground';
 import AuthEntryPage, { OnboardingCompletionPage } from '@/pages/AuthEntryPage';
 import AuthRecoveryPage from '@/pages/AuthRecoveryPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
+import LegalPage from '@/pages/LegalPage';
 import Youssef555Page from '@/pages/Youssef555Page';
 import { Loader2 } from 'lucide-react';
 import { DSLogo } from '@/components/icons/BrandIcons';
@@ -94,6 +95,14 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
 function AuthGate() {
   const { session, loading } = useAuth();
   const location = useLocation();
+
+  if (location.pathname === '/terms') {
+    return <LegalPage kind="terms" />;
+  }
+
+  if (location.pathname === '/privacy') {
+    return <LegalPage kind="privacy" />;
+  }
 
   if (location.pathname === '/youssef555') {
     return <Youssef555Page />;

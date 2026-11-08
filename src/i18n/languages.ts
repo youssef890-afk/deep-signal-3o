@@ -8,6 +8,7 @@ export type LanguageOption = {
 
 export const languages = [
   { code: 'ar', country: 'ma', rtl: true, available: true },
+  { code: 'ary', country: 'ma', rtl: true, available: true },
   { code: 'en', country: 'us', rtl: false, available: true },
   { code: 'fr', country: 'fr', rtl: false, available: true },
   { code: 'es', country: 'es', rtl: false, available: false },
@@ -82,6 +83,5 @@ export function getBrowserLanguageCodes(): string[] {
 }
 
 export function getPreferredAvailableLanguage(): AvailableLanguage | undefined {
-  return getBrowserLanguageCodes()
-    .find(isAvailableLanguageCode);
+  return getBrowserLanguageCodes().find(isAvailableLanguageCode);
 }

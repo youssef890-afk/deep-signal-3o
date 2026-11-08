@@ -508,7 +508,7 @@ export default function GamesPage() {
             key={`${winner}-${boardSize}`}
             role="status"
             aria-live="assertive"
-            className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center overflow-hidden ${playerLost ? 'bg-rose-950/35' : 'bg-emerald-950/30'}`}
+            className={`pointer-events-none fixed inset-0 z-50 flex items-center justify-center overflow-hidden ${playerLost ? 'bg-neutral-950/45' : 'bg-emerald-950/30'}`}
             initial={{ opacity: 0 }}
             animate={playerLost
               ? { opacity: 1, x: [0, -7, 7, -5, 5, 0] }
@@ -526,7 +526,7 @@ export default function GamesPage() {
               />
             ))}
             <motion.div
-              className={`rounded-2xl border px-8 py-6 text-center shadow-2xl backdrop-blur-md ${playerLost ? 'border-rose-300/30 bg-rose-950/70 text-rose-100' : 'border-emerald-200/30 bg-emerald-950/70 text-emerald-100'}`}
+              className={`rounded-2xl border px-8 py-6 text-center shadow-2xl backdrop-blur-md ${playerLost ? 'border-white/15 bg-neutral-950/80 text-white/90' : 'border-emerald-200/30 bg-emerald-950/70 text-emerald-100'}`}
               initial={{ y: 16, scale: 0.9 }}
               animate={{ y: 0, scale: 1 }}
             >
@@ -660,7 +660,7 @@ export default function GamesPage() {
                 انضمام
               </button>
             </div>
-            {onlineError && <p role="alert" className="text-xs leading-5 text-rose-200">{onlineError}</p>}
+            {onlineError && <p role="alert" className="text-xs leading-5 text-[var(--error)]">{onlineError}</p>}
             {onlineRole && (
               <>
                 <div className="flex items-center justify-between gap-3 text-xs">
@@ -670,7 +670,7 @@ export default function GamesPage() {
                   <div className="flex items-center gap-2">
                     <code className="rounded bg-black/30 px-2 py-1 font-mono text-white">{inviteCode}</code>
                     {onlineRole === 'host' && <button type="button" onClick={() => void handleCopyCode()} aria-label={copiedCode ? 'تم نسخ كود الدعوة' : 'نسخ كود الدعوة'} title={copiedCode ? 'تم النسخ' : 'نسخ الكود'} className="text-white/65 hover:text-white"><Copy className="h-4 w-4" /></button>}
-                    <button type="button" onClick={leaveOnlineMatch} className="text-rose-300 hover:text-rose-200">خروج</button>
+                    <button type="button" onClick={leaveOnlineMatch} className="text-accent hover:brightness-125">خروج</button>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">

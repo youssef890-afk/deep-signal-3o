@@ -17,6 +17,15 @@ const authMessages = {
     signupDone: 'أهلاً بك في Deep-Signal! حسابك جاهز.',
     appName: 'Deep-Signal',
     robotAlt: 'روبوت Deep-Signal يرحب بك',
+    darijaLanguageName: 'الدارجة المغربية',
+    darijaLanguageEnglishName: 'Moroccan Darija',
+    welcomeTitle: 'مجتمعك، بلغتك',
+    benefitVoiceRooms: 'غرف صوتية تجمعنا',
+    benefitCommunities: 'مجتمعات على اهتماماتك',
+    benefitDarijaAssistant: 'مساعد ذكي بدارجتك',
+    hasAccount: 'عندي حساب',
+    termsLink: 'الشروط',
+    privacyLink: 'الخصوصية',
     choosePath: 'اختر ما يناسبك',
     createAccount: 'إنشاء حساب',
     existingAccount: 'لا، لدي حساب',
@@ -85,7 +94,7 @@ const authMessages = {
     saveThinking: 'جارٍ حفظ كلمة المرور…',
     retry: 'إعادة المحاولة',
     cancel: 'إلغاء',
-    robotWelcome: 'مرحباً بك في منصّتك! أنا مساعدك الذكي، وسأرافقك خطوة بخطوة لتسجيل الدخول أو إنشاء حساب. هيا نبدأ!',
+    robotWelcome: 'مرحباً بك في Deep-Signal! أنا مساعدك الذكي، وسأرافقك لتكتشف مجتمعاتك وغرفك الصوتية.',
     robotConsent: 'هل لديك بعض الوقت؟',
     robotPause: 'لا مشكلة، سأكون هنا عندما تعود.',
     robotSignupDone: 'أهلاً بك في Deep-Signal! حسابك جاهز.',
@@ -125,6 +134,15 @@ const authMessages = {
     signupDone: 'Bienvenue sur Deep-Signal ! Votre compte est prêt.',
     appName: 'Deep-Signal',
     robotAlt: 'Le robot Deep-Signal vous souhaite la bienvenue',
+    darijaLanguageName: 'Darija marocaine',
+    darijaLanguageEnglishName: 'Moroccan Darija',
+    welcomeTitle: 'Votre communauté, dans votre langue',
+    benefitVoiceRooms: 'Des salons vocaux pour échanger',
+    benefitCommunities: 'Des communautés selon vos intérêts',
+    benefitDarijaAssistant: 'Un assistant intelligent en darija',
+    hasAccount: 'J’ai déjà un compte',
+    termsLink: 'Conditions',
+    privacyLink: 'Confidentialité',
     choosePath: 'Que souhaitez-vous faire ?',
     createAccount: 'Créer un compte',
     existingAccount: 'Non, j’ai déjà un compte',
@@ -193,7 +211,7 @@ const authMessages = {
     saveThinking: 'Enregistrement du mot de passe…',
     retry: 'Réessayer',
     cancel: 'Annuler',
-    robotWelcome: 'Bienvenue sur Deep-Signal ! Je suis votre assistant et je vous accompagne pour vous connecter ou créer votre compte. Commençons !',
+    robotWelcome: 'Bienvenue sur Deep-Signal ! Je suis votre assistant et je vous aide à découvrir vos communautés et salons vocaux.',
     robotConsent: 'Avez-vous un moment ?',
     robotPause: 'Pas de problème, je serai là à votre retour.',
     robotSignupDone: 'Bienvenue sur Deep-Signal ! Votre compte est prêt.',
@@ -233,6 +251,15 @@ const authMessages = {
     signupDone: 'Welcome to Deep-Signal! Your account is ready.',
     appName: 'Deep-Signal',
     robotAlt: 'Deep-Signal robot welcoming you',
+    darijaLanguageName: 'Moroccan Darija',
+    darijaLanguageEnglishName: 'Moroccan Darija',
+    welcomeTitle: 'Your community, in your language',
+    benefitVoiceRooms: 'Voice rooms to connect',
+    benefitCommunities: 'Communities built around your interests',
+    benefitDarijaAssistant: 'A smart assistant in Darija',
+    hasAccount: 'I already have an account',
+    termsLink: 'Terms',
+    privacyLink: 'Privacy',
     choosePath: 'What would you like to do?',
     createAccount: 'Create an account',
     existingAccount: 'No, I already have an account',
@@ -301,7 +328,7 @@ const authMessages = {
     saveThinking: 'Saving your password…',
     retry: 'Retry',
     cancel: 'Cancel',
-    robotWelcome: 'Welcome to Deep-Signal! I’m your assistant, here to guide you through signing in or creating an account. Let’s get started!',
+    robotWelcome: 'Welcome to Deep-Signal! I’m your assistant, here to help you discover your communities and voice rooms.',
     robotConsent: 'Do you have a moment?',
     robotPause: "No problem. I'll be here when you return.",
     robotSignupDone: 'Welcome to Deep-Signal! Your account is ready.',
@@ -325,11 +352,27 @@ const authMessages = {
     recoveryExpired: 'The recovery session expired. Request a new code.',
     recoveryNeedLogin: 'Verify the recovery code first.',
   },
-} as const satisfies Record<Language, Record<string, string>>;
+} as const satisfies Record<Exclude<Language, 'ary'>, Record<string, string>>;
 
 export type AuthMessageKey = keyof typeof authMessages.ar;
 
+const darijaMessages: Partial<Record<AuthMessageKey, string>> = {
+  robotAlt: 'روبوت Deep-Signal كيرحب بيك',
+  darijaLanguageName: 'الدارجة المغربية',
+  darijaLanguageEnglishName: 'Moroccan Darija',
+  welcomeTitle: 'مجتمعك، بلغتك',
+  benefitVoiceRooms: 'غرف صوتية تجمعنا',
+  benefitCommunities: 'مجتمعات على حساب اهتماماتك',
+  benefitDarijaAssistant: 'مساعد ذكي كيهضر بدارجتك',
+  hasAccount: 'عندي حساب',
+  termsLink: 'الشروط',
+  privacyLink: 'الخصوصية',
+  robotWelcome: 'سلام! أنا المساعد ديالك، وغادي نعاونك تكتاشف المجتمعات والغرف الصوتية ديالك.',
+  start: 'يلا نبداو',
+};
+
 export function translateAuth(language: Language, key: AuthMessageKey): string {
+  if (language === 'ary') return darijaMessages[key] ?? authMessages.ar[key];
   return authMessages[language][key];
 }
 

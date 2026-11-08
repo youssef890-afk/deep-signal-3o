@@ -506,7 +506,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
         </div>
       </header>
 
-      {error && <p role="alert" className="relative mx-4 mt-4 rounded-lg border border-rose-200/15 bg-rose-200/[0.05] px-3 py-2 text-xs leading-6 text-rose-100/90 sm:mx-6">{error}</p>}
+      {error && <p role="alert" className="relative mx-4 mt-4 rounded-lg border border-[var(--error)]/15 bg-[var(--error)]/[0.05] px-3 py-2 text-xs leading-6 text-[var(--error)] sm:mx-6">{error}</p>}
 
       {!roomCode ? (
         <div className="relative mx-auto grid max-w-3xl gap-6 p-5 sm:p-8 md:grid-cols-[1.1fr_0.9fr]">
@@ -552,7 +552,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
             <section className="order-2 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 sm:p-5" aria-label="طاولة اللعب">
               <div className="flex items-center justify-between gap-2">
                 <div><p className="text-[9px] uppercase tracking-[0.14em] text-[var(--text-muted)]">الجولة {gameState?.round ?? 0}</p><h2 className="mt-0.5 text-sm font-bold">{phaseLabel}</h2></div>
-                {(gameState?.phase === 'bidding' || gameState?.phase === 'playing') && <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-xs ${secondsLeft <= 5 ? 'bg-rose-300/10 text-rose-200' : 'bg-white/[0.05] text-white/70'}`}><Timer className="h-3.5 w-3.5" />00:{String(secondsLeft).padStart(2, '0')}</div>}
+                {(gameState?.phase === 'bidding' || gameState?.phase === 'playing') && <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-mono text-xs ${secondsLeft <= 5 ? 'bg-amber-300/10 text-amber-200' : 'bg-white/[0.05] text-white/70'}`}><Timer className="h-3.5 w-3.5" />00:{String(secondsLeft).padStart(2, '0')}</div>}
               </div>
 
               <div className="my-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2.5 text-center">

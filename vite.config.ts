@@ -1,29 +1,46 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
+import { loadEnv } from 'vite';
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+export default defineConfig(({ mode }) => {
+  const domain = loadEnv(mode, process.cwd(), 'DEEP_SIGNAL_').DEEP_SIGNAL_VERCEL_DOMAIN?.trim();
+  const target = domain
+    ? domain.startsWith('http://') || domain.startsWith('https://') ? domain : `https://${domain}`
+    : undefined;
+
+  if (!target) {
+    console.warn('Set DEEP_SIGNAL_VERCEL_DOMAIN to proxy /api requests during local development.');
+  }
+
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
     },
-  },
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
-  build: {
-    // Split the vendor code that rarely changes away from app code, so a code
-    // change does not invalidate the whole bundle in the browser cache.
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
-          motion: ['framer-motion'],
+    optimizeDeps: {
+      exclude: ['lucide-react'],
+    },
+    server: target ? {
+      proxy: {
+        '/api': {
+          target,
+          changeOrigin: true,
+        },
+      },
+    } : undefined,
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            supabase: ['@supabase/supabase-js'],
+            motion: ['framer-motion'],
+          },
         },
       },
     },
-  },
+  };
 });

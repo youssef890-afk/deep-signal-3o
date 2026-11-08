@@ -54,7 +54,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={this.handleReload}
-              className="rounded-full bg-gradient-to-r from-rose-500 to-[var(--accent)] px-6 py-3 text-sm font-semibold"
+              className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground"
             >
               {translate(language, 'reloadPage')}
             </button>

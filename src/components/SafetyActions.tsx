@@ -110,7 +110,7 @@ export default function SafetyActions({ targetUserId, targetPostId, onBlocked }:
           <button
             type="button"
             onClick={() => { setDialog('block'); setMenuOpen(false); }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-right text-xs text-rose-300 transition hover:bg-white/[0.08]"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-right text-xs text-accent transition hover:bg-accent-soft"
           >
             <Ban className="h-4 w-4" />
             حظر المستخدم
@@ -149,10 +149,10 @@ export default function SafetyActions({ targetUserId, targetPostId, onBlocked }:
               <p className="text-sm leading-6 text-white/70">من بعد الحظر، ما غاديش تبقاو تشوفو حسابات ومنشورات بعضياتكم، وما غاديش تقدروا تبعثو رسائل أو متابعة.</p>
             )}
 
-            {error && <p role="alert" className="mt-3 text-xs text-rose-300">{error}</p>}
+            {error && <p role="alert" className="mt-3 text-xs text-[var(--error)]">{error}</p>}
             <div className="mt-5 flex gap-2">
               <button type="button" onClick={() => { setDialog(null); setError(''); }} disabled={loading} className="flex-1 rounded-lg border border-white/10 px-3 py-2.5 text-sm text-white/70 hover:bg-white/[0.06]">إلغاء</button>
-              <button type="button" onClick={() => void (dialog === 'report' ? handleReport() : handleBlock())} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50">
+              <button type="button" onClick={() => void (dialog === 'report' ? handleReport() : handleBlock())} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110 disabled:opacity-50">
                 {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : dialog === 'report' ? <Flag className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                 {dialog === 'report' ? 'إرسال التبليغ' : 'حظر'}
               </button>

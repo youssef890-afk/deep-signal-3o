@@ -409,7 +409,7 @@ export default function RoomDetailPage() {
             onClick={() =>
               void endRoom()
             }
-            className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-xl text-xs"
+            className="px-3 py-1.5 rounded-xl bg-[var(--error)]/20 text-[var(--error)] text-xs"
           >
             إنهاء الجلسة
           </button>
@@ -440,7 +440,7 @@ export default function RoomDetailPage() {
               aria-label={!liveAudio.audioStarted ? 'تشغيل الميكروفون' : isMuted ? 'إلغاء كتم الميكروفون' : 'كتم الميكروفون'}
               className={`p-2 rounded-full ${
                 !liveAudio.audioStarted || isMuted
-                  ? 'bg-red-500/20 text-red-400'
+                  ? 'bg-white/10 text-white/65'
                   : 'bg-green-500/20 text-green-400'
               }`}
             >
@@ -453,7 +453,7 @@ export default function RoomDetailPage() {
           )}
         </div>
 
-        {liveAudio.error && <p role="alert" className="mb-4 text-xs text-rose-300">{liveAudio.error}</p>}
+        {liveAudio.error && <p role="alert" className="mb-4 text-xs text-[var(--error)]">{liveAudio.error}</p>}
         {liveAudio.remoteAudio.length > 0 && (
           <div className="mb-4 space-y-2">
             {liveAudio.remoteAudio.map((remote) => (
@@ -513,7 +513,7 @@ export default function RoomDetailPage() {
                               member.id
                             )
                           }
-                          className="absolute top-2 right-2 text-red-400 hover:text-red-300"
+                          className="absolute right-2 top-2 text-[var(--error)] hover:brightness-125"
                           aria-label="طرد العضو"
                         >
                           <X className="w-4 h-4" />

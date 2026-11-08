@@ -433,7 +433,7 @@ export default function SettingsPage() {
               <span className="mr-auto shrink-0 rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300">{t('currentSession')}</span>
             </div>
           </div>
-          <SettingsRow label={t('signOutAll')}><button type="button" onClick={() => void signOutAll()} className="rounded-lg border border-rose-400/20 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-400/10"><LogOut className="h-4 w-4" /></button></SettingsRow>
+          <SettingsRow label={t('signOutAll')}><button type="button" onClick={() => void signOutAll()} className="rounded-lg border border-accent-ring px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent-soft"><LogOut className="h-4 w-4" /></button></SettingsRow>
         </SettingsSection>
       </div>
     );
@@ -508,7 +508,7 @@ export default function SettingsPage() {
           <div className="mt-3 flex flex-wrap gap-2">{settings.blockedWords.map((word) => <span key={word} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs">{word}<button type="button" aria-label={`${t('remove')} ${word}`} onClick={() => setPreference('blockedWords', settings.blockedWords.filter((item) => item !== word))}><X className="h-3.5 w-3.5 text-white/50" /></button></span>)}</div>
         </SettingsSection>
         <SettingsSection title={t('blockedAccounts')}>
-          {blockedLoading ? <div className="h-10 animate-pulse rounded-lg bg-white/5" /> : blockedError ? <p role="alert" className="text-sm text-rose-300">{t('saveError')}</p> : blockedAccounts.length === 0 ? <p className="py-3 text-sm text-white/50">{t('noBlockedAccounts')}</p> : blockedAccounts.map((account) => <div key={account.id} className="flex items-center justify-between border-b border-white/[0.07] py-3 last:border-0"><span className="text-sm"><Handle username={account.username} /></span><button type="button" onClick={() => void unblock(account.id)} className="rounded-md px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/5">{t('remove')}</button></div>)}
+          {blockedLoading ? <div className="h-10 animate-pulse rounded-lg bg-white/5" /> : blockedError ? <p role="alert" className="text-sm text-[var(--error)]">{t('saveError')}</p> : blockedAccounts.length === 0 ? <p className="py-3 text-sm text-white/50">{t('noBlockedAccounts')}</p> : blockedAccounts.map((account) => <div key={account.id} className="flex items-center justify-between border-b border-white/[0.07] py-3 last:border-0"><span className="text-sm"><Handle username={account.username} /></span><button type="button" onClick={() => void unblock(account.id)} className="rounded-md px-3 py-1.5 text-xs text-white/60 transition hover:bg-white/5">{t('remove')}</button></div>)}
         </SettingsSection>
         <SettingsSection title={t('commentFilter')}>
           <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('commentFilter')}>
@@ -530,7 +530,7 @@ export default function SettingsPage() {
     if (activeTab === 'data') return (
       <SettingsSection title={t('data')}>
         <SettingsRow label={t('downloadData')}><button type="button" disabled={saving} onClick={() => void exportData()} aria-label={t('downloadData')} className="rounded-lg bg-white/10 p-2.5 transition hover:scale-105 hover:bg-white/15 disabled:opacity-50"><Download className="h-4 w-4" /></button></SettingsRow>
-        <SettingsRow label={t('deleteAccount')}><button type="button" onClick={() => setDeleteOpen(true)} aria-label={t('deleteAccount')} className="rounded-lg bg-rose-500/10 p-2.5 text-rose-300 transition hover:scale-105 hover:bg-rose-500/20"><Trash2 className="h-4 w-4" /></button></SettingsRow>
+        <SettingsRow label={t('deleteAccount')}><button type="button" onClick={() => setDeleteOpen(true)} aria-label={t('deleteAccount')} className="rounded-lg bg-[var(--error)]/10 p-2.5 text-[var(--error)] transition hover:scale-105 hover:bg-[var(--error)]/20"><Trash2 className="h-4 w-4" /></button></SettingsRow>
       </SettingsSection>
     );
 
@@ -558,7 +558,7 @@ export default function SettingsPage() {
         <div><h1 className="text-xl font-semibold">{t('title')}</h1><p className="mt-1 text-xs text-white/45">{t(tabs.find((tab) => tab.id === activeTab)?.key ?? 'account')}</p></div>
       </header>
 
-      {toast && <div role={toast.error ? 'alert' : 'status'} aria-live="polite" className={`fixed left-1/2 top-20 z-[120] -translate-x-1/2 rounded-lg border px-4 py-3 text-sm shadow-xl ${toast.error ? 'border-rose-400/20 bg-rose-500/10 text-rose-200' : 'border-emerald-300/20 bg-emerald-500/10 text-emerald-200'}`}>{toast.text}</div>}
+      {toast && <div role={toast.error ? 'alert' : 'status'} aria-live="polite" className={`fixed left-1/2 top-20 z-[120] -translate-x-1/2 rounded-lg border px-4 py-3 text-sm shadow-xl ${toast.error ? 'border-[var(--error)]/20 bg-[var(--error)]/10 text-[var(--error)]' : 'border-emerald-300/20 bg-emerald-500/10 text-emerald-200'}`}>{toast.text}</div>}
 
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label={t('title')} className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:sticky lg:top-20 lg:h-fit lg:flex-col lg:overflow-visible">
@@ -588,11 +588,11 @@ export default function SettingsPage() {
 
       {deleteOpen && (
         createPortal(<div role="presentation" dir={directionForLanguage(language)} onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteOpen(false); }} className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto overscroll-contain bg-black/75 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
-          <section role="dialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-md rounded-xl border border-rose-400/20 bg-[var(--surface)] p-5 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between"><h2 id="delete-title" className="text-lg font-semibold text-rose-200">{t('deleteModalTitle')}</h2><button type="button" onClick={() => setDeleteOpen(false)} aria-label={t('cancel')} className="rounded-lg p-2 text-white/55 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-title" className="w-full max-w-md rounded-xl border border-[var(--error)]/20 bg-[var(--surface)] p-5 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between"><h2 id="delete-title" className="text-lg font-semibold text-[var(--error)]">{t('deleteModalTitle')}</h2><button type="button" onClick={() => setDeleteOpen(false)} aria-label={t('cancel')} className="rounded-lg p-2 text-white/55 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
             <p className="mb-4 text-sm leading-6 text-white/65">{t('deleteWarning')}</p>
             <label className="mb-4 block text-sm text-white/75">{t('typeDelete')}<Input value={deleteText} onChange={(event) => setDeleteText(event.target.value)} className="mt-2" /></label>
-            <div className="flex justify-end gap-2"><button type="button" onClick={() => setDeleteOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/60 hover:bg-white/5">{t('cancel')}</button><button type="button" disabled={deleteText !== 'DELETE'} onClick={() => { setDeleteOpen(false); setDeleteText(''); notify(t('deleteUnavailable'), true); }} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40">{t('deleteConfirm')}</button></div>
+            <div className="flex justify-end gap-2"><button type="button" onClick={() => setDeleteOpen(false)} className="rounded-lg px-4 py-2 text-sm text-white/60 hover:bg-white/5">{t('cancel')}</button><button type="button" disabled={deleteText !== 'DELETE'} onClick={() => { setDeleteOpen(false); setDeleteText(''); notify(t('deleteUnavailable'), true); }} className="rounded-lg bg-[var(--error)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40">{t('deleteConfirm')}</button></div>
           </section>
         </div>, document.body)
       )}

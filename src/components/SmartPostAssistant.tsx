@@ -47,7 +47,7 @@ export default function SmartPostAssistant({ text, onApply }: SmartPostAssistant
         </button>
         <div className="flex rounded-lg border border-white/10 bg-black/20 p-0.5" role="group" aria-label="نبرة النص">
           {tones.map((item) => (
-            <button key={item.id} type="button" onClick={() => setTone(item.id)} aria-pressed={tone === item.id} className={`rounded-md px-2 py-1 text-[10px] ${tone === item.id ? 'bg-rose-500/20 text-rose-200' : 'text-white/45 hover:text-white/80'}`}>
+            <button key={item.id} type="button" onClick={() => setTone(item.id)} aria-pressed={tone === item.id} className={`rounded-md px-2 py-1 text-[10px] ${tone === item.id ? 'bg-accent-soft text-accent' : 'text-white/45 hover:text-white/80'}`}>
               {item.label}
             </button>
           ))}
@@ -56,7 +56,7 @@ export default function SmartPostAssistant({ text, onApply }: SmartPostAssistant
           {loadingAction === 'tone' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <WandSparkles className="h-3.5 w-3.5" />} غيّر النبرة
         </button>
       </div>
-      {error && <p role="alert" className="text-[11px] text-rose-300">{error}. خاص نشر Edge Function وضبط OPENAI_API_KEY.</p>}
+      {error && <p role="alert" className="text-[11px] text-[var(--error)]">{error}. خاص نشر Edge Function وضبط OPENAI_API_KEY.</p>}
       {result && (
         <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3">
           <p className="whitespace-pre-wrap text-xs leading-6 text-white/80">{result}</p>

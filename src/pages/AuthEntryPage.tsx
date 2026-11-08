@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Check, Eye, EyeOff, KeyRound, Loader2, Mail, UserRound } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, AudioLines, Bot, Check, Eye, EyeOff, KeyRound, Loader2, Mail, UserRound, UsersRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import AuthCodeInput from '@/components/AuthCodeInput';
 import AuthRobot from '@/components/AuthRobot';
 import LoginLanguagePicker from '@/components/LoginLanguagePicker';
-import { getStoredLanguage, setStoredLanguage, type Language } from '@/lib/i18n';
+import { directionForLanguage, getStoredLanguage, setStoredLanguage, type Language } from '@/lib/i18n';
 import { formatAuthMessage, translateAuth } from '@/i18n/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -57,6 +57,7 @@ function PasswordStrength({ password, language }: { password: string; language: 
 
 export default function AuthEntryPage({ initialScreen = 'welcome' }: Props) {
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const { signIn, signUp, verifyEmailOtp, resendVerificationCode, sendRecoveryOtp, verifyRecoveryOtp, resendRecoveryOtp } = useAuth();
   const [language, setLanguage] = useState<Language>(getStoredLanguage);
   const [screen, setScreen] = useState<Screen>(initialScreen);
@@ -78,7 +79,7 @@ export default function AuthEntryPage({ initialScreen = 'welcome' }: Props) {
   const requestId = useRef(0);
   const otpVerificationInFlight = useRef(false);
   const t = (key: Parameters<typeof translateAuth>[1]) => translateAuth(language, key);
-  const rtl = language === 'ar';
+  const rtl = directionForLanguage(language) === 'rtl';
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -419,20 +420,38 @@ export default function AuthEntryPage({ initialScreen = 'welcome' }: Props) {
         <section className={`welcome-glass-card rounded-[28px] border border-[var(--text)]/10 px-4 py-3 shadow-2xl backdrop-blur-xl sm:px-7 sm:py-6 ${showProgress ? 'lg:min-w-0' : ''}`}>
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="font-serif text-sm font-bold tracking-wide">{t('appName')}</p>
-            <div className="min-w-0 flex-1">
-              <LoginLanguagePicker
-                language={language}
-                onSelect={chooseLanguage}
-                compactAnchorRef={bubbleRef}
-                robotRef={robotRef}
-              />
-            </div>
+            <LoginLanguagePicker
+              language={language}
+              onSelect={chooseLanguage}
+              compactAnchorRef={bubbleRef}
+              robotRef={robotRef}
+            />
           </div>
           <div ref={bubbleRef}>
             <div ref={robotRef}>
             <AuthRobot language={language} message={screenMessage()} status={robotStatus} compact={screen !== 'welcome'} />
             </div>
           </div>
+
+          {screen === 'welcome' && (
+            <div className="mt-1 text-center">
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text)] sm:text-2xl">{t('welcomeTitle')}</h1>
+              <ul className="mx-auto mt-3 grid max-w-md gap-2 text-start sm:grid-cols-3 sm:gap-3">
+                <li className="flex items-center gap-2 rounded-xl border border-[var(--text)]/10 bg-[var(--text)]/[.035] px-3 py-2.5 text-xs leading-5 text-[var(--text)]/85 sm:flex-col sm:items-start sm:text-sm">
+                  <AudioLines aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                  <span>{t('benefitVoiceRooms')}</span>
+                </li>
+                <li className="flex items-center gap-2 rounded-xl border border-[var(--text)]/10 bg-[var(--text)]/[.035] px-3 py-2.5 text-xs leading-5 text-[var(--text)]/85 sm:flex-col sm:items-start sm:text-sm">
+                  <UsersRound aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                  <span>{t('benefitCommunities')}</span>
+                </li>
+                <li className="flex items-center gap-2 rounded-xl border border-[var(--text)]/10 bg-[var(--text)]/[.035] px-3 py-2.5 text-xs leading-5 text-[var(--text)]/85 sm:flex-col sm:items-start sm:text-sm">
+                  <Bot aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                  <span>{t('benefitDarijaAssistant')}</span>
+                </li>
+              </ul>
+            </div>
+          )}
 
           {showProgress && (
             <div className="my-3 lg:hidden" aria-label={formatAuthMessage(language, 'step', { n: signupStep + 1, total: signupScreens.length })}>
@@ -447,15 +466,20 @@ export default function AuthEntryPage({ initialScreen = 'welcome' }: Props) {
 
           <motion.div
             key={screen}
-            initial={{ opacity: 0, x: rtl ? 12 : -12 }}
+            initial={reduceMotion ? false : { opacity: 0, x: rtl ? 12 : -12 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: reduceMotion ? 0 : 0.18 }}
             className="mt-4"
           >
               {screen === 'welcome' && (
-                <button type="button" onClick={() => changeScreen('consent')} className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 font-semibold text-[var(--accent-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text)]">
-                  {t('start')}
-                </button>
+                <div className="space-y-2">
+                  <button type="button" onClick={() => changeScreen('consent')} className="w-full rounded-xl bg-[var(--accent)] px-4 py-3 font-semibold text-[var(--accent-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text)]">
+                    {t('start')}
+                  </button>
+                  <button type="button" onClick={() => changeScreen('login')} className="min-h-10 rounded-lg px-3 text-sm font-medium text-[var(--text)]/75 underline decoration-[var(--text)]/35 underline-offset-4 hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                    {t('hasAccount')}
+                  </button>
+                </div>
               )}
               {screen === 'consent' && (
                 <div className="grid grid-cols-2 gap-3">
@@ -561,6 +585,16 @@ export default function AuthEntryPage({ initialScreen = 'welcome' }: Props) {
               {t('back')}
             </button>
           )}
+          {screen === 'welcome' && (
+            <nav className="mt-5 flex items-center justify-center gap-5 border-t border-[var(--text)]/10 pt-3 text-xs text-[var(--text)]/65">
+              <Link to="/terms" className="rounded px-1 py-1 underline decoration-[var(--text)]/30 underline-offset-4 hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                {t('termsLink')}
+              </Link>
+              <Link to="/privacy" className="rounded px-1 py-1 underline decoration-[var(--text)]/30 underline-offset-4 hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                {t('privacyLink')}
+              </Link>
+            </nav>
+          )}
         </section>
       </div>
     </main>
@@ -575,7 +609,7 @@ export function OnboardingCompletionPage() {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const direction = directionForLanguage(language);
 
   const continueToApp = async () => {
     if (!avatar || !user) {

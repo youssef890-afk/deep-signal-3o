@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { ArrowLeftRight, Bell, Check, CircleUserRound, Gamepad2, Heart, Loader2, LogOut, MessageCircle, Search, Settings2, Sparkles, UserRound, UserRoundPlus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +30,9 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const profileMenuAnchorRef = useRef<HTMLButtonElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [profileMenuPosition, setProfileMenuPosition] = useState<{ top: number; left: number } | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
@@ -44,6 +48,45 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [profileMenuOpen]);
+
+  useLayoutEffect(() => {
+    if (!profileMenuOpen) {
+      setProfileMenuPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const anchor = profileMenuAnchorRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const menuWidth = Math.min(200, window.innerWidth - 16);
+      const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+      setProfileMenuPosition({ top: rect.bottom + 8, left });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [profileMenuOpen]);
+
+  useLayoutEffect(() => {
+    const menu = profileMenuRef.current;
+    const anchor = profileMenuAnchorRef.current;
+    if (!profileMenuOpen || !profileMenuPosition || !menu || !anchor) return;
+
+    const menuHeight = menu.getBoundingClientRect().height;
+    const anchorTop = anchor.getBoundingClientRect().top;
+    const top = profileMenuPosition.top + menuHeight > window.innerHeight - 8
+      ? Math.max(8, anchorTop - menuHeight - 8)
+      : profileMenuPosition.top;
+    if (top !== profileMenuPosition.top) {
+      setProfileMenuPosition({ ...profileMenuPosition, top });
+    }
+  }, [profileMenuOpen, profileMenuPosition]);
 
   useEffect(() => {
     const setOnlineStatus = () => setOnline(navigator.onLine);
@@ -144,7 +187,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
                 <span className="text-[11px] text-[var(--text)]/40">أحدث النشاطات</span>
               </div>
               <div className="max-h-[min(420px,70vh)] overflow-y-auto">
-                {notificationsLoading ? (
+                {notificationsLoading || activities.length === 0 ? (
                   <div className="flex items-center justify-center gap-2 py-8 text-sm text-[var(--text)]/50">
                     <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل
                   </div>
@@ -200,6 +243,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           </Link>
           <div className="relative">
             <button
+              ref={profileMenuAnchorRef}
               type="button"
               onClick={() => setProfileMenuOpen((open) => !open)}
               aria-label="قائمة الحساب"
@@ -209,19 +253,34 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
               <Avatar src={profile?.avatar_url} name={profile?.username ?? user?.email ?? 'مستخدم'} size="xs" />
             </button>
             {profileMenuOpen && (
-              <div role="menu" aria-label="قائمة الحساب" dir="rtl" className="absolute end-0 top-12 z-50 w-48 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 text-right shadow-[var(--shadow-lg)]">
-                {profile && (
-                  <Link role="menuitem" to={`/profile/${profile.id}`} onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
-                    <UserRound className="h-4 w-4 text-[var(--accent)]" /> الملف الشخصي
+              profileMenuPosition && createPortal(
+                <div
+                  ref={profileMenuRef}
+                  role="menu"
+                  aria-label="قائمة الحساب"
+                  dir="rtl"
+                  style={{
+                    position: 'fixed',
+                    top: profileMenuPosition.top,
+                    insetInlineStart: window.innerWidth - profileMenuPosition.left - 200,
+                    width: '200px',
+                  }}
+                  className="z-[60] min-w-[200px] max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 text-right text-[var(--text)] shadow-[var(--shadow-lg)]"
+                >
+                  {profile && (
+                    <Link role="menuitem" to={`/profile/${profile.id}`} onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
+                      <UserRound className="h-4 w-4 text-[var(--accent)]" /> الملف الشخصي
+                    </Link>
+                  )}
+                  <Link role="menuitem" to="/settings" onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
+                    <Settings2 className="h-4 w-4 text-[var(--accent)]" /> الإعدادات
                   </Link>
-                )}
-                <Link role="menuitem" to="/settings" onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
-                  <Settings2 className="h-4 w-4 text-[var(--accent)]" /> الإعدادات
-                </Link>
-                <button role="menuitem" type="button" onClick={() => void handleSignOut()} className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
-                  <LogOut className="h-4 w-4 text-[var(--accent)]" /> تسجيل الخروج
-                </button>
-              </div>
+                  <button role="menuitem" type="button" onClick={() => void handleSignOut()} className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
+                    <LogOut className="h-4 w-4 text-[var(--accent)]" /> تسجيل الخروج
+                  </button>
+                </div>,
+                document.body
+              )
             )}
           </div>
         </div>

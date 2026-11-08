@@ -1,34 +1,12 @@
-import { supabase } from '@/lib/supabase';
 import {
   JOKAL_LIMITS,
-  isValidJokalProposal,
   type JokalChatResponse,
 } from '@/lib/jokal/types';
-
-/**
- * Jokal AI — browser client.
- *
- * This module only *talks* to the `jokal-chat` Edge Function. It holds no
- * provider key, performs no provider call, and trusts nothing the server says:
- * `isValidJokalProposal` re-validates the payload at this trust boundary.
- */
-
-function toFriendlyError(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  return 'تعذر الاتصال بمساعد Jokal. حاول من بعد.';
-}
-
-/** Read the server-provided retry hint from a FunctionsHttpError context. */
-function retryAfterFrom(error: unknown): number | undefined {
-  const context = (error as { context?: Response } | null)?.context;
-  const header = context?.headers?.get?.('Retry-After');
-  const parsed = Number(header);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : undefined;
-}
 
 export interface SendIdeaInput {
   message: string;
   conversationId?: string | null;
+  history?: { role: 'user' | 'assistant'; content: string }[];
 }
 
 export async function sendJokalMessage({
@@ -67,11 +45,16 @@ export async function sendJokalMessage({
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke('jokal-chat', {
-      body: { message: trimmed, conversationId },
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: trimmed, mode: 'signal' }),
     });
+    const data: { response?: unknown; reply?: unknown; error?: unknown } = await response.json();
+    const assistantReply = typeof data.response === 'string' ? data.response : data.reply;
 
-    if (error) {
+    if (response.status !== 200 || typeof assistantReply !== 'string' || !assistantReply.trim()) {
+      console.error('AI chat API request failed:', response.status, data.error);
       return {
         conversationId,
         messageId: null,
@@ -82,33 +65,23 @@ export async function sendJokalMessage({
         clarifyingQuestions: [],
         proposal: null,
         usage: null,
-        error: toFriendlyError(error),
-        retryAfterSeconds: retryAfterFrom(error),
+        error: 'تعذّر الاتصال بالمساعد الآن. حاول مرة أخرى.',
       };
     }
 
-    const payload = (data ?? {}) as Partial<JokalChatResponse>;
-
-    // Never render a proposal that failed validation on the client.
-    const proposal = payload.proposal && isValidJokalProposal(payload.proposal)
-      ? payload.proposal
-      : null;
-
     return {
-      conversationId: payload.conversationId ?? conversationId,
-      messageId: payload.messageId ?? null,
-      stage: payload.stage ?? 'conversation',
-      status: payload.status ?? 'draft',
-      approval: payload.approval ?? 'not_required',
-      reply: typeof payload.reply === 'string' ? payload.reply : '',
-      clarifyingQuestions: Array.isArray(payload.clarifyingQuestions)
-        ? payload.clarifyingQuestions.filter(isNonEmptyString).slice(0, JOKAL_LIMITS.maxClarifyingQuestions)
-        : [],
-      proposal,
-      usage: payload.usage ?? null,
-      error: proposal === null && payload.proposal ? 'ما توصلناش بعرض صالح من Jokal.' : undefined,
+      conversationId: conversationId ?? crypto.randomUUID(),
+      messageId: null,
+      stage: 'conversation',
+      status: 'draft',
+      approval: 'not_required',
+      reply: assistantReply.trim(),
+      clarifyingQuestions: [],
+      proposal: null,
+      usage: null,
     };
   } catch (error) {
+    console.error('AI chat API request failed:', error);
     return {
       conversationId,
       messageId: null,
@@ -119,11 +92,7 @@ export async function sendJokalMessage({
       clarifyingQuestions: [],
       proposal: null,
       usage: null,
-      error: toFriendlyError(error),
+      error: 'تعذّر الاتصال بالمساعد الآن. حاول مرة أخرى.',
     };
   }
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
 }

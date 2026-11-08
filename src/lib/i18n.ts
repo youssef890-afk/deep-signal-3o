@@ -1,7 +1,11 @@
-import { isAvailableLanguageCode, type AvailableLanguage } from '@/i18n/languages';
+import { getPreferredAvailableLanguage, isAvailableLanguageCode, type AvailableLanguage } from '@/i18n/languages';
 
 export type Language = AvailableLanguage;
 export type TextDirection = 'rtl' | 'ltr';
+
+function translationLanguage(language: Language): Exclude<Language, 'ary'> {
+  return language === 'ary' ? 'ar' : language;
+}
 
 const messages = {
   ar: {
@@ -20,7 +24,7 @@ const messages = {
     closeDialog: 'إغلاق النافذة', profileLoading: 'جارٍ تحميل الملف الشخصي...', profileNotFound: 'هذا الملف الشخصي غير موجود أو لم يعد متاحاً.', profileLoadError: 'تعذر تحميل الملف الشخصي. تحقق من اتصالك ثم أعد المحاولة.', profileSignInRequired: 'سجّل الدخول لعرض ملفك الشخصي.', errorTitle: 'حدث خطأ تقني غير متوقع.', errorDescription: 'تعذر عرض هذه الصفحة. أعد تحميلها أو ارجع إلى الصفحة الرئيسية.', reloadPage: 'إعادة التحميل', returnHome: 'العودة إلى الرئيسية',
     directMessages: 'المحادثات', privateConversation: 'محادثة خاصة', waitingSignal: 'هناك رسالة بانتظارك', signalProfile: 'الملف الشخصي', liveCall: 'مكالمة مباشرة',
     searchPageTitle: 'البحث', searchPlaceholder: 'ابحث عن اسم المستخدم أو المعرّف...', searchClear: 'مسح البحث', searchError: 'تعذر جلب النتائج. حاول مرة أخرى.', searchNoResults: 'لا توجد نتائج مطابقة',
-    voicePermissionDenied: 'لم يُسمح باستخدام الميكروفون. تحقق من إذن الموقع ثم حاول مجدداً.', microphoneUnavailable: 'الميكروفون غير متاح. تحقق من توصيله أو من دعم المتصفح.', microphoneBusy: 'الميكروفون مستخدم من تطبيق آخر. أغلق التطبيق ثم حاول مجدداً.', microphoneSecureContext: 'يلزم فتح الموقع عبر اتصال آمن لاستخدام الميكروفون.', voiceUploadError: 'تعذر إرسال الرسالة الصوتية. تحقق من الاتصال وإذن الميكروفون ثم حاول مجدداً.', voicePlaybackError: 'تعذر تشغيل الرسالة الصوتية.', voiceLoading: 'جارٍ تحميل التسجيل...', ideaPlanner: 'مخطط الأفكار', ideaPlannerThinking: 'جارٍ إعداد التصور',
+    voicePermissionDenied: 'لم يُسمح باستخدام الميكروفون. تحقق من إذن الموقع ثم حاول مجدداً.', microphoneUnavailable: 'الميكروفون غير متاح. تحقق من توصيله أو من دعم المتصفح.', microphoneBusy: 'الميكروفون مستخدم من تطبيق آخر. أغلق التطبيق ثم حاول مجدداً.', microphoneSecureContext: 'يلزم فتح الموقع عبر اتصال آمن لاستخدام الميكروفون.', voiceUploadError: 'تعذر إرسال الرسالة الصوتية. تحقق من الاتصال وإذن الميكروفون ثم حاول مجدداً.', voicePlaybackError: 'تعذر تشغيل الرسالة الصوتية.', voiceLoading: 'جارٍ تحميل التسجيل...', ideaPlanner: 'الذكاء الاصطناعي', ideaPlannerThinking: 'جارٍ إعداد التصور', aiPageTitle: 'الذكاء الاصطناعي', freeBadge: 'مجاني',
   },
   fr: {
     title: 'Paramètres', back: 'Retour', account: 'Compte', privacy: 'Confidentialité', security: 'Sécurité', notifications: 'Notifications', appearance: 'Apparence', language: 'Langue', content: 'Contenu', accessibility: 'Accessibilité', data: 'Données', about: 'À propos',
@@ -38,7 +42,7 @@ const messages = {
     closeDialog: 'Fermer la fenêtre', profileLoading: 'Chargement du profil...', profileNotFound: "Ce profil n'existe pas ou n'est plus disponible.", profileLoadError: 'Impossible de charger le profil. Vérifiez votre connexion puis réessayez.', profileSignInRequired: 'Connectez-vous pour afficher votre profil.', errorTitle: 'Une erreur technique inattendue est survenue.', errorDescription: "Impossible d'afficher cette page. Rechargez-la ou retournez à l'accueil.", reloadPage: 'Recharger', returnHome: "Retour à l'accueil",
     directMessages: 'Messages directs', privateConversation: 'Conversation privée', waitingSignal: 'Un message vous attend', signalProfile: 'Profil', liveCall: 'Appel en direct',
     searchPageTitle: 'Recherche', searchPlaceholder: "Recherchez un nom d'utilisateur ou un identifiant...", searchClear: 'Effacer la recherche', searchError: 'Impossible de récupérer les résultats. Réessayez.', searchNoResults: 'Aucun résultat correspondant',
-    voicePermissionDenied: "L'accès au microphone a été refusé. Vérifiez l'autorisation du site puis réessayez.", microphoneUnavailable: 'Microphone indisponible. Vérifiez sa connexion ou la compatibilité du navigateur.', microphoneBusy: "Le microphone est utilisé par une autre application. Fermez-la puis réessayez.", microphoneSecureContext: 'Une connexion sécurisée est nécessaire pour utiliser le microphone.', voiceUploadError: "Impossible d'envoyer le message vocal. Vérifiez la connexion et l'autorisation du microphone puis réessayez.", voicePlaybackError: 'Impossible de lire le message vocal.', voiceLoading: 'Chargement de l’enregistrement...', ideaPlanner: "Planificateur d’idées", ideaPlannerThinking: 'Préparation de la proposition',
+    voicePermissionDenied: "L'accès au microphone a été refusé. Vérifiez l'autorisation du site puis réessayez.", microphoneUnavailable: 'Microphone indisponible. Vérifiez sa connexion ou la compatibilité du navigateur.', microphoneBusy: "Le microphone est utilisé par une autre application. Fermez-la puis réessayez.", microphoneSecureContext: 'Une connexion sécurisée est nécessaire pour utiliser le microphone.', voiceUploadError: "Impossible d'envoyer le message vocal. Vérifiez la connexion et l'autorisation du microphone puis réessayez.", voicePlaybackError: 'Impossible de lire le message vocal.', voiceLoading: 'Chargement de l’enregistrement...', ideaPlanner: "Intelligence artificielle", ideaPlannerThinking: 'Préparation de la proposition', aiPageTitle: 'Intelligence artificielle', freeBadge: 'Gratuit',
   },
   en: {
     title: 'Settings', back: 'Back', account: 'Account', privacy: 'Privacy', security: 'Security', notifications: 'Notifications', appearance: 'Appearance', language: 'Language', content: 'Content', accessibility: 'Accessibility', data: 'Data', about: 'About',
@@ -56,13 +60,11 @@ const messages = {
     closeDialog: 'Close dialog', profileLoading: 'Loading profile...', profileNotFound: 'This profile does not exist or is no longer available.', profileLoadError: 'Could not load the profile. Check your connection and try again.', profileSignInRequired: 'Sign in to view your profile.', errorTitle: 'An unexpected technical error occurred.', errorDescription: 'This page could not be displayed. Reload it or return to the home page.', reloadPage: 'Reload page', returnHome: 'Return home',
     directMessages: 'Direct messages', privateConversation: 'Private conversation', waitingSignal: 'A message is waiting for you', signalProfile: 'Profile', liveCall: 'Live call',
     searchPageTitle: 'Search', searchPlaceholder: 'Search by username or ID...', searchClear: 'Clear search', searchError: 'Could not load results. Please try again.', searchNoResults: 'No matching results',
-    voicePermissionDenied: 'Microphone access was denied. Check this site’s permission and try again.', microphoneUnavailable: 'Microphone unavailable. Check its connection or browser support.', microphoneBusy: 'The microphone is being used by another app. Close it and try again.', microphoneSecureContext: 'A secure connection is required to use the microphone.', voiceUploadError: 'Could not send the voice message. Check your connection and microphone permission, then try again.', voicePlaybackError: 'Could not play the voice message.', voiceLoading: 'Loading recording...', ideaPlanner: 'Idea planner', ideaPlannerThinking: 'Preparing the proposal',
+    voicePermissionDenied: 'Microphone access was denied. Check this site’s permission and try again.', microphoneUnavailable: 'Microphone unavailable. Check its connection or browser support.', microphoneBusy: 'The microphone is being used by another app. Close it and try again.', microphoneSecureContext: 'A secure connection is required to use the microphone.', voiceUploadError: 'Could not send the voice message. Check your connection and microphone permission, then try again.', voicePlaybackError: 'Could not play the voice message.', voiceLoading: 'Loading recording...', ideaPlanner: 'Artificial intelligence', ideaPlannerThinking: 'Preparing the proposal', aiPageTitle: 'Artificial intelligence', freeBadge: 'Free',
   },
 } as const;
 
-export type LanguagePickerKey = 'searchPlaceholder' | 'comingSoon' | 'noResults' | 'noResultsSuggestion';
-
-const languagePickerMessages: Record<Language, Record<LanguagePickerKey, string>> = {
+const languagePickerMessages: Record<Exclude<Language, 'ary'>, Record<'searchPlaceholder' | 'comingSoon' | 'noResults' | 'noResultsSuggestion', string>> = {
   ar: {
     searchPlaceholder: 'ابحث عن لغتك',
     comingSoon: 'قريباً',
@@ -83,14 +85,187 @@ const languagePickerMessages: Record<Language, Record<LanguagePickerKey, string>
   },
 };
 
-export type TranslationKey = keyof typeof messages.ar;
+const jokalMessages = {
+  ar: {
+    newProject: 'مشروع جديد',
+    welcomeMessage: 'مرحبا بك! أنا Signal، اسألني عن أي شيء في المنصة وسأساعدك.',
+    platformPrompt1: 'كيفاش نصاوب غرفة صوتية؟',
+    platformPrompt2: 'كيفاش نلقى ناس ونتبعهم؟',
+    platformPrompt3: 'كيفاش نبدل البروفايل ديالي؟',
+    platformPrompt4: 'شنو الألعاب اللي كاينين فالمنصة؟',
+    platformPrompt5: 'كيفاش نشارك منشور فالموجز؟',
+    planningStages: 'مراحل التخطيط',
+    ideaStage: 'الفكرة',
+    clarificationStage: 'توضيح المتطلبات',
+    specificationStage: 'إعداد المواصفات',
+    conversationHeading: 'اسأل Signal',
+    composerLabel: 'فكرتك أو إجابتك',
+    initialPlaceholder: 'شنو الفكرة اللي بغيتي تخدم عليها؟',
+    followupPlaceholder: 'جاوب على الأسئلة أو زيد وضّح الفكرة...',
+    sendMessage: 'إرسال',
+    startPlanning: 'ابدأ التخطيط',
+    friendlyAssistantError: 'تعذّر الاتصال بالمساعد الآن، حاول مرة أخرى.',
+    retry: 'إعادة المحاولة',
+    retryAfterWait: 'يرجى الانتظار {seconds} ثانية قبل المحاولة مجدداً.',
+    viewSpecifications: 'عرض المواصفات',
+    closeSpecifications: 'إغلاق المواصفات',
+    specificationsTitle: 'مواصفات المشروع',
+    readyForReview: 'جاهز للمراجعة',
+    emptySpecifications: 'ستظهر مواصفات مشروعك هنا بعد توضيح الفكرة.',
+    preparingSpecifications: 'نجمع التفاصيل اللازمة للاقتراح.',
+    clarifyingQuestions: 'أسئلة توضيحية',
+    you: 'أنت',
+    unspecified: 'غير محدد',
+    complexity: 'التعقيد',
+    developmentEffort: 'الجهد',
+    problemAndSolution: 'المشكلة والحل',
+    targetAudience: 'الفئة المستهدفة',
+    coreFeatures: 'الميزات الأساسية',
+    optionalFeatures: 'ميزات إضافية',
+    screens: 'الشاشات',
+    implementationPhases: 'مراحل التنفيذ',
+    risksAndMitigation: 'المخاطر والتخفيف',
+    securityRequirements: 'متطلبات الحماية',
+    noRisksFound: 'لم تُحدد مخاطر',
+    proposalDisclaimer: 'هذا الاقتراح للمراجعة فقط؛ لا يوجد بناء تلقائي أو نشر.',
+  },
+  fr: {
+    newProject: 'Nouveau projet',
+    welcomeMessage: 'Bienvenue ! Je suis Signal. Posez-moi vos questions sur la plateforme, je suis là pour vous aider.',
+    platformPrompt1: 'Comment créer un salon vocal ?',
+    platformPrompt2: 'Comment trouver et suivre des personnes ?',
+    platformPrompt3: 'Comment modifier mon profil ?',
+    platformPrompt4: 'Quels jeux sont disponibles sur la plateforme ?',
+    platformPrompt5: 'Comment publier dans le fil ?',
+    planningStages: 'Étapes de planification',
+    ideaStage: 'Idée',
+    clarificationStage: 'Préciser les besoins',
+    specificationStage: 'Préparer les spécifications',
+    conversationHeading: 'Demandez à Signal',
+    composerLabel: 'Votre idée ou votre réponse',
+    initialPlaceholder: 'Sur quelle idée souhaitez-vous travailler ?',
+    followupPlaceholder: 'Répondez aux questions ou précisez votre idée...',
+    sendMessage: 'Envoyer',
+    startPlanning: 'Commencer',
+    friendlyAssistantError: 'Impossible de joindre l’assistant pour le moment. Réessayez.',
+    retry: 'Réessayer',
+    retryAfterWait: 'Veuillez patienter {seconds} secondes avant de réessayer.',
+    viewSpecifications: 'Voir les spécifications',
+    closeSpecifications: 'Fermer les spécifications',
+    specificationsTitle: 'Spécifications du projet',
+    readyForReview: 'Prêt à examiner',
+    emptySpecifications: 'Les spécifications apparaîtront ici après la clarification de votre idée.',
+    preparingSpecifications: 'Nous rassemblons les informations nécessaires.',
+    clarifyingQuestions: 'Questions de clarification',
+    you: 'Vous',
+    unspecified: 'Non précisé',
+    complexity: 'Complexité',
+    developmentEffort: 'Effort',
+    problemAndSolution: 'Problème et solution',
+    targetAudience: 'Public cible',
+    coreFeatures: 'Fonctionnalités principales',
+    optionalFeatures: 'Fonctionnalités facultatives',
+    screens: 'Écrans',
+    implementationPhases: 'Phases de réalisation',
+    risksAndMitigation: 'Risques et mesures',
+    securityRequirements: 'Exigences de sécurité',
+    noRisksFound: 'Aucun risque identifié',
+    proposalDisclaimer: 'Cette proposition est à examiner ; aucune création ni publication automatique.',
+  },
+  en: {
+    newProject: 'New project',
+    welcomeMessage: 'Welcome! I’m Signal. Ask me anything about the platform and I’ll be glad to help.',
+    platformPrompt1: 'How do I create a voice room?',
+    platformPrompt2: 'How do I find and follow people?',
+    platformPrompt3: 'How do I update my profile?',
+    platformPrompt4: 'What games are available on the platform?',
+    platformPrompt5: 'How do I share a post in the feed?',
+    planningStages: 'Planning stages',
+    ideaStage: 'Idea',
+    clarificationStage: 'Clarify requirements',
+    specificationStage: 'Project specifications',
+    conversationHeading: 'Ask Signal',
+    composerLabel: 'Your idea or reply',
+    initialPlaceholder: 'What idea would you like to work on?',
+    followupPlaceholder: 'Answer the questions or add more detail...',
+    sendMessage: 'Send',
+    startPlanning: 'Start planning',
+    friendlyAssistantError: 'The assistant is unavailable right now. Please try again.',
+    retry: 'Try again',
+    retryAfterWait: 'Please wait {seconds} seconds before trying again.',
+    viewSpecifications: 'View specifications',
+    closeSpecifications: 'Close specifications',
+    specificationsTitle: 'Project specifications',
+    readyForReview: 'Ready to review',
+    emptySpecifications: 'Your project specifications will appear here once the idea is clarified.',
+    preparingSpecifications: 'Gathering the details needed for your proposal.',
+    clarifyingQuestions: 'Clarifying questions',
+    you: 'You',
+    unspecified: 'Not specified',
+    complexity: 'Complexity',
+    developmentEffort: 'Effort',
+    problemAndSolution: 'Problem and solution',
+    targetAudience: 'Target audience',
+    coreFeatures: 'Core features',
+    optionalFeatures: 'Optional features',
+    screens: 'Screens',
+    implementationPhases: 'Implementation phases',
+    risksAndMitigation: 'Risks and mitigations',
+    securityRequirements: 'Security requirements',
+    noRisksFound: 'No risks identified',
+    proposalDisclaimer: 'This proposal is for review only; nothing is built or published automatically.',
+  },
+} as const;
+
+const darijaJokalMessages: Partial<Record<keyof typeof jokalMessages.ar, string>> = {
+  welcomeMessage: 'مرحبا بك! أنا Signal، سولني على أي حاجة فالمنصة وغادي نعاونك.',
+  platformPrompt1: 'كيفاش نصاوب غرفة صوتية؟',
+  platformPrompt2: 'كيفاش نلقى ناس ونتبعهم؟',
+  platformPrompt3: 'كيفاش نبدل البروفايل ديالي؟',
+  platformPrompt4: 'شنو الألعاب اللي كاينين فالمنصة؟',
+  platformPrompt5: 'كيفاش نشارك منشور فالموجز؟',
+  conversationHeading: 'اسأل Signal',
+  initialPlaceholder: 'شنو الفكرة اللي بغيتي تخدم عليها؟',
+  followupPlaceholder: 'جاوب على الأسئلة ولا زيد وضّح الفكرة...',
+  friendlyAssistantError: 'ما قدرناش نتاصلو بالمساعد دابا، عاود حاول.',
+  retry: 'عاود المحاولة',
+  retryAfterWait: 'تسنى {seconds} ثانية ومن بعد عاود المحاولة.',
+  newProject: 'مشروع جديد',
+  startPlanning: 'بدا التخطيط',
+};
+
+export type TranslationKey = keyof typeof messages.ar | keyof typeof jokalMessages.ar;
+export type LanguagePickerKey = keyof typeof languagePickerMessages.ar;
+
+const darijaLanguagePickerMessages = {
+  searchPlaceholder: 'قلب على لغة',
+  comingSoon: 'قريباً',
+  noResults: 'ما لقيناش هاد اللغة',
+  noResultsSuggestion: 'جرب الاسم ديالها، الاسم بالإنجليزية، ولا الرمز.',
+} satisfies Record<LanguagePickerKey, string>;
 
 export function translate(language: Language, key: TranslationKey): string {
-  return messages[language][key];
+  if (key in jokalMessages.ar) {
+    if (language === 'ary') {
+      return darijaJokalMessages[key as keyof typeof jokalMessages.ar]
+        ?? jokalMessages.ar[key as keyof typeof jokalMessages.ar];
+    }
+    return jokalMessages[translationLanguage(language)][key as keyof typeof jokalMessages.ar];
+  }
+  if (language === 'ary') {
+    const darijaTranslations: Partial<Record<TranslationKey, string>> = {
+      aiPageTitle: 'الذكاء الاصطناعي',
+      freeBadge: 'بلاش',
+      ideaPlanner: 'الذكاء الاصطناعي',
+    };
+    if (darijaTranslations[key]) return darijaTranslations[key];
+  }
+  return messages[translationLanguage(language)][key as keyof typeof messages.ar];
 }
 
 export function translateLanguagePicker(language: Language, key: LanguagePickerKey): string {
-  return languagePickerMessages[language][key];
+  if (language === 'ary') return darijaLanguagePickerMessages[key];
+  return languagePickerMessages[translationLanguage(language)][key];
 }
 
 export function getStoredLanguage(): Language {
@@ -98,13 +273,13 @@ export function getStoredLanguage(): Language {
     const saved = localStorage.getItem('ds-language');
     if (isAvailableLanguageCode(saved)) return saved;
   } catch {
-    return 'ar';
+    return getPreferredAvailableLanguage() ?? 'ar';
   }
-  return 'ar';
+  return getPreferredAvailableLanguage() ?? 'ar';
 }
 
 export function directionForLanguage(language: Language): TextDirection {
-  return language === 'ar' ? 'rtl' : 'ltr';
+  return language === 'ar' || language === 'ary' ? 'rtl' : 'ltr';
 }
 
 export function getStoredDirection(): TextDirection {

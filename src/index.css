@@ -47,7 +47,7 @@
   ::-webkit-scrollbar-thumb:hover { @apply bg-white/20; }
 
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--accent-ring);
     outline-offset: 3px;
   }
 }
@@ -78,7 +78,7 @@
   .shadow-depth-3 {
     box-shadow: 0 4px 8px rgba(0,0,0,0.45), 0 16px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
   }
-  .shadow-glow-rose {
+  .shadow-glow-accent {
     box-shadow: 0 0 40px var(--accent-glow), 0 0 80px var(--accent-soft);
   }
   .shadow-glow-amber {
@@ -211,7 +211,7 @@
   /* Neon glows */
   .glow-purple { box-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-soft); }
   .glow-cyan { box-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-soft); }
-  .glow-rose { box-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-soft); }
+  .glow-accent { box-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-soft); }
 
   .glow-text-purple { text-shadow: 0 0 20px var(--accent-glow); }
   .glow-text-cyan { text-shadow: 0 0 20px var(--accent-glow); }
@@ -258,11 +258,12 @@
    ============================================ */
 
 :root, [data-theme="obsidian"], [data-theme="crimson"], [data-theme="golden"], [data-theme="royal"] {
-  --accent: #FB7185;
+  --accent: #22C55E;
   --accent-foreground: #171717;
   --accent-secondary: color-mix(in srgb, var(--accent) 62%, white);
-  --accent-glow: rgba(251, 113, 133, .28);
-  --accent-soft: rgba(251, 113, 133, .12);
+  --accent-glow: rgba(34, 197, 94, .28);
+  --accent-soft: rgba(34, 197, 94, .12);
+  --accent-ring: rgba(34, 197, 94, .38);
   --accent-gradient: linear-gradient(135deg, var(--accent), var(--accent));
   --bg: #10100f;
   --bg-base: var(--bg);
@@ -338,14 +339,15 @@
   backdrop-filter: blur(28px) saturate(145%);
 }
 .welcome-glow-button {
-  background: linear-gradient(110deg, #F5F2EB 0%, #D8D3CA 34%, #B8B1A5 68%, #8A847A 100%);
-  box-shadow: 0 10px 34px rgba(245, 242, 235, .14), inset 0 1px 0 rgba(255, 255, 255, .26);
+  background: var(--accent-gradient);
+  color: var(--accent-foreground);
+  box-shadow: 0 10px 34px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, .26);
   transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
 }
 .welcome-glow-button:hover:not(:disabled) {
   transform: translateY(-2px);
   filter: saturate(1.12) brightness(1.06);
-  box-shadow: 0 14px 42px rgba(245, 242, 235, .2), 0 0 24px rgba(245, 242, 235, .12), inset 0 1px 0 rgba(255, 255, 255, .3);
+  box-shadow: 0 14px 42px var(--accent-glow), 0 0 24px var(--accent-soft), inset 0 1px 0 rgba(255, 255, 255, .3);
 }
 .welcome-glow-button:active:not(:disabled) { transform: translateY(0) scale(.99); }
 @keyframes welcome-drift {
@@ -355,4 +357,70 @@
 @media (prefers-reduced-motion: reduce) {
   .welcome-ambient::before, .welcome-ambient::after { animation: none; }
   .welcome-glow-button { transition: none; }
+}
+
+.login-robot-art {
+  transform-box: fill-box;
+  transform-origin: center 60%;
+}
+.login-robot-art--idle { animation: login-robot-breathe 4.2s ease-in-out infinite; }
+.login-robot-art--thinking { animation: login-robot-talk 1.8s ease-in-out infinite; }
+.login-robot-art--error { animation: login-robot-error .36s ease-in-out; }
+.login-robot-art--success { animation: login-robot-success .8s ease-in-out; }
+.login-robot-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: login-robot-blink 4.8s ease-in-out infinite;
+}
+.login-robot-eye--delayed { animation-delay: .08s; }
+.login-robot-art--thinking .login-robot-mouth { animation: login-robot-mouth 420ms ease-in-out infinite; }
+.login-robot-speaking-ring { animation: login-robot-ring 1.6s ease-out infinite; }
+.login-robot-cursor { animation: login-robot-cursor 700ms steps(2, start) infinite; }
+.login-robot-thinking-dot { animation: login-robot-dot 800ms ease-in-out infinite; }
+
+@keyframes login-robot-breathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-2px) scaleY(1.015); }
+}
+@keyframes login-robot-talk {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes login-robot-error {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+@keyframes login-robot-success {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-5px) rotate(-2deg); }
+  75% { transform: translateY(-2px) rotate(2deg); }
+}
+@keyframes login-robot-blink {
+  0%, 91%, 100% { transform: scaleY(1); }
+  94% { transform: scaleY(.1); }
+}
+@keyframes login-robot-mouth {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.8); }
+}
+@keyframes login-robot-ring {
+  0% { opacity: 0; transform: scale(.92); }
+  45% { opacity: .5; }
+  100% { opacity: 0; transform: scale(1.34); }
+}
+@keyframes login-robot-cursor {
+  to { opacity: 0; }
+}
+@keyframes login-robot-dot {
+  0%, 100% { opacity: .3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-robot-art,
+  .login-robot-eye,
+  .login-robot-speaking-ring,
+  .login-robot-cursor,
+  .login-robot-thinking-dot { animation: none !important; }
 }

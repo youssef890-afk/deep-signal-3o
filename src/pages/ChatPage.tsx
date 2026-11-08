@@ -418,7 +418,7 @@ export default function ChatPage() {
                 </div>
               </header>
 
-              {directCall.error && <p role="alert" className="border-b border-rose-400/15 bg-rose-400/[0.05] px-4 py-2 text-xs text-rose-200">{directCall.error}</p>}
+              {directCall.error && <p role="alert" className="border-b border-[var(--error)]/15 bg-[var(--error)]/[0.05] px-4 py-2 text-xs text-[var(--error)]">{directCall.error}</p>}
 
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 0.7px, transparent 0.7px)', backgroundSize: '18px 18px' }}>
                 {messages.length === 0 ? (
@@ -460,11 +460,11 @@ export default function ChatPage() {
                       <option value="natural">طبيعي</option><option value="warm">دافئ</option><option value="bright">واضح</option>
                     </select>
                   </label>
-                  <button type="button" onClick={isRecording ? stopVoiceRecording : () => void startVoiceRecording()} disabled={sending || !activeUserId} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[10px] font-semibold transition disabled:opacity-40 ${isRecording ? 'bg-rose-500/15 text-rose-200' : 'text-[var(--accent)] hover:bg-white/[0.05]'}`}>
+                  <button type="button" onClick={isRecording ? stopVoiceRecording : () => void startVoiceRecording()} disabled={sending || !activeUserId} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[10px] font-semibold transition disabled:opacity-40 ${isRecording ? 'bg-accent-soft text-accent' : 'text-[var(--accent)] hover:bg-white/[0.05]'}`}>
                     {isRecording ? <Square className="h-3 w-3 fill-current" /> : <Mic className="h-3.5 w-3.5" />}
                     {isRecording ? `إيقاف ${recordingSeconds}s` : sending ? 'جارٍ الإرسال...' : 'رسالة صوتية'}
                   </button>
-                  {voiceError && <p role="alert" className="w-full text-[10px] text-rose-300">{t(voiceError)}</p>}
+                  {voiceError && <p role="alert" className="w-full text-[10px] text-[var(--error)]">{t(voiceError)}</p>}
                 </div>
                 <div className="flex items-end gap-2 rounded-md border border-white/[0.1] bg-white/[0.035] p-1.5 focus-within:border-[var(--accent)]/35">
                   <textarea
@@ -477,7 +477,7 @@ export default function ChatPage() {
                   />
                   <button type="button" onClick={() => void handleSend()} disabled={!newMessage.trim() || sending} aria-label="إرسال الرسالة" className="grid h-10 w-10 shrink-0 place-items-center rounded bg-[var(--accent)] text-[var(--accent-foreground)] transition hover:brightness-110 disabled:opacity-35"><Send className="h-[17px] w-[17px]" /></button>
                 </div>
-                {messageError && <p role="alert" className="mt-2 text-xs text-rose-300">{messageError}</p>}
+                {messageError && <p role="alert" className="mt-2 text-xs text-[var(--error)]">{messageError}</p>}
               </div>
             </>
           ) : (
@@ -572,18 +572,18 @@ function DirectCallOverlay({
           <VideoTile stream={localStream} name="أنت" label="كاميرتك" muted={!cameraEnabled} mirror />
         </div>
 
-        {error && <p role="alert" className="px-4 pb-2 text-center text-xs text-rose-200">{error}</p>}
+        {error && <p role="alert" className="px-4 pb-2 text-center text-xs text-[var(--error)]">{error}</p>}
         <footer className="flex min-h-[68px] items-center justify-center gap-3 border-t border-white/[0.08] px-4 py-3">
           {status === 'incoming' ? (
             <>
-              <button type="button" onClick={onDecline} className="inline-flex items-center gap-2 bg-rose-500/15 px-4 py-2.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/25"><PhoneOff className="h-4 w-4" /> رفض</button>
+              <button type="button" onClick={onDecline} className="inline-flex items-center gap-2 bg-[var(--error)]/15 px-4 py-2.5 text-xs font-bold text-[var(--error)] transition hover:bg-[var(--error)]/25"><PhoneOff className="h-4 w-4" /> رفض</button>
               <button type="button" onClick={onAccept} className="inline-flex items-center gap-2 bg-[var(--success)] px-4 py-2.5 text-xs font-bold text-[var(--accent-foreground)] transition hover:brightness-110"><PhoneIncoming className="h-4 w-4" /> قبول المكالمة</button>
             </>
           ) : (
             <>
-              <button type="button" onClick={onToggleMicrophone} aria-label={microphoneEnabled ? 'كتم الميكروفون' : 'تشغيل الميكروفون'} className={`grid h-10 w-10 place-items-center border transition ${microphoneEnabled ? 'border-white/10 bg-white/[0.05] text-white' : 'border-rose-400/20 bg-rose-400/10 text-rose-200'}`}>{microphoneEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}</button>
-              <button type="button" onClick={onToggleCamera} aria-label={cameraEnabled ? 'إيقاف الكاميرا' : 'تشغيل الكاميرا'} className={`grid h-10 w-10 place-items-center border transition ${cameraEnabled ? 'border-white/10 bg-white/[0.05] text-white' : 'border-rose-400/20 bg-rose-400/10 text-rose-200'}`}>{cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}</button>
-              <button type="button" onClick={onEnd} aria-label="إنهاء المكالمة" className="grid h-10 w-12 place-items-center bg-rose-500 text-white transition hover:bg-rose-400"><PhoneOff className="h-4 w-4" /></button>
+              <button type="button" onClick={onToggleMicrophone} aria-label={microphoneEnabled ? 'كتم الميكروفون' : 'تشغيل الميكروفون'} className={`grid h-10 w-10 place-items-center border transition ${microphoneEnabled ? 'border-white/10 bg-white/[0.05] text-white' : 'border-white/10 bg-white/[0.08] text-white/65'}`}>{microphoneEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}</button>
+              <button type="button" onClick={onToggleCamera} aria-label={cameraEnabled ? 'إيقاف الكاميرا' : 'تشغيل الكاميرا'} className={`grid h-10 w-10 place-items-center border transition ${cameraEnabled ? 'border-white/10 bg-white/[0.05] text-white' : 'border-white/10 bg-white/[0.08] text-white/65'}`}>{cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}</button>
+              <button type="button" onClick={onEnd} aria-label="إنهاء المكالمة" className="grid h-10 w-12 place-items-center bg-[var(--error)] text-white transition hover:brightness-110"><PhoneOff className="h-4 w-4" /></button>
             </>
           )}
         </footer>

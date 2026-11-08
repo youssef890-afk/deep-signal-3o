@@ -1,14 +1,16 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Compass, Gamepad2, House, MessageCircle, Radio, Sparkles } from 'lucide-react';
 import { useMessages } from '@/context/MessagesContext';
+import { getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language } from '@/lib/i18n';
 
 const items = [
   { path: '/feed', Icon: House, label: 'الرئيسية' },
   { path: '/discover', Icon: Compass, label: 'اكتشف' },
   { path: '/rooms', Icon: Radio, label: 'الغرف' },
   { path: '/games', Icon: Gamepad2, label: 'الألعاب' },
-  { path: '/jokal', Icon: Sparkles, label: 'الأفكار' },
+  { path: '/jokal', Icon: Sparkles, label: 'aiPageTitle' },
   { path: '/chat', Icon: MessageCircle, label: 'الرسائل' },
 ];
 
@@ -16,11 +18,21 @@ export default function MobileNav() {
   const { unreadCount } = useMessages();
   const navigate = useNavigate();
   const location = useLocation();
+  const [language, setLanguage] = useState(getStoredLanguage);
+
+  useEffect(() => {
+    const handleLanguageChange = (event: Event) => {
+      setLanguage((event as CustomEvent<{ language: Language }>).detail.language);
+    };
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLanguageChange);
+    return () => window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLanguageChange);
+  }, []);
 
   return (
     <nav aria-label="التنقل الرئيسي" className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--surface)]/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden" dir="rtl">
       <div className="mx-auto flex h-[68px] max-w-xl items-center justify-around px-1">
-        {items.map(({ path, Icon, label }) => {
+        {items.map(({ path, Icon, label: itemLabel }) => {
+          const label = itemLabel === 'aiPageTitle' ? translate(language, 'aiPageTitle') : itemLabel;
           const active = location.pathname === path || location.pathname.startsWith(`${path}/`);
           const badge = path === '/chat' ? unreadCount : 0;
           return (

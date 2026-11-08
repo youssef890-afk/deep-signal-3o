@@ -316,10 +316,10 @@ export default function SettingsPanel({ open, onClose }: Props) {
 
                     <button onClick={() => void openBlockedUsers()} className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(244,63,94,0.15)' }}>
-                        <UserX className="w-5 h-5 text-rose-400" />
+                        <UserX className="w-5 h-5 text-accent" />
                       </div>
                       <div className="flex-1 text-right">
-                        <div className="text-rose-400 font-semibold text-sm">حظر مستخدمين</div>
+                        <div className="text-accent font-semibold text-sm">حظر مستخدمين</div>
                         <div className="text-white/40 text-xs">إدارة قائمة الحظر</div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-white/30" />
@@ -339,10 +339,10 @@ export default function SettingsPanel({ open, onClose }: Props) {
                     <div className="pt-3 mt-3 border-t border-white/5">
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
+                        className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-accent-soft hover:brightness-110 border border-accent-ring transition-colors"
                       >
-                        <LogOut className="w-5 h-5 text-rose-400" />
-                        <span className="text-rose-400 font-bold text-sm">تسجيل الخروج</span>
+                        <LogOut className="w-5 h-5 text-accent" />
+                        <span className="text-accent font-bold text-sm">تسجيل الخروج</span>
                       </button>
                     </div>
                   </div>
@@ -356,7 +356,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
 
                 {view === 'blocked' && (
                   <div className="space-y-3 pb-4">
-                    {msg && <p role="status" className={`rounded-lg px-3 py-2 text-xs ${msg.type === 'ok' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>{msg.text}</p>}
+                    {msg && <p role="status" className={`rounded-lg px-3 py-2 text-xs ${msg.type === 'ok' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-[var(--error)]/10 text-[var(--error)]'}`}>{msg.text}</p>}
                     {loading ? (
                       <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-white/60" /></div>
                     ) : blockedUsers.length === 0 ? (
@@ -377,7 +377,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
 
                 {view === 'moderation' && (
                   <div className="space-y-3 pb-4">
-                    {msg && <p role="status" className={`rounded-lg px-3 py-2 text-xs ${msg.type === 'ok' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>{msg.text}</p>}
+                    {msg && <p role="status" className={`rounded-lg px-3 py-2 text-xs ${msg.type === 'ok' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-[var(--error)]/10 text-[var(--error)]'}`}>{msg.text}</p>}
                     {loading ? (
                       <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-white/60" /></div>
                     ) : reports.length === 0 ? (
@@ -417,7 +417,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
                     />
                     {msg && (
                       <div className={`text-sm rounded-xl px-4 py-3 text-center ${
-                        msg.type === 'ok' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                        msg.type === 'ok' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-[var(--error)]/10 text-[var(--error)]'
                       }`}>
                         {msg.text}
                       </div>
