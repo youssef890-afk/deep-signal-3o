@@ -115,11 +115,16 @@ export default async function handler(req, res) {
     return sendError(res, 500, 'SERVICE_NOT_CONFIGURED', 'خدمة المساعد غير مهيأة حالياً.');
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Deep-Signal AI authentication is not configured.');
-    return sendError(res, 500, 'SERVICE_NOT_CONFIGURED', 'خدمة المساعد غير مهيأة حالياً.');
+    console.error('Deep-Signal AI Supabase configuration is missing.');
+    return sendError(
+      res,
+      500,
+      'SUPABASE_NOT_CONFIGURED',
+      'إعدادات Supabase ناقصة. أضف SUPABASE_URL وSUPABASE_ANON_KEY إلى إعدادات الخادم.',
+    );
   }
 
   const authorization = req.headers.authorization;
@@ -177,7 +182,12 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: `Bearer ${tokenMatch[1].trim()}` } },
+    global: {
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${tokenMatch[1].trim()}`,
+      },
+    },
   });
   try {
     const { data: userData, error: authError } = await supabase.auth.getUser(tokenMatch[1].trim());
