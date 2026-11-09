@@ -15,9 +15,13 @@ interface Room {
   description: string | null;
   created_by: string;
   created_at: string;
+  capacity: number;
+  invite_code: string;
   profiles: { username: string; avatar_url: string | null } | null;
   member_count: number;
 }
+
+const roomCapacities = [2, 3, 4, 5, 6, 8, 10, 12];
 
 export default function RoomsPage() {
   const { user } = useAuth();
@@ -29,6 +33,10 @@ export default function RoomsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [description, setDescription] = useState('');
+  const [roomCapacity, setRoomCapacity] = useState(6);
+  const [joinCode, setJoinCode] = useState('');
+  const [joiningByCode, setJoiningByCode] = useState(false);
+  const [joinCodeError, setJoinCodeError] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
   useModalScrollLock(createOpen);
@@ -47,7 +55,7 @@ export default function RoomsPage() {
     setLoadError('');
     const { data, error } = await supabase
       .from('rooms')
-      .select('id, name, description, created_by, created_at, profiles:created_by(username, avatar_url)')
+      .select('id, name, description, created_by, created_at, capacity, invite_code, profiles:created_by(username, avatar_url)')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -107,7 +115,12 @@ export default function RoomsPage() {
     setCreateError('');
     const { data, error } = await supabase
       .from('rooms')
-      .insert({ name: cleanName, description: cleanDescription || null, created_by: user.id })
+      .insert({
+        name: cleanName,
+        description: cleanDescription || null,
+        created_by: user.id,
+        capacity: roomCapacity,
+      })
       .select('id')
       .single();
     setCreating(false);
@@ -118,6 +131,32 @@ export default function RoomsPage() {
     setCreateOpen(false);
     setRoomName('');
     setDescription('');
+    setRoomCapacity(6);
+    navigate(`/rooms/${data.id}`);
+  }
+
+  async function openRoomByCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = joinCode.trim().toUpperCase();
+    if (!/^[A-F0-9]{12}$/.test(code)) {
+      setJoinCodeError('دخل الرمز كامل من 12 حرف أو رقم.');
+      return;
+    }
+
+    setJoiningByCode(true);
+    setJoinCodeError('');
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('invite_code', code)
+      .eq('is_active', true)
+      .maybeSingle();
+    setJoiningByCode(false);
+    if (error || !data) {
+      if (error) console.error('Could not find room by invite code:', error);
+      setJoinCodeError('ما لقيناش غرفة نشيطة بهاد الرمز.');
+      return;
+    }
     navigate(`/rooms/${data.id}`);
   }
 
@@ -167,6 +206,22 @@ export default function RoomsPage() {
           />
         </label>
 
+        <form onSubmit={(event) => void openRoomByCode(event)} className="mb-5 flex gap-2">
+          <input
+            value={joinCode}
+            onChange={(event) => { setJoinCode(event.target.value.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 12)); setJoinCodeError(''); }}
+            maxLength={12}
+            placeholder="دخل رمز الغرفة"
+            aria-label="رمز الغرفة"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 font-mono text-sm tracking-widest text-white outline-none placeholder:font-sans placeholder:text-xs placeholder:tracking-normal focus:border-[var(--accent)]/50"
+          />
+          <button type="submit" disabled={joiningByCode || joinCode.length !== 12} className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] px-3 py-2.5 text-xs font-semibold text-[var(--accent)] disabled:opacity-45">
+            {joiningByCode && <Loader2 className="h-4 w-4 animate-spin" />}
+            دخول بالرمز
+          </button>
+        </form>
+        {joinCodeError && <p role="alert" className="-mt-3 mb-4 text-xs text-[var(--error)]">{joinCodeError}</p>}
+
         {loading ? (
           <div className="flex min-h-56 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" /></div>
         ) : loadError ? (
@@ -204,7 +259,7 @@ export default function RoomsPage() {
                   </div>
                   <p className="mt-1 truncate text-[11px] text-white/50">{room.description || <>جلسة صوتية مع <Handle username={room.profiles?.username ?? 'مستخدم'} /></>}</p>
                   <div className="mt-2 flex items-center gap-3 text-[10px] text-white/40">
-                    <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{room.member_count}/6</span>
+                    <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{room.member_count}/{room.capacity}</span>
                     <span>{room.profiles?.username ? <Handle username={room.profiles.username} /> : 'مضيف الغرفة'}</span>
                   </div>
                 </div>
@@ -234,6 +289,12 @@ export default function RoomsPage() {
             <label className="block text-xs font-medium text-white/70">
               وصف مختصر
               <textarea maxLength={500} rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="شنو موضوع الجلسة؟" className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-[var(--accent)]/50" />
+            </label>
+            <label className="mt-4 block text-xs font-medium text-white/70">
+              عدد المقاعد
+              <select value={roomCapacity} onChange={(event) => setRoomCapacity(Number(event.target.value))} className="mt-2 w-full rounded-lg border border-white/10 bg-[var(--surface-2)] px-3 py-3 text-sm text-white outline-none focus:border-[var(--accent)]/50">
+                {roomCapacities.map((capacity) => <option key={capacity} value={capacity}>{capacity} مقاعد</option>)}
+              </select>
             </label>
             {createError && <p role="alert" className="mt-3 text-xs text-[var(--error)]">{createError}</p>}
             <button type="submit" disabled={creating} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] py-3 text-sm font-bold text-[var(--accent-foreground)] transition hover:brightness-110 disabled:opacity-50">

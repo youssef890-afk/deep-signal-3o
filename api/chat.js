@@ -1,5 +1,6 @@
 const MAX_MESSAGE_LENGTH = 4000;
-const MODEL = 'gemini-2.5-flash';
+const MODELS = ['gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+const PROVIDER_TIMEOUT_MS = 25000;
 
 const SYSTEM_PROMPT = `You are Deep-Signal AI, the official AI assistant for the Deep-Signal social platform.
 Your name is Deep-Signal AI. If asked who you are, say you are the assistant for Deep-Signal.
@@ -28,20 +29,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    const providerResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: 'user', parts: [{ text: message.trim() }] }],
-        }),
-      },
-    );
+    let providerResponse;
+    for (const [index, model] of MODELS.entries()) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+      try {
+        providerResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey,
+            },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+              contents: [{ role: 'user', parts: [{ text: message.trim() }] }],
+              generationConfig: { maxOutputTokens: 512 },
+            }),
+            signal: controller.signal,
+          },
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      if (providerResponse.ok || providerResponse.status !== 404 || index === MODELS.length - 1) {
+        break;
+      }
+      console.error('Deep-Signal AI model unavailable; trying fallback model:', providerResponse.status);
+    }
 
     if (!providerResponse.ok) {
       console.error('Deep-Signal AI provider request failed:', providerResponse.status);

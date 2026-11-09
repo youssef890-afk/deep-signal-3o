@@ -50,11 +50,24 @@ export async function sendJokalMessage({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: trimmed, mode: 'signal' }),
     });
-    const data: { response?: unknown; reply?: unknown; error?: unknown } = await response.json();
+    const responseText = await response.text();
+    let data: { response?: unknown; reply?: unknown; error?: unknown } = {};
+    try {
+      data = JSON.parse(responseText) as typeof data;
+    } catch {
+      // Keep the response body for diagnostics below while showing a friendly UI error.
+    }
     const assistantReply = typeof data.response === 'string' ? data.response : data.reply;
 
     if (response.status !== 200 || typeof assistantReply !== 'string' || !assistantReply.trim()) {
-      console.error('AI chat API request failed:', response.status, data.error);
+      const safeResponseText = responseText
+        .replace(/\bAQ\.[A-Za-z0-9_-]+/g, '[REDACTED]')
+        .replace(/\bAIza[A-Za-z0-9_-]+/g, '[REDACTED]')
+        .replace(/\beyJ[A-Za-z0-9_-]{24,}/g, '[REDACTED]');
+      console.error('AI chat API request failed:', {
+        status: response.status,
+        responseText: safeResponseText,
+      });
       return {
         conversationId,
         messageId: null,

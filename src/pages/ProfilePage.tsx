@@ -55,6 +55,36 @@ interface ProfileBadge {
   className: string;
 }
 
+function createFallbackCover(): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1600;
+  canvas.height = 600;
+  const context = canvas.getContext('2d');
+  if (!context) return Promise.reject(new Error('Canvas rendering is unavailable'));
+
+  const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, '#071b16');
+  gradient.addColorStop(0.55, '#10251e');
+  gradient.addColorStop(1, '#101714');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = 'rgba(63, 160, 112, 0.18)';
+  context.beginPath();
+  context.ellipse(1180, 170, 390, 240, -0.3, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = 'rgba(189, 154, 77, 0.11)';
+  context.beginPath();
+  context.ellipse(340, 520, 460, 180, -0.2, 0, Math.PI * 2);
+  context.fill();
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('Cover image could not be rendered'));
+    }, 'image/png');
+  });
+}
+
 export default function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const { session } = useAuth();
@@ -84,6 +114,7 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [generatingImage, setGeneratingImage] = useState<'avatar' | 'cover' | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const t = (key: TranslationKey) => translate(getStoredLanguage(), key);
@@ -399,12 +430,22 @@ export default function ProfilePage() {
       const prompt = kind === 'avatar'
         ? 'Create a polished, original square profile avatar illustration for a social app. Do not include text, logos, or recognizable people.'
         : 'Create an elegant abstract 16:9 social profile cover with a calm dark background and subtle emerald, rose, and gold details. No text or logos.';
-      const base64 = await generateAiImage(prompt);
-      const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+      let imageBlob: Blob;
+      try {
+        const base64 = await generateAiImage(prompt);
+        if (!base64) throw new Error('Image service returned an empty image');
+        const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+        imageBlob = new Blob([bytes], { type: 'image/png' });
+      } catch (error) {
+        if (kind !== 'cover') throw error;
+        console.error('AI cover generation is unavailable; using a local branded design:', error);
+        imageBlob = await createFallbackCover();
+      }
+
       const filePath = `${user.id}/generated-${kind}-${Date.now()}.png`;
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, new Blob([bytes], { type: 'image/png' }), {
+        .upload(filePath, imageBlob, {
           cacheControl: '3600',
           contentType: 'image/png',
           upsert: false,
@@ -419,10 +460,44 @@ export default function ProfilePage() {
 
       setProfile((current) => current ? { ...current, [column]: url } : current);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'تعذر توليد الصورة';
-      alert(`توليد الصورة غير متاح: ${message}. تأكد من نشر Edge Function وضبط OPENAI_API_KEY.`);
+      console.error(`Profile ${kind} image could not be saved:`, error);
+      alert(kind === 'cover'
+        ? 'تعذر حفظ الغلاف. جرّب رفع صورة من جهازك.'
+        : 'تعذر إنشاء الصورة حالياً. يمكنك رفع صورة من جهازك.');
     } finally {
       setGeneratingImage(null);
+    }
+  }
+
+  async function handleCoverUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !user || !isOwnProfile || uploadingCover) return;
+    if (!file.type.startsWith('image/') || file.size > 8 * 1024 * 1024) {
+      alert('اختار صورة صالحة وحجمها أقل من 8 ميغابايت.');
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const filePath = `${user.id}/cover-${Date.now()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, {
+        cacheControl: '3600',
+        contentType: file.type,
+        upsert: false,
+      });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const { error: updateError } = await supabase.from('profiles').update({ cover_url: data.publicUrl }).eq('id', user.id);
+      if (updateError) throw updateError;
+      setProfile((current) => current ? { ...current, cover_url: data.publicUrl } : current);
+    } catch (error) {
+      console.error('Profile cover upload failed:', error);
+      alert('تعذر رفع الغلاف. تحقق من اتصالك وحاول مرة أخرى.');
+    } finally {
+      setUploadingCover(false);
     }
   }
 
@@ -627,15 +702,22 @@ export default function ProfilePage() {
         >
           <span className="text-[10px] font-medium text-white/65">غلاف الملف الشخصي</span>
           {isOwnProfile && (
-            <button
-              type="button"
-              onClick={() => void handleGenerateProfileImage('cover')}
-              disabled={generatingImage !== null}
-              className="mr-auto inline-flex items-center gap-1.5 rounded-lg bg-black/45 px-2.5 py-1.5 text-[10px] font-medium text-white transition hover:bg-black/65 disabled:opacity-50"
-            >
-              {generatingImage === 'cover' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <WandSparkles className="h-3.5 w-3.5" />}
-              توليد غلاف
-            </button>
+            <div className="mr-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleGenerateProfileImage('cover')}
+                disabled={generatingImage !== null || uploadingCover}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-black/45 px-2.5 py-1.5 text-[10px] font-medium text-white transition hover:bg-black/65 disabled:opacity-50"
+              >
+                {generatingImage === 'cover' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <WandSparkles className="h-3.5 w-3.5" />}
+                توليد غلاف
+              </button>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-black/45 px-2.5 py-1.5 text-[10px] font-medium text-white transition hover:bg-black/65">
+                {uploadingCover ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                رفع صورة
+                <input type="file" accept="image/*" onChange={(event) => void handleCoverUpload(event)} className="sr-only" />
+              </label>
+            </div>
           )}
         </div>
 

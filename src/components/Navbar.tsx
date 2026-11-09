@@ -1,15 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { ArrowLeftRight, Bell, Check, CircleUserRound, Gamepad2, Heart, Loader2, LogOut, MessageCircle, Search, Settings2, Sparkles, UserRound, UserRoundPlus } from 'lucide-react';
+import { ArrowLeftRight, Bell, CircleUserRound, Gamepad2, Heart, Loader2, MessageCircle, Search, Settings2, UserRound, UserRoundPlus } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { DSLogo } from '@/components/icons/BrandIcons';
 import Avatar from '@/components/Avatar';
+import { getStoredLanguage, translate } from '@/lib/i18n';
 
 interface ActivityItem {
   id: string;
-  kind: 'follow' | 'like' | 'comment' | 'view' | 'update';
+  kind: 'follow' | 'like' | 'comment' | 'view';
   actor: string;
   actorId?: string;
   createdAt: string;
@@ -23,22 +24,18 @@ interface UserActivityRow {
 }
 
 export default function Navbar({ direction, onToggleDirection }: { direction: 'rtl' | 'ltr'; onToggleDirection: () => void }) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [online, setOnline] = useState(() => navigator.onLine);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState('');
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const profileMenuAnchorRef = useRef<HTMLButtonElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const [profileMenuPosition, setProfileMenuPosition] = useState<{ top: number; left: number } | null>(null);
-
-  const handleSignOut = async () => {
-    await signOut();
-    setProfileMenuOpen(false);
-    navigate('/login');
-  };
+  const t = (key: Parameters<typeof translate>[1]) => translate(getStoredLanguage(), key);
 
   useEffect(() => {
     if (!profileMenuOpen) return;
@@ -104,24 +101,48 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
 
     const loadActivities = async () => {
       setNotificationsLoading(true);
+      setNotificationsError('');
       try {
         const [followResult, postResult, viewResult] = await Promise.all([
           supabase.from('follows').select('id, follower_id, created_at').eq('following_id', user.id).order('created_at', { ascending: false }).limit(12),
           supabase.from('posts').select('id').eq('user_id', user.id),
           supabase.from('profile_views').select('id, viewer_id, created_at').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(12),
         ]);
+        const partialErrors: unknown[] = [];
+        for (const [label, error] of [
+          ['follows', followResult.error],
+          ['posts', postResult.error],
+          ['profile views', viewResult.error],
+        ] as const) {
+          if (error) {
+            partialErrors.push(error);
+            console.error(`Unable to load ${label} for notifications:`, error);
+          }
+        }
 
         const ownPostIds = (postResult.data ?? []).map((post) => post.id);
-        const [likeResult, commentResult] = ownPostIds.length
-          ? await Promise.all([
+        let likeRows: UserActivityRow[] = [];
+        let commentRows: UserActivityRow[] = [];
+        if (ownPostIds.length) {
+          const [likeResult, commentResult] = await Promise.all([
               supabase.from('likes').select('id, user_id, created_at').in('post_id', ownPostIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(12),
               supabase.from('comments').select('id, user_id, created_at').in('post_id', ownPostIds).neq('user_id', user.id).order('created_at', { ascending: false }).limit(12),
-            ])
-          : [{ data: [] }, { data: [] }];
+          ]);
+          if (likeResult.error) {
+            partialErrors.push(likeResult.error);
+            console.error('Unable to load likes for notifications:', likeResult.error);
+          } else {
+            likeRows = (likeResult.data ?? []) as UserActivityRow[];
+          }
+          if (commentResult.error) {
+            partialErrors.push(commentResult.error);
+            console.error('Unable to load comments for notifications:', commentResult.error);
+          } else {
+            commentRows = (commentResult.data ?? []) as UserActivityRow[];
+          }
+        }
 
         const followerRows = (followResult.data ?? []) as { id: string; follower_id: string; created_at: string }[];
-        const likeRows = (likeResult.data ?? []) as UserActivityRow[];
-        const commentRows = (commentResult.data ?? []) as UserActivityRow[];
         const viewRows = (viewResult.data ?? []) as { id: string; viewer_id: string | null; created_at: string }[];
         const actorIds = [...new Set([
           ...followerRows.map((item) => item.follower_id),
@@ -132,21 +153,28 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
         const profileResult = actorIds.length
           ? await supabase.from('profiles').select('id, username').in('id', actorIds)
           : { data: [] };
+        if ('error' in profileResult && profileResult.error) {
+          partialErrors.push(profileResult.error);
+          console.error('Unable to load notification actor profiles:', profileResult.error);
+        }
         const usernames = new Map((profileResult.data ?? []).map((profile) => [profile.id, profile.username]));
         const nextActivities: ActivityItem[] = [
           ...followerRows.map((item) => ({ id: `follow-${item.id}`, kind: 'follow' as const, actor: usernames.get(item.follower_id) ?? 'مستخدم', actorId: item.follower_id, createdAt: item.created_at, description: 'بدأ بمتابعتك' })),
           ...likeRows.map((item) => ({ id: `like-${item.id}`, kind: 'like' as const, actor: usernames.get(item.user_id) ?? 'مستخدم', actorId: item.user_id, createdAt: item.created_at, description: 'أعجب بمنشورك' })),
           ...commentRows.map((item) => ({ id: `comment-${item.id}`, kind: 'comment' as const, actor: usernames.get(item.user_id) ?? 'مستخدم', actorId: item.user_id, createdAt: item.created_at, description: 'علّق على منشورك' })),
           ...viewRows.filter((item) => item.viewer_id).map((item) => ({ id: `view-${item.id}`, kind: 'view' as const, actor: usernames.get(item.viewer_id!) ?? 'مستخدم', actorId: item.viewer_id!, createdAt: item.created_at, description: 'زار ملفك الشخصي' })),
-          { id: 'update-welcome', kind: 'update', actor: 'Deep-Signal', createdAt: new Date().toISOString(), description: 'تحديث جديد: تصميم وتجربة Deep-Signal أصبحا أفضل.' },
         ];
 
         nextActivities.sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt));
-        if (active) setActivities(nextActivities.slice(0, 20));
+        if (active) {
+          setActivities(nextActivities.slice(0, 20));
+          setNotificationsError(partialErrors.length ? t('activityPartialError') : '');
+        }
       } catch (error) {
         console.error('Unable to load notifications:', error);
         if (active) {
-          setActivities([{ id: 'update-welcome', kind: 'update', actor: 'Deep-Signal', createdAt: new Date().toISOString(), description: 'مرحباً بك في Deep-Signal.' }]);
+          setActivities([]);
+          setNotificationsError(t('activityLoadError'));
         }
       } finally {
         if (active) setNotificationsLoading(false);
@@ -154,7 +182,11 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
     };
 
     void loadActivities();
-    return () => { active = false; };
+    const refreshTimer = window.setInterval(() => void loadActivities(), 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+    };
   }, [notificationsOpen, user]);
 
   const activityIcon = (kind: ActivityItem['kind']) => {
@@ -162,7 +194,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
     if (kind === 'like') return <Heart className="h-4 w-4 text-[var(--text)]" />;
     if (kind === 'comment') return <MessageCircle className="h-4 w-4 text-[var(--text)]" />;
     if (kind === 'view') return <CircleUserRound className="h-4 w-4 text-[var(--text)]" />;
-    return <Sparkles className="h-4 w-4 text-[var(--text)]" />;
+    return <CircleUserRound className="h-4 w-4 text-[var(--text)]" />;
   };
 
   return (
@@ -187,11 +219,16 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
                 <span className="text-[11px] text-[var(--text)]/40">أحدث النشاطات</span>
               </div>
               <div className="max-h-[min(420px,70vh)] overflow-y-auto">
-                {notificationsLoading || activities.length === 0 ? (
+                {notificationsLoading ? (
                   <div className="flex items-center justify-center gap-2 py-8 text-sm text-[var(--text)]/50">
                     <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل
                   </div>
-                ) : activities.map((activity) => (
+                ) : (
+                  <>
+                    {notificationsError && <p role="alert" className="border-b border-[var(--error)]/10 px-4 py-2 text-[10px] leading-5 text-[var(--error)]">{notificationsError}</p>}
+                    {activities.length === 0 ? (
+                      <p className="px-4 py-8 text-center text-xs text-[var(--text)]/50">لا توجد نشاطات جديدة.</p>
+                    ) : activities.map((activity) => (
                   <button
                     key={activity.id}
                     type="button"
@@ -206,9 +243,10 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
                       <span className="block text-xs leading-5 text-[var(--text)]/85"><b className="font-semibold text-[var(--text)]">{activity.actor}</b> {activity.description}</span>
                       <time className="mt-1 block text-[10px] text-[var(--text)]/35">{new Intl.DateTimeFormat('ar-MA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(activity.createdAt))}</time>
                     </span>
-                    {activity.kind === 'update' && <Check className="mt-1 h-4 w-4 shrink-0 text-[var(--text)]" />}
                   </button>
-                ))}
+                    ))}
+                  </>
+                )}
               </div>
             </section>
           )}
@@ -275,9 +313,6 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
                   <Link role="menuitem" to="/settings" onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
                     <Settings2 className="h-4 w-4 text-[var(--accent)]" /> الإعدادات
                   </Link>
-                  <button role="menuitem" type="button" onClick={() => void handleSignOut()} className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
-                    <LogOut className="h-4 w-4 text-[var(--accent)]" /> تسجيل الخروج
-                  </button>
                 </div>,
                 document.body
               )

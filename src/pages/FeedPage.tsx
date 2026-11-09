@@ -27,8 +27,9 @@ export default function FeedPage() {
 
         const { data, error } = await supabase
           .from('posts')
-          .select('id, user_id, image_url, video_url, caption, created_at, likes_count, profiles:profiles(id, username, avatar_url)')
+          .select('id, user_id, image_url, video_url, caption, created_at, likes(count), comments_count:comments(count), comments(id, user_id, content, created_at, profiles:profiles(username)), profiles:profiles(id, username, avatar_url)')
           .order('created_at', { ascending: false })
+          .limit(2, { foreignTable: 'comments' })
           .limit(40);
 
         if (error) {
@@ -39,9 +40,28 @@ export default function FeedPage() {
           return;
         }
 
+        const postIds = (data ?? []).map((post) => String(post.id));
+        let likedPostIds = new Set<string>();
+        if (user?.id && postIds.length > 0) {
+          const { data: userLikes, error: likesError } = await supabase
+            .from('likes')
+            .select('post_id')
+            .eq('user_id', user.id)
+            .in('post_id', postIds);
+          if (likesError) throw likesError;
+          likedPostIds = new Set((userLikes ?? []).map((like) => String(like.post_id)));
+        }
+
+        if (!isMounted) return;
+
         const normalizedPosts: PostCardPost[] = (data ?? []).map((post) => {
           const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
           const videoUrl = typeof post.video_url === 'string' ? post.video_url : null;
+          const postComments = Array.isArray(post.comments) ? post.comments : [];
+          const commentCount = Array.isArray(post.comments_count)
+            ? Number(post.comments_count[0]?.count ?? 0)
+            : 0;
+          const likesCount = Array.isArray(post.likes) ? Number(post.likes[0]?.count ?? 0) : 0;
           return {
             id: String(post.id),
             type: videoUrl ? 'video' : 'image',
@@ -50,8 +70,18 @@ export default function FeedPage() {
             author: profile && typeof profile.username === 'string' ? profile.username : 'مستخدم',
             avatar: profile && typeof profile.avatar_url === 'string' ? profile.avatar_url : null,
             caption: typeof post.caption === 'string' ? post.caption : null,
-            likes: Number(post.likes_count ?? 0),
-            comments: [],
+            likes: likesCount,
+            commentCount,
+            likedByCurrentUser: likedPostIds.has(String(post.id)),
+            comments: postComments.map((comment) => {
+              const commentProfile = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
+              return {
+                id: String(comment.id),
+                userId: String(comment.user_id),
+                author: commentProfile?.username ?? 'مستخدم',
+                text: String(comment.content),
+              };
+            }),
             createdAt: typeof post.created_at === 'string' ? post.created_at : new Date().toISOString(),
           };
         });
@@ -128,7 +158,15 @@ export default function FeedPage() {
 
           {!loading && posts.length > 0 && (
             <div className="space-y-4">
-              {posts.map((post) => <PostCard key={post.id} post={post} />)}
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={user?.id ?? null}
+                  currentUsername={profile?.username ?? 'أنت'}
+                  onEngagementChanged={() => setRetryCount((count) => count + 1)}
+                />
+              ))}
             </div>
           )}
         </main>

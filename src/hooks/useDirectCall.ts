@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { getStoredLanguage, translate } from '@/lib/i18n';
 
 type CallStatus = 'idle' | 'incoming' | 'calling' | 'connecting' | 'connected';
 
@@ -10,6 +11,23 @@ interface CallSignal {
   to: string;
   description?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
+}
+
+function getCallErrorMessage(error: unknown): string {
+  const errorName = typeof error === 'object' && error !== null && 'name' in error
+    ? String(error.name)
+    : '';
+
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || errorName === 'SecurityError') {
+    return translate(getStoredLanguage(), 'microphoneSecureContext');
+  }
+  if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+    return translate(getStoredLanguage(), 'voicePermissionDenied');
+  }
+  if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
+    return translate(getStoredLanguage(), 'microphoneUnavailable');
+  }
+  return translate(getStoredLanguage(), 'videoCallError');
 }
 
 export function useDirectCall(userId: string | undefined, peerId: string | undefined) {
@@ -65,6 +83,9 @@ export function useDirectCall(userId: string | undefined, peerId: string | undef
   }, [peerId, sendSignal, userId]);
 
   const acquireMedia = useCallback(async () => {
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      throw new DOMException('Secure context required for camera and microphone access.', 'SecurityError');
+    }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
     localStreamRef.current = stream;
     setLocalStream(stream);
@@ -126,7 +147,7 @@ export function useDirectCall(userId: string | undefined, peerId: string | undef
           if (signal.kind === 'decline') setError('تم رفض المكالمة.');
         }
       } catch (callError) {
-        setError(callError instanceof Error ? callError.message : 'تعذر بدء المكالمة');
+        setError(getCallErrorMessage(callError));
         releaseCall();
       }
     });
@@ -158,7 +179,7 @@ export function useDirectCall(userId: string | undefined, peerId: string | undef
       setStatus('calling');
     } catch (callError) {
       releaseCall();
-      setError(callError instanceof Error ? callError.message : 'تحقق من إذن الكاميرا والميكروفون');
+      setError(getCallErrorMessage(callError));
     }
   }, [acquireMedia, channelReady, makePeerConnection, peerId, releaseCall, sendSignal, status, userId]);
 
@@ -179,7 +200,7 @@ export function useDirectCall(userId: string | undefined, peerId: string | undef
       setStatus('connecting');
     } catch (callError) {
       releaseCall();
-      setError(callError instanceof Error ? callError.message : 'تعذر قبول المكالمة');
+      setError(getCallErrorMessage(callError));
     }
   }, [acquireMedia, flushCandidates, makePeerConnection, peerId, releaseCall, sendSignal, userId]);
 

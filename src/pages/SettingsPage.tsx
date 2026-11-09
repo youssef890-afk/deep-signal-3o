@@ -141,6 +141,9 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState<Language>(getStoredLanguage);
   const [activeTab, setActiveTab] = useState<TabId>('account');
   const [settings, setSettings] = useState<LocalSettings>(loadLocalSettings);
+  const [browserNotificationPermission, setBrowserNotificationPermission] = useState<NotificationPermission | 'unsupported'>(() =>
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+  );
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -215,6 +218,22 @@ export default function SettingsPage() {
   const notify = (text: string, error = false) => {
     setToast({ text, error });
     window.setTimeout(() => setToast(null), 3200);
+  };
+
+  const enableBrowserNotifications = async () => {
+    if (typeof Notification === 'undefined') {
+      setBrowserNotificationPermission('unsupported');
+      notify(t('browserNotificationsUnavailable'), true);
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      setBrowserNotificationPermission(permission);
+      notify(permission === 'granted' ? t('browserNotificationsEnabled') : t('browserNotificationsDenied'), permission !== 'granted');
+    } catch (error) {
+      console.error('Browser notification permission could not be requested:', error);
+      notify(t('browserNotificationsDenied'), true);
+    }
   };
 
   const saveLocalSettings = (next: LocalSettings) => {
@@ -445,6 +464,23 @@ export default function SettingsPage() {
         {renderToggleRow('comments', 'comments')}
         {renderToggleRow('follows', 'newFollows')}
         {renderToggleRow('messages', 'messages')}
+        <div className="flex flex-col gap-3 border-t border-white/[0.07] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-[var(--text-muted)]">
+            {browserNotificationPermission === 'granted'
+              ? t('browserNotificationsEnabled')
+              : browserNotificationPermission === 'unsupported'
+                ? t('browserNotificationsUnavailable')
+                : t('browserNotificationsDenied')}
+          </p>
+          <button
+            type="button"
+            onClick={() => void enableBrowserNotifications()}
+            disabled={browserNotificationPermission === 'granted' || browserNotificationPermission === 'unsupported'}
+            className="rounded-lg border border-[var(--accent-ring)] px-3 py-2 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t('enableBrowserNotifications')}
+          </button>
+        </div>
         {renderToggleRow('sound', 'sound')}
         {renderToggleRow('vibration', 'vibration')}
       </SettingsSection>

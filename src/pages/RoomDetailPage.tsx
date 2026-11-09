@@ -12,6 +12,7 @@ import {
   X,
   ArrowLeft,
   Crown,
+  Copy,
   UserPlus,
 } from 'lucide-react';
 
@@ -27,6 +28,8 @@ interface Room {
   created_by: string;
   created_at: string;
   is_active: boolean;
+  capacity: number;
+  invite_code: string;
   profiles: RoomProfile | null;
 }
 
@@ -75,6 +78,8 @@ export default function RoomDetailPage() {
 
   const [showAnswer, setShowAnswer] =
     useState(false);
+  const [joinError, setJoinError] = useState('');
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   const isMember = members.some((member) => member.user_id === user?.id);
   const liveAudio = useLiveRoomAudio(roomId ?? '', user?.id, isMember, isMuted);
@@ -182,12 +187,10 @@ export default function RoomDetailPage() {
   }, [roomId, navigate, fetchRoom, fetchMembers, subscribeToMembers]);
 
   async function joinRoom() {
-    if (!user || !roomId) return;
+    if (!user || !roomId || !room) return;
 
-    if (members.length >= 6) {
-      alert(
-        'الغرفة مكتملة العدد (6 مقاعد)'
-      );
+    if (members.length >= room.capacity) {
+      setJoinError('الغرفة مكتملة العدد.');
       return;
     }
 
@@ -201,25 +204,40 @@ export default function RoomDetailPage() {
       return;
     }
 
-    const {
-      error,
-    } = await supabase
+    const { error } = await supabase
       .from('room_members')
-      .insert({
+      .upsert({
         room_id: roomId,
         user_id: user.id,
         role: 'member',
-      });
+      }, { onConflict: 'room_id,user_id', ignoreDuplicates: true });
 
     if (error) {
-      alert(
-        'تعذر الانضمام للغرفة: ' +
-          error.message
-      );
+      console.error('Could not join room:', error);
+      setJoinError(error.code === '23503'
+        ? 'ملف الحساب غير مكتمل بعد. سجّل الخروج ثم الدخول، أو طبّق إصلاح إنشاء الملفات الشخصية في Supabase.'
+        : 'تعذر الانضمام للغرفة. تحقق من اتصالك وصلاحيات قاعدة البيانات.');
       return;
     }
 
+    setJoinError('');
     await fetchMembers();
+  }
+
+  async function copyInviteCode() {
+    if (!room) return;
+    try {
+      if (!navigator.clipboard?.writeText) {
+        window.prompt('انسخ رمز دعوة الغرفة:', room.invite_code);
+        return;
+      }
+      await navigator.clipboard.writeText(room.invite_code);
+      setInviteCopied(true);
+      window.setTimeout(() => setInviteCopied(false), 1800);
+    } catch (error) {
+      console.error('Room invite code could not be copied:', error);
+      window.prompt('انسخ رمز دعوة الغرفة:', room.invite_code);
+    }
   }
 
   async function leaveRoom() {
@@ -375,9 +393,7 @@ export default function RoomDetailPage() {
   const isCreator =
     user?.id === room.created_by;
 
-  const seats = Array.from({
-    length: 6,
-  });
+  const seats = Array.from({ length: room.capacity });
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
@@ -425,11 +441,23 @@ export default function RoomDetailPage() {
         ) : null}
       </div>
 
+      {isCreator && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.05] p-4">
+          <div className="min-w-0">
+            <p className="text-[10px] text-white/45">رمز دعوة الغرفة</p>
+            <code className="mt-1 block select-all font-mono text-lg font-bold tracking-[0.18em] text-[var(--accent)]">{room.invite_code}</code>
+          </div>
+          <button type="button" onClick={() => void copyInviteCode()} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/75 transition hover:bg-white/[0.06]">
+            <Copy className="h-4 w-4" />{inviteCopied ? 'تم النسخ' : 'نسخ الرمز'}
+          </button>
+        </div>
+      )}
+
       <div className="bg-neutral-900 border border-white/10 rounded-2xl p-5 mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-semibold text-neutral-300 flex items-center gap-2">
             <Users className="w-4 h-4 text-[var(--accent)]" />
-            المقاعد (6/{members.length})
+            المقاعد ({members.length}/{room.capacity})
           </h2>
 
           {isMember && (
@@ -454,6 +482,7 @@ export default function RoomDetailPage() {
         </div>
 
         {liveAudio.error && <p role="alert" className="mb-4 text-xs text-[var(--error)]">{liveAudio.error}</p>}
+        {joinError && <p role="alert" className="mb-4 text-xs text-[var(--error)]">{joinError}</p>}
         {liveAudio.remoteAudio.length > 0 && (
           <div className="mb-4 space-y-2">
             {liveAudio.remoteAudio.map((remote) => (
@@ -538,7 +567,7 @@ export default function RoomDetailPage() {
             onClick={() =>
               void joinRoom()
             }
-            disabled={members.length >= 6}
+            disabled={members.length >= room.capacity}
             className="w-full mt-5 py-3 bg-[var(--accent)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--accent-foreground)] rounded-xl font-medium text-sm"
           >
             صعود للمقعد

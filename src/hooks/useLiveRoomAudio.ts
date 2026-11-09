@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { getStoredLanguage, translate } from '@/lib/i18n';
 
 interface RemoteRoomAudio {
   userId: string;
@@ -133,6 +134,10 @@ export function useLiveRoomAudio(roomId: string, userId: string | undefined, isM
     if (!isMember || localStreamRef.current) return;
     try {
       setError('');
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setError(translate(getStoredLanguage(), 'microphoneSecureContext'));
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
       for (const track of stream.getAudioTracks()) track.enabled = !muted;
@@ -145,7 +150,15 @@ export function useLiveRoomAudio(roomId: string, userId: string | undefined, isM
         }
       }
     } catch (startError) {
-      setError(startError instanceof Error ? startError.message : 'تعذر تشغيل الميكروفون');
+      const errorName = typeof startError === 'object' && startError !== null && 'name' in startError
+        ? String(startError.name)
+        : '';
+      const errorKey = errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError'
+        ? 'voicePermissionDenied'
+        : errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError'
+          ? 'microphoneUnavailable'
+          : 'microphoneStartError';
+      setError(translate(getStoredLanguage(), errorKey));
     }
   }, [isMember, muted, sendSignal, userId]);
 

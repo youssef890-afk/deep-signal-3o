@@ -35,6 +35,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [messageError, setMessageError] = useState('');
+  const [conversationError, setConversationError] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -61,14 +62,22 @@ export default function ChatPage() {
     let cancelled = false;
 
     const loadConversations = async () => {
+      setConversationError('');
       // Get all messages involving this user
-      const { data: msgs } = await supabase
+      const { data: msgs, error: messagesError } = await supabase
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
-      if (cancelled || !msgs) return;
+      if (cancelled) return;
+      if (messagesError || !msgs) {
+        console.error('Conversation list could not be loaded:', messagesError);
+        setConversations([]);
+        setConversationError(t('conversationLoadError'));
+        setLoading(false);
+        return;
+      }
 
       // Build a map of other user ID -> last message + unread count
       const convMap = new Map<string, { lastMessage: Message; unreadCount: number }>();
@@ -95,12 +104,19 @@ export default function ChatPage() {
         return;
       }
 
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .in('id', userIds);
 
-      if (cancelled || !profiles) return;
+      if (cancelled) return;
+      if (profilesError || !profiles) {
+        console.error('Conversation profiles could not be loaded:', profilesError);
+        setConversations([]);
+        setConversationError(t('conversationLoadError'));
+        setLoading(false);
+        return;
+      }
 
       const convList = userIds.map((uid) => ({
         otherUser: (profiles as Profile[]).find((p) => p.id === uid)!,
@@ -133,22 +149,34 @@ export default function ChatPage() {
   // Load messages for active conversation
   const loadMessages = useCallback(async () => {
     if (!user || !activeUserId) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('messages')
       .select('*')
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${activeUserId}),and(sender_id.eq.${activeUserId},receiver_id.eq.${user.id})`)
       .order('created_at', { ascending: true });
 
-    setMessages((data as Message[]) ?? []);
+    if (error || !data) {
+      console.error('Conversation messages could not be loaded:', error);
+      setMessageError(t('messageLoadError'));
+      return;
+    }
 
-    // Mark received messages as read
-    if (data) {
-      void refreshUnread();
-      const unread = (data as Message[]).filter(
-        (m) => m.receiver_id === user.id && !m.read_at
-      );
-      for (const m of unread) {
-        await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', m.id);
+    setMessageError('');
+    setMessages(data as Message[]);
+
+    const unread = (data as Message[]).filter(
+      (message) => message.receiver_id === user.id && !message.read_at
+    );
+    if (unread.length) {
+      const { error: readError } = await supabase
+        .from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('receiver_id', user.id)
+        .in('id', unread.map((message) => message.id));
+      if (readError) {
+        console.error('Received messages could not be marked as read:', readError);
+      } else {
+        await refreshUnread();
       }
     }
   }, [user, activeUserId, refreshUnread]);
@@ -222,7 +250,7 @@ export default function ChatPage() {
     const extension = blob.type.includes('mp4') ? 'm4a' : 'webm';
     const path = `${user.id}/${activeUserId}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await supabase.storage.from('voice-notes').upload(path, blob, {
-      contentType: blob.type || 'audio/webm',
+      contentType: blob.type.split(';')[0] || 'audio/webm',
       cacheControl: '3600',
       upsert: false,
     });
@@ -363,6 +391,8 @@ export default function ChatPage() {
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
             {loading ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" /></div>
+            ) : conversationError ? (
+              <p role="alert" className="px-4 py-10 text-center text-xs leading-6 text-[var(--error)]">{conversationError}</p>
             ) : filteredConversations.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <MessageCircle className="mx-auto mb-3 h-7 w-7 text-white/20" />

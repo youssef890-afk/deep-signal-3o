@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Search as SearchIcon, MessageSquare, Loader2 } from 'lucide-react';
 import { formatDisplayId } from '@/utils/format';
 import { getStoredLanguage, translate } from '@/lib/i18n';
+import { useAuth } from '@/context/AuthContext';
 import Avatar from '@/components/Avatar';
 import Handle from '@/components/Handle';
 
@@ -30,6 +31,7 @@ function sanitizeSearchTerm(value: string): string {
 }
 
 export default function SearchPage() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,10 +48,11 @@ export default function SearchPage() {
 
       if (!term) {
         // جلب قائمة مقترحة عند فتح البحث بدون كتابة
-        const { data } = await supabase
+        let query = supabase
           .from('profiles')
-          .select('id, username, full_name, avatar_url, display_id')
-          .limit(10);
+          .select('id, username, full_name, avatar_url, display_id');
+        if (user?.id) query = query.neq('id', user.id);
+        const { data } = await query.limit(10);
         if (cancelled) return;
         setResults((data as Profile[]) || []);
         return;
@@ -67,11 +70,12 @@ export default function SearchPage() {
           : /^\d{1,9}$/.test(term) ? Number(term) : null;
         if (numeric !== null) filters.push(`display_id.eq.${numeric}`);
 
-        const { data, error } = await supabase
+        let query = supabase
           .from('profiles')
           .select('id, username, full_name, avatar_url, display_id')
-          .or(filters.join(','))
-          .limit(20);
+          .or(filters.join(','));
+        if (user?.id) query = query.neq('id', user.id);
+        const { data, error } = await query.limit(20);
 
         if (error) throw error;
         if (cancelled) return;
@@ -92,7 +96,7 @@ export default function SearchPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [searchTerm]);
+  }, [searchTerm, user?.id]);
 
   return (
     <div className="max-w-xl mx-auto px-4 py-6 pb-28 text-white space-y-5">

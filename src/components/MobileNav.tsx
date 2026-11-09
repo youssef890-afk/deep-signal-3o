@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Compass, Gamepad2, House, MessageCircle, Radio, Sparkles } from 'lucide-react';
+import { Compass, Gamepad2, House, MessageCircle, Radio, Sparkles, UserRound, Video } from 'lucide-react';
 import { useMessages } from '@/context/MessagesContext';
+import { useAuth } from '@/context/AuthContext';
+import Avatar from '@/components/Avatar';
 import { getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language } from '@/lib/i18n';
 
 const items = [
@@ -10,12 +12,15 @@ const items = [
   { path: '/discover', Icon: Compass, label: 'اكتشف' },
   { path: '/rooms', Icon: Radio, label: 'الغرف' },
   { path: '/games', Icon: Gamepad2, label: 'الألعاب' },
+  { path: '/reels', Icon: Video, label: 'ريلز' },
   { path: '/jokal', Icon: Sparkles, label: 'aiPageTitle' },
   { path: '/chat', Icon: MessageCircle, label: 'الرسائل' },
+  { path: '/profile', Icon: UserRound, label: 'الملف الشخصي' },
 ];
 
 export default function MobileNav() {
   const { unreadCount } = useMessages();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [language, setLanguage] = useState(getStoredLanguage);
@@ -39,15 +44,17 @@ export default function MobileNav() {
             <motion.button
               key={path}
               type="button"
-              onClick={() => navigate(path)}
+              onClick={() => navigate(path === '/profile' && profile?.id ? `/profile/${profile.id}` : path)}
               whileTap={{ scale: 0.92 }}
               aria-label={badge ? `${label}، ${badge} رسائل غير مقروءة` : label}
               aria-current={active ? 'page' : undefined}
               className={`relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 transition-colors ${active ? 'text-[var(--accent)]' : 'text-[var(--text)]/40 hover:text-[var(--text)]/75'}`}
             >
               <span className="relative">
-                <Icon className="h-[19px] w-[19px]" />
-                {badge > 0 && <span className="absolute -right-2 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-foreground)]">{badge > 99 ? '99+' : badge}</span>}
+                {path === '/profile' && profile
+                  ? <Avatar src={profile.avatar_url} name={profile.username} size="xs" />
+                  : <Icon className="h-[19px] w-[19px]" />}
+                {badge > 0 && <span className="absolute -end-2 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-foreground)]">{badge > 99 ? '99+' : badge}</span>}
               </span>
               <span className="max-w-full truncate text-[9px] font-medium">{label}</span>
               {active && <span className="absolute inset-x-1/3 top-0 h-0.5 rounded-full bg-[var(--accent)]" />}

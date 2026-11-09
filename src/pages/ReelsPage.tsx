@@ -6,6 +6,7 @@ import {
 
 import {
   useNavigate,
+  Link,
 } from 'react-router-dom';
 
 import { supabase } from '@/lib/supabase';
@@ -24,6 +25,7 @@ import {
 import Avatar from '@/components/Avatar';
 import Handle from '@/components/Handle';
 import PostSummarizer from '@/components/PostSummarizer';
+import { getStoredLanguage, translate } from '@/lib/i18n';
 
 interface Reel {
   id: string;
@@ -42,8 +44,11 @@ interface Reel {
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const navigate = useNavigate();
+  const t = (key: 'reelsTitle' | 'reelsLoadError' | 'reelsEmpty' | 'returnFeed' | 'retry') =>
+    translate(getStoredLanguage(), key);
 
   useEffect(() => {
     void loadReels();
@@ -80,6 +85,7 @@ export default function ReelsPage() {
         throw error;
       }
 
+      setLoadError(false);
       setReels(
         (data ?? []).map((reel) => ({
           ...reel,
@@ -94,6 +100,7 @@ export default function ReelsPage() {
         error
       );
 
+      setLoadError(true);
       setReels([]);
     } finally {
       setLoading(false);
@@ -110,10 +117,22 @@ export default function ReelsPage() {
 
   if (reels.length === 0) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p className="text-neutral-400 text-sm">
-          لا توجد Reels حالياً
-        </p>
+      <div className="grid min-h-[65dvh] place-items-center px-4 py-10 text-[var(--text)]">
+        <section className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-7 text-center shadow-xl">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]"><Play className="h-6 w-6" /></span>
+          <h1 className="mt-4 text-lg font-bold">{t('reelsTitle')}</h1>
+          {loadError ? (
+            <>
+              <p role="alert" className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{t('reelsLoadError')}</p>
+              <button type="button" onClick={() => void loadReels()} className="mt-5 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-[var(--accent-foreground)] transition hover:brightness-110">{t('retry')}</button>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{t('reelsEmpty')}</p>
+              <Link to="/feed" className="mt-5 inline-flex rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-[var(--accent-foreground)] transition hover:brightness-110">{t('returnFeed')}</Link>
+            </>
+          )}
+        </section>
       </div>
     );
   }

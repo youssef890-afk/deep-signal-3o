@@ -48,6 +48,13 @@ const gameCatalog = [
   { name: 'الحنش والسلالم', category: 'ألعاب لوحية', status: 'قريباً', icon: '🎲' },
 ];
 
+function createInviteCode(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+}
+
 export default function GamesPage() {
   const { user, profile } = useAuth();
   const [board, setBoard] = useState<Array<string | null>>(Array(9).fill(null));
@@ -361,15 +368,20 @@ export default function GamesPage() {
 
   function createOnlineMatch() {
     if (!user) return;
-    const code = crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase();
-    const size = roomSize > 2 ? 5 : 3;
-    connectToMatch(code, 'host', size, roomSize);
+    try {
+      const code = createInviteCode();
+      const size = roomSize > 2 ? 5 : 3;
+      connectToMatch(code, 'host', size, roomSize);
+    } catch (error) {
+      console.error('Game invite code could not be generated:', error);
+      setOnlineError('تعذر إنشاء رمز اللعبة في هذا المتصفح.');
+    }
   }
 
   function joinOnlineMatch() {
     const code = joinCode.trim().toUpperCase();
-    if (code.length !== 6) {
-      setOnlineError('دخل الكود كامل من 6 حروف أو أرقام.');
+    if (code.length !== 12) {
+      setOnlineError('دخل الرمز كامل من 12 حرف أو رقم.');
       return;
     }
     connectToMatch(code, 'guest');
@@ -495,9 +507,18 @@ export default function GamesPage() {
   };
 
   const handleCopyCode = async () => {
-    await navigator.clipboard.writeText(inviteCode);
-    setCopiedCode(true);
-    window.setTimeout(() => setCopiedCode(false), 1600);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        window.prompt('انسخ رمز اللعبة:', inviteCode);
+        return;
+      }
+      await navigator.clipboard.writeText(inviteCode);
+      setCopiedCode(true);
+      window.setTimeout(() => setCopiedCode(false), 1600);
+    } catch (error) {
+      console.error('Game invite code could not be copied:', error);
+      window.prompt('انسخ رمز اللعبة:', inviteCode);
+    }
   };
 
   return (
@@ -655,8 +676,8 @@ export default function GamesPage() {
               <button type="button" onClick={createOnlineMatch} disabled={!user || onlineRole !== null} className="flex-1 rounded-xl bg-[var(--accent)]/15 px-3 py-2.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/25 disabled:opacity-40">
                 {onlineRole === 'host' ? 'الغرفة ديالك' : 'إنشاء غرفة'}
               </button>
-              <input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} maxLength={6} placeholder="كود الدعوة" disabled={onlineRole !== null} className="w-28 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-center font-mono text-sm uppercase text-white outline-none focus:border-[var(--accent)]/40 disabled:opacity-40" />
-              <button type="button" onClick={joinOnlineMatch} disabled={joinCode.length !== 6 || onlineRole !== null} className="rounded-xl bg-white/[0.08] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-35">
+              <input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12))} maxLength={12} placeholder="كود الدعوة" disabled={onlineRole !== null} className="w-36 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-center font-mono text-sm uppercase tracking-widest text-white outline-none focus:border-[var(--accent)]/40 disabled:opacity-40" />
+              <button type="button" onClick={joinOnlineMatch} disabled={joinCode.length !== 12 || onlineRole !== null} className="rounded-xl bg-white/[0.08] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-35">
                 انضمام
               </button>
             </div>

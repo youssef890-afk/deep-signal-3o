@@ -6,6 +6,7 @@ import Avatar from '@/components/Avatar';
 import { motion } from 'framer-motion';
 import { UserPlus, UserCheck, MessageCircle, Loader2, Users } from 'lucide-react';
 import type { Profile } from '@/types';
+import { getStoredLanguage, translate } from '@/lib/i18n';
 
 interface SuggestedUser extends Profile {
   isFollowing: boolean;
@@ -17,33 +18,47 @@ export default function DiscoverPage() {
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
+  const [loadError, setLoadError] = useState('');
+  const t = (key: Parameters<typeof translate>[1]) => translate(getStoredLanguage(), key);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
 
     const load = async () => {
-      const { data: following } = await supabase
-        .from('follows')
-        .select('following_id')
-        .eq('follower_id', user.id);
+      setLoadError('');
+      try {
+        const { data: following, error: followingError } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
+        if (followingError) throw followingError;
 
-      const followingIds = new Set((following || []).map((f) => f.following_id));
-      followingIds.add(user.id);
+        const followingIds = new Set((following || []).map((f) => f.following_id));
+        followingIds.add(user.id);
 
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .limit(50);
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .limit(50);
+        if (profilesError) throw profilesError;
 
-      if (cancelled || !profiles) return;
+        if (cancelled) return;
+        if (!profiles) throw new Error('Profiles query returned no data.');
 
-      const list: SuggestedUser[] = (profiles as Profile[])
-        .filter((p) => !followingIds.has(p.id))
-        .map((p) => ({ ...p, isFollowing: false }));
+        const list: SuggestedUser[] = (profiles as Profile[])
+          .filter((p) => !followingIds.has(p.id))
+          .map((p) => ({ ...p, isFollowing: false }));
 
-      setUsers(list);
-      setLoading(false);
+        setUsers(list);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Discover profiles could not be loaded:', error);
+        setUsers([]);
+        setLoadError(t('discoverLoadError'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     void load();
@@ -73,6 +88,14 @@ export default function DiscoverPage() {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div role="alert" className="mx-auto flex min-h-[60vh] max-w-2xl items-center justify-center px-4 text-center text-sm leading-6 text-[var(--error)]">
+        {loadError}
       </div>
     );
   }

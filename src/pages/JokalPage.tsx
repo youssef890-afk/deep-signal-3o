@@ -170,8 +170,18 @@ export default function JokalPage() {
     setCoolingDown(true);
     setError('');
 
-    const result = await sendJokalMessage({ message, conversationId, history: messages });
-    setSending(false);
+    let result: Awaited<ReturnType<typeof sendJokalMessage>>;
+    try {
+      result = await sendJokalMessage({ message, conversationId, history: messages });
+    } catch (requestError) {
+      console.error('Jokal assistant request failed before a response was handled:', requestError);
+      setMessages((current) => current.slice(0, -1));
+      setDraft(message);
+      setError(t('friendlyAssistantError'));
+      return;
+    } finally {
+      setSending(false);
+    }
 
     if (result.error) {
       console.error('Jokal assistant request failed:', result.error);
