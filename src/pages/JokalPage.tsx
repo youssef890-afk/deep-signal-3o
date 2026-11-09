@@ -1,13 +1,58 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowUp, Check, ChevronDown, Loader2, Plus, Sparkles, X } from 'lucide-react';
+import { ArrowUp, Check, ChevronDown, Download, Loader2, Paperclip, Plus, Sparkles, X } from 'lucide-react';
 import AuthRobot from '@/components/AuthRobot';
 import { directionForLanguage, getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language, type TranslationKey } from '@/lib/i18n';
-import { sendJokalMessage } from '@/lib/jokal/client';
+import { sendJokalMessage, type JokalImagePayload } from '@/lib/jokal/client';
 import { JOKAL_LIMITS, type JokalProposal, type JokalStage } from '@/lib/jokal/types';
+import { compressImage } from '@/utils/compressImage';
 
-type ChatMessage = { role: 'user' | 'assistant'; content: string };
+type ChatMessage = { role: 'user' | 'assistant'; content: string; image?: JokalImagePayload };
 type AiMessageKey = Parameters<typeof translate>[1];
+type AssistantMode = 'signal' | 'image';
+
+const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
+const MAX_COMPRESSED_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+const API_ERROR_TRANSLATIONS: Record<string, AiMessageKey> = {
+  AUTH_REQUIRED: 'assistantAuthRequired',
+  DAILY_CHAT_LIMIT: 'assistantChatLimit',
+  DAILY_IMAGE_LIMIT: 'assistantImageLimit',
+  IMAGE_TYPE_UNSUPPORTED: 'imageTypeUnsupported',
+  INVALID_IMAGE: 'imageCompressError',
+  IMAGE_GENERATION_FAILED: 'imageGenerationFailed',
+  CONTENT_BLOCKED: 'assistantContentBlocked',
+  QUOTA_UNAVAILABLE: 'assistantQuotaUnavailable',
+};
+
+function readImageAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        reject(new Error('Image conversion returned an unsupported result.'));
+        return;
+      }
+      const separator = reader.result.indexOf(',');
+      if (separator < 0) {
+        reject(new Error('Image conversion returned malformed data.'));
+        return;
+      }
+      resolve(reader.result.slice(separator + 1));
+    };
+    reader.onerror = () => reject(new Error('The image could not be read.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function localizedAssistantError(code: string | undefined, t: (key: AiMessageKey) => string) {
+  const translation = code ? API_ERROR_TRANSLATIONS[code] : undefined;
+  return translation ? t(translation) : t('friendlyAssistantError');
+}
+
+function imageExtension(mimeType: string) {
+  return mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+}
 
 const STAGES: { stage: JokalStage; translation: TranslationKey }[] = [
   { stage: 'conversation', translation: 'ideaStage' },
@@ -100,6 +145,9 @@ export default function JokalPage() {
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
   const [stage, setStage] = useState<JokalStage>('conversation');
   const [draft, setDraft] = useState('');
+  const [mode, setMode] = useState<AssistantMode>('signal');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [coolingDown, setCoolingDown] = useState(false);
   const [error, setError] = useState('');
@@ -107,6 +155,7 @@ export default function JokalPage() {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const hasConversation = messages.length > 0;
 
   useEffect(() => {
@@ -122,6 +171,11 @@ export default function JokalPage() {
     const timeout = window.setTimeout(() => setCoolingDown(false), JOKAL_LIMITS.requestCooldownMs);
     return () => window.clearTimeout(timeout);
   }, [coolingDown]);
+
+  useEffect(() => {
+    if (!imagePreviewUrl) return;
+    return () => URL.revokeObjectURL(imagePreviewUrl);
+  }, [imagePreviewUrl]);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' });
@@ -154,6 +208,10 @@ export default function JokalPage() {
     setClarifyingQuestions([]);
     setStage('conversation');
     setDraft('');
+    setMode('signal');
+    setImageFile(null);
+    setImagePreviewUrl(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
     setError('');
     setProposalOpen(false);
     window.setTimeout(() => textareaRef.current?.focus(), 0);
@@ -164,40 +222,98 @@ export default function JokalPage() {
     const message = draft.trim();
     if (!message || sending || coolingDown) return;
 
-    setMessages((current) => [...current, { role: 'user', content: message }]);
-    setDraft('');
     setSending(true);
     setCoolingDown(true);
     setError('');
 
-    let result: Awaited<ReturnType<typeof sendJokalMessage>>;
     try {
-      result = await sendJokalMessage({ message, conversationId, history: messages });
+      let image: JokalImagePayload | undefined;
+      if (mode === 'signal' && imageFile) {
+        const compressedImage = await compressImage(imageFile);
+        if (!IMAGE_MIME_TYPES.includes(compressedImage.type)
+          || compressedImage.size > MAX_COMPRESSED_IMAGE_SIZE_BYTES) {
+          throw new Error('Image compression did not produce an accepted payload size or type.');
+        }
+        image = {
+          mimeType: compressedImage.type,
+          data: await readImageAsBase64(compressedImage),
+        };
+      }
+
+      const result = await sendJokalMessage({
+        message,
+        conversationId,
+        history: messages.slice(-9),
+        image,
+        mode,
+      });
+
+      if (result.error) {
+        console.error('Jokal assistant request failed:', { code: result.errorCode });
+        setError(localizedAssistantError(result.errorCode, t));
+        return;
+      }
+
+      if (result.conversationId) setConversationId(result.conversationId);
+      setStage(result.stage);
+      setClarifyingQuestions(result.clarifyingQuestions);
+      if (result.proposal) setProposal(result.proposal);
+
+      const userMessage: ChatMessage = {
+        role: 'user',
+        content: message,
+        ...(image ? { image } : {}),
+      };
+      const assistantContent = result.reply || (result.image ? t('imageGenerated') : '');
+      const assistantMessage: ChatMessage | null = assistantContent || result.image
+        ? {
+          role: 'assistant',
+          content: assistantContent,
+          ...(result.image ? { image: result.image } : {}),
+        }
+        : null;
+      setMessages((current) => [
+        ...current,
+        userMessage,
+        ...(assistantMessage ? [assistantMessage] : []),
+      ]);
+      setDraft('');
+      setImageFile(null);
+      setImagePreviewUrl(null);
+      if (imageInputRef.current) imageInputRef.current.value = '';
     } catch (requestError) {
-      console.error('Jokal assistant request failed before a response was handled:', requestError);
-      setMessages((current) => current.slice(0, -1));
-      setDraft(message);
-      setError(t('friendlyAssistantError'));
-      return;
+      console.error('Jokal assistant request failed before a response was handled:', requestError instanceof Error ? requestError.message : 'Unknown request error');
+      setError(imageFile ? t('imageCompressError') : t('friendlyAssistantError'));
     } finally {
       setSending(false);
     }
+  }
 
-    if (result.error) {
-      console.error('Jokal assistant request failed:', result.error);
-      setMessages((current) => current.slice(0, -1));
-      setDraft(message);
-      setError(result.retryAfterSeconds
-        ? t('retryAfterWait').replace('{seconds}', String(result.retryAfterSeconds))
-        : t('friendlyAssistantError'));
+  function handleImageSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    if (!IMAGE_MIME_TYPES.includes(file.type)) {
+      removeSelectedImage();
+      setError(t('imageTypeUnsupported'));
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      removeSelectedImage();
+      setError(t('imageTooLarge'));
       return;
     }
 
-    if (result.conversationId) setConversationId(result.conversationId);
-    setStage(result.stage);
-    setClarifyingQuestions(result.clarifyingQuestions);
-    if (result.proposal) setProposal(result.proposal);
-    if (result.reply) setMessages((current) => [...current, { role: 'assistant', content: result.reply }]);
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+    setError('');
+  }
+
+  function removeSelectedImage() {
+    setImageFile(null);
+    setImagePreviewUrl(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
   }
 
   const activeStage = proposal
@@ -275,14 +391,33 @@ export default function JokalPage() {
               <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-start' : 'justify-end'}`}>
                 <div className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[82%] ${message.role === 'user' ? 'rounded-es-md bg-[var(--accent-soft)] text-white' : 'rounded-ee-md border border-[var(--border)] bg-[var(--surface)] text-white/85'}`}>
                   <p className="mb-1 text-[10px] font-medium text-white/45">{message.role === 'user' ? t('you') : t('ideaPlanner')}</p>
-                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                  {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
+                  {message.image && (
+                    <div className="mt-2 space-y-2">
+                      <img
+                        src={`data:${message.image.mimeType};base64,${message.image.data}`}
+                        alt={message.content || t('imageGenerated')}
+                        className="max-h-80 max-w-full rounded-xl object-contain"
+                      />
+                      {message.role === 'assistant' && (
+                        <a
+                          href={`data:${message.image.mimeType};base64,${message.image.data}`}
+                          download={`deep-signal-image-${index + 1}.${imageExtension(message.image.mimeType)}`}
+                          className="inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                        >
+                          <Download className="h-4 w-4" />
+                          {t('downloadGeneratedImage')}
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
             {sending && (
               <div className="flex justify-end">
                 <div role="status" aria-label={t('ideaPlannerThinking')} className="flex items-center gap-2 rounded-2xl rounded-ee-md border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-                  <span className="text-[10px] font-medium text-white/45">{t('ideaPlanner')}</span>
+                  <span className="text-[10px] font-medium text-white/45">{mode === 'image' ? t('imageGenerating') : t('ideaPlanner')}</span>
                   <span aria-hidden="true" className="inline-flex gap-1">
                     {[0, 1, 2].map((dot) => <span key={dot} className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--accent)]" style={{ animationDelay: `${dot * 0.16}s` }} />)}
                   </span>
@@ -313,6 +448,65 @@ export default function JokalPage() {
       )}
 
       <form ref={formRef} onSubmit={handleSubmit} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow-md)] focus-within:border-[var(--accent-ring)] sm:p-3">
+        <div role="group" aria-label={t('assistantModes')} className="mb-2 flex flex-wrap gap-2 px-2 pt-1">
+          <button
+            type="button"
+            aria-pressed={mode === 'signal'}
+            disabled={sending}
+            onClick={() => setMode('signal')}
+            className={`min-h-9 rounded-lg px-3 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${mode === 'signal' ? 'bg-[var(--accent-soft)] text-white' : 'text-white/55 hover:bg-white/[0.05]'}`}
+          >
+            {t('imageAskMode')}
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === 'image'}
+            disabled={sending}
+            onClick={() => {
+              setMode('image');
+              removeSelectedImage();
+            }}
+            className={`min-h-9 rounded-lg px-3 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${mode === 'image' ? 'bg-[var(--accent-soft)] text-white' : 'text-white/55 hover:bg-white/[0.05]'}`}
+          >
+            {t('imageGenerateMode')}
+          </button>
+          {mode === 'signal' && (
+            <>
+              <input
+                ref={imageInputRef}
+                id="jokal-image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                onChange={handleImageSelection}
+                className="sr-only"
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={sending}
+                className="inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-white/60 transition hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40"
+              >
+                <Paperclip className="h-4 w-4" />
+                {t('attachImage')}
+              </button>
+            </>
+          )}
+        </div>
+        {imagePreviewUrl && imageFile && mode === 'signal' && (
+          <div className="mb-2 flex items-center gap-3 rounded-xl border border-[var(--border)] p-2">
+            <img src={imagePreviewUrl} alt="" className="h-16 w-16 rounded-lg object-cover" />
+            <p className="min-w-0 flex-1 truncate text-xs text-white/60">{imageFile.name}</p>
+            <button
+              type="button"
+              onClick={removeSelectedImage}
+              aria-label={t('removeImage')}
+              disabled={sending}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/60 transition hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         <label htmlFor="jokal-draft" className="sr-only">{t('composerLabel')}</label>
         <textarea
           ref={textareaRef}
@@ -330,7 +524,7 @@ export default function JokalPage() {
           }}
           maxLength={JOKAL_LIMITS.maxIdeaChars}
           rows={1}
-          placeholder={t(hasConversation ? 'followupPlaceholder' : 'initialPlaceholder')}
+          placeholder={t(mode === 'image' ? 'imagePromptPlaceholder' : hasConversation ? 'followupPlaceholder' : 'initialPlaceholder')}
           className="block max-h-48 min-h-12 w-full resize-none bg-transparent px-3 py-3 text-sm leading-6 text-white outline-none placeholder:text-white/35"
         />
         <div className="flex items-center justify-between gap-3 px-1 pt-1">
