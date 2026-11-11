@@ -53,12 +53,40 @@ All other credentials are Supabase Edge Function secrets:
 ```sh
 npx supabase secrets set OPENAI_API_KEY=... ANTHROPIC_API_KEY=... GEMINI_API_KEY=...
 npx supabase secrets set LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...
+npx supabase secrets set AVATAR_IMAGE_API_KEY=...
+npx supabase secrets set AVATAR_IMAGE_MODEL=gemini-2.5-flash-image
 ```
 
 Optional tuning (safe defaults, no prices baked in): `AI_RATE_LIMIT_TEXT`,
 `AI_RATE_WINDOW_TEXT`, `AI_RATE_LIMIT_IMAGE`, `AI_RATE_WINDOW_IMAGE`,
 `AI_COST_PER_1K_INPUT_USD`, `AI_COST_PER_1K_OUTPUT_USD`, `AI_COST_PER_IMAGE_USD`,
 `ALLOWED_ORIGINS`, and the `JOKAL_*` variables.
+
+### Avatar onboarding
+
+The avatar provider is called only by the `generate-avatar` Edge Function. Set
+its secrets on Supabase (never use `VITE_` variables):
+
+- `AVATAR_IMAGE_API_KEY` — provider key.
+- `AVATAR_IMAGE_MODEL` — Gemini image model name (defaults to
+  `gemini-2.5-flash-image`).
+- `ALLOWED_ORIGINS` — optional comma-separated frontend origins, shared with
+  the other Edge Functions.
+
+After applying `20261111143000_avatar_onboarding.sql` to the project, deploy the
+function:
+
+```sh
+npx supabase secrets set AVATAR_IMAGE_API_KEY=YOUR_PROVIDER_KEY
+npx supabase secrets set AVATAR_IMAGE_MODEL=gemini-2.5-flash-image
+npx supabase functions deploy generate-avatar
+```
+
+Face detection runs in the browser. The MediaPipe runtime and face-detection
+model are downloaded from their public CDNs; the selected photo itself is not
+sent to those CDNs. After consent, it is uploaded to the private `avatar-temp`
+bucket and sent to the configured image provider for generation; the temporary
+stored copy is removed by the function after generation.
 
 ## Supabase
 

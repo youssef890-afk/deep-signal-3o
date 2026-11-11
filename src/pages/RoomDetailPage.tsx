@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -82,7 +82,18 @@ export default function RoomDetailPage() {
   const [inviteCopied, setInviteCopied] = useState(false);
 
   const isMember = members.some((member) => member.user_id === user?.id);
-  const liveAudio = useLiveRoomAudio(roomId ?? '', user?.id, isMember, isMuted);
+    const liveAudio = useLiveRoomAudio(roomId ?? '', user?.id, isMember, isMuted);
+
+    const sortedMembers = useMemo(() => {
+      if (!room) return members;
+      const host = members.find((m) => m.user_id === room.created_by);
+      if (!host) return members;
+      return [...members].sort((a, b) => {
+        if (a.user_id === room.created_by) return -1;
+        if (b.user_id === room.created_by) return 1;
+        return 0;
+      });
+    }, [members, room]);
 
   const fetchRoom = useCallback(async () => {
     if (!roomId) return;
@@ -104,6 +115,11 @@ export default function RoomDetailPage() {
         error
       );
 
+      navigate('/rooms');
+      return;
+    }
+
+    if (data.is_active === false) {
       navigate('/rooms');
       return;
     }
@@ -172,6 +188,33 @@ export default function RoomDetailPage() {
   }, [roomId, fetchMembers]);
 
   useEffect(() => {
+    if (!roomId) return;
+
+    const channel = supabase
+      .channel(`room-status-${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'rooms',
+          filter: `id=eq.${roomId}`,
+        },
+        ({ new: updatedRoom }) => {
+          if (updatedRoom.is_active === false) {
+            alert('انتهت الجلسة لأن صاحب الغرفة لم يعد متصلاً.');
+            navigate('/rooms');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [roomId, navigate]);
+
+  useEffect(() => {
     if (!roomId) {
       navigate('/rooms');
       return;
@@ -215,8 +258,8 @@ export default function RoomDetailPage() {
     if (error) {
       console.error('Could not join room:', error);
       setJoinError(error.code === '23503'
-        ? 'ملف الحساب غير مكتمل بعد. سجّل الخروج ثم الدخول، أو طبّق إصلاح إنشاء الملفات الشخصية في Supabase.'
-        : 'تعذر الانضمام للغرفة. تحقق من اتصالك وصلاحيات قاعدة البيانات.');
+        ? 'تعذر الانضمام لأن معلومات الحساب غير مكتملة. أعد تسجيل الدخول ثم حاول مرة أخرى.'
+        : 'تعذر الانضمام للغرفة الآن. تحقق من اتصالك ثم حاول مرة أخرى.');
       return;
     }
 
@@ -252,10 +295,8 @@ export default function RoomDetailPage() {
       .eq('user_id', user.id);
 
     if (error) {
-      alert(
-        'تعذر مغادرة الغرفة: ' +
-          error.message
-      );
+      console.error('Could not leave room:', error);
+      alert('تعذر مغادرة الغرفة الآن. تحقق من اتصالك ثم حاول مرة أخرى.');
       return;
     }
 
@@ -281,10 +322,8 @@ export default function RoomDetailPage() {
       .eq('id', memberTableId);
 
     if (error) {
-      alert(
-        'تعذر طرد العضو: ' +
-          error.message
-      );
+      console.error('Could not remove room member:', error);
+      alert('تعذر إزالة العضو الآن. حاول مرة أخرى.');
       return;
     }
 
@@ -319,10 +358,8 @@ export default function RoomDetailPage() {
       .eq('id', roomId);
 
     if (error) {
-      alert(
-        'تعذر إنهاء الجلسة: ' +
-          error.message
-      );
+      console.error('Could not end room:', error);
+      alert('تعذر إنهاء الجلسة الآن. تحقق من اتصالك ثم حاول مرة أخرى.');
       return;
     }
 
@@ -396,59 +433,41 @@ export default function RoomDetailPage() {
   const seats = Array.from({ length: room.capacity });
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
-      <div className="bg-neutral-900 border border-white/10 rounded-2xl p-5 mb-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() =>
-              navigate('/rooms')
-            }
-            className="text-neutral-400 hover:text-white"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-
-          <div>
-            <h1 className="text-xl font-bold text-white">
-              {room.name}
-            </h1>
-
-            <p className="text-xs text-neutral-400">
-              {room.description ||
-                'جلسة صوتية حية'}
-            </p>
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-48">
+      <div className="bg-neutral-900 border border-white/10 rounded-2xl p-4 sm:p-5 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/rooms')}
+              className="text-neutral-400 hover:text-white transition"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">{room.name}</h1>
+              <p className="text-xs text-white/50 mt-1 max-w-xl sm:max-w-2xl line-clamp-2">{room.description ?? 'جلسة صوتية حية'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 rounded-full bg-green-500/10 px-3 py-1.5">
+              <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-xs font-semibold text-green-400">مباشر</span>
+            </div>
+            <div className="rounded-full bg-white/5 px-3 py-1.5 text-sm font-medium text-white/70">{sortedMembers.length}/{room.capacity}</div>
           </div>
         </div>
-
-        {isCreator ? (
-          <button
-            onClick={() =>
-              void endRoom()
-            }
-            className="px-3 py-1.5 rounded-xl bg-[var(--error)]/20 text-[var(--error)] text-xs"
-          >
-            إنهاء الجلسة
-          </button>
-        ) : isMember ? (
-          <button
-            onClick={() =>
-              void leaveRoom()
-            }
-            className="px-3 py-1.5 bg-neutral-800 text-white rounded-xl text-xs"
-          >
-            مغادرة
-          </button>
-        ) : null}
       </div>
 
       {isCreator && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.05] p-4">
-          <div className="min-w-0">
-            <p className="text-[10px] text-white/45">رمز دعوة الغرفة</p>
-            <code className="mt-1 block select-all font-mono text-lg font-bold tracking-[0.18em] text-[var(--accent)]">{room.invite_code}</code>
-          </div>
-          <button type="button" onClick={() => void copyInviteCode()} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/75 transition hover:bg-white/[0.06]">
-            <Copy className="h-4 w-4" />{inviteCopied ? 'تم النسخ' : 'نسخ الرمز'}
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <code className="font-mono text-sm font-bold text-green-400 select-all tracking-wide">{room.invite_code}</code>
+          <button
+            type="button"
+            onClick={() => void copyInviteCode()}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/75 transition hover:bg-white/[0.06] hover:text-white"
+          >
+            <Copy className="h-4 w-4" />
+            {inviteCopied ? '✓ تم النسخ' : 'نسخ الرمز'}
           </button>
         </div>
       )}
@@ -460,25 +479,7 @@ export default function RoomDetailPage() {
             المقاعد ({members.length}/{room.capacity})
           </h2>
 
-          {isMember && (
-            <button
-              onClick={() => liveAudio.audioStarted
-                ? setIsMuted((previous) => !previous)
-                : void liveAudio.startAudio()}
-              aria-label={!liveAudio.audioStarted ? 'تشغيل الميكروفون' : isMuted ? 'إلغاء كتم الميكروفون' : 'كتم الميكروفون'}
-              className={`p-2 rounded-full ${
-                !liveAudio.audioStarted || isMuted
-                  ? 'bg-white/10 text-white/65'
-                  : 'bg-green-500/20 text-green-400'
-              }`}
-            >
-              {!liveAudio.audioStarted || isMuted ? (
-                <MicOff className="w-4 h-4" />
-              ) : (
-                <Mic className="w-4 h-4" />
-              )}
-            </button>
-          )}
+
         </div>
 
         {liveAudio.error && <p role="alert" className="mb-4 text-xs text-[var(--error)]">{liveAudio.error}</p>}
@@ -491,70 +492,63 @@ export default function RoomDetailPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
-          {seats.map((_, index) => {
-            const member =
-              members[index];
-
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-4">
+          {Array.from({ length: room.capacity }).map((_, index) => {
+            const member = sortedMembers[index] ?? null;
+            const isHost = member?.user_id === room.created_by;
             return (
               <div
                 key={index}
-                className="flex flex-col items-center justify-center p-4 bg-white/5 border border-white/5 rounded-xl relative min-h-[100px]"
+                className="flex flex-col items-center"
               >
                 {member ? (
                   <>
-                    <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] font-bold text-lg mb-2 relative overflow-hidden">
+                    <div className="relative flex items-center justify-center w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-white/10 overflow-hidden ring-2 ring-white/10 transition-transform duration-200 hover:scale-105">
                       {member.profiles?.avatar_url ? (
                         <img
-                          src={
-                            member.profiles.avatar_url
-                          }
-                          alt={
-                            member.profiles.username
-                          }
+                          src={member.profiles.avatar_url}
+                          alt={member.profiles.username ?? ''}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        member.profiles?.username
-                          ?.charAt(0)
-                          .toUpperCase() ||
-                        'U'
+                        <span className="text-2xl font-bold text-white/60">
+                          {member.profiles?.username?.charAt(0)?.toUpperCase() || 'U'}
+                        </span>
                       )}
-
-                      {member.user_id ===
-                        room.created_by && (
-                        <Crown className="w-4 h-4 text-[var(--accent-secondary)] absolute -top-1 -right-1" />
+                      {isHost && (
+                        <span className="absolute -bottom-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full bg-green-500/40 text-green-400">
+                          <Crown className="w-3 h-3" />
+                        </span>
                       )}
+                      {/* Muted badge placeholder - will appear when per-member mute exists */}
+                      {/* {member.is_muted && (
+                        <span className="absolute top-1 left-1 flex items-center justify-center w-4 h-4 rounded-full bg-black/30 text-white">
+                          <MicOff className="w-3 h-3" />
+                        </span>
+                      )} */}
                     </div>
-
-                    <span className="text-xs text-white truncate max-w-[80px]">
-                      {member.profiles
-                        ?.username ||
-                        'User'}
+                    <span className="mt-2 text-sm font-medium text-white truncate max-w-[120px]">
+                      {member.profiles?.username || 'عضو'}
                     </span>
-
-                    {isCreator &&
-                      member.user_id !==
-                        user?.id && (
-                        <button
-                          onClick={() =>
-                            void kickMember(
-                              member.id
-                            )
-                          }
-                          className="absolute right-2 top-2 text-[var(--error)] hover:brightness-125"
-                          aria-label="طرد العضو"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
+                    {isHost && (
+                      <span className="mt-1 text-xs font-semibold text-green-400">المضيف</span>
+                    )}
+                    {isCreator && member.user_id !== user?.id && (
+                      <button
+                        onClick={() => void kickMember(member.id)}
+                        className="absolute -top-1 -right-1 p-1 rounded-full text-red-400 hover:bg-red-500/20 transition"
+                        aria-label="طرد العضو"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </>
                 ) : (
-                  <div className="flex flex-col items-center text-neutral-600">
-                    <UserPlus className="w-6 h-6 mb-1" />
-                    <span className="text-[10px]">
-                      مقعد فارغ
-                    </span>
+                  <div className="flex flex-col items-center py-3 text-white/30">
+                    <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center">
+                      <UserPlus className="w-5 h-5" />
+                    </div>
+                    <span className="mt-2 text-xs">مقعد فارغ</span>
                   </div>
                 )}
               </div>

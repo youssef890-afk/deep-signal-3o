@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Compass, Gamepad2, House, MessageCircle, Radio, Sparkles, UserRound, Video } from 'lucide-react';
+import { Compass, Gamepad2, House, MessagesSquare, Radio, Sparkles, UserRound, Video } from 'lucide-react';
 import { useMessages } from '@/context/MessagesContext';
 import { useAuth } from '@/context/AuthContext';
-import Avatar from '@/components/Avatar';
+import AnimatedAvatar from '@/components/AnimatedAvatar';
 import { getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language } from '@/lib/i18n';
 
 const items = [
@@ -14,7 +14,7 @@ const items = [
   { path: '/games', Icon: Gamepad2, label: 'الألعاب' },
   { path: '/reels', Icon: Video, label: 'ريلز' },
   { path: '/jokal', Icon: Sparkles, label: 'aiPageTitle' },
-  { path: '/chat', Icon: MessageCircle, label: 'الرسائل' },
+  { path: '/chat', Icon: MessagesSquare, label: 'الرسائل' },
   { path: '/profile', Icon: UserRound, label: 'الملف الشخصي' },
 ];
 
@@ -52,7 +52,7 @@ export default function MobileNav() {
             >
               <span className="relative">
                 {path === '/profile' && profile
-                  ? <Avatar src={profile.avatar_url} name={profile.username} size="xs" />
+                  ? <AnimatedAvatar src={profile.avatar_url} name={profile.username} size="xs" />
                   : <Icon className="h-[19px] w-[19px]" />}
                 {badge > 0 && <span className="absolute -end-2 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-foreground)]">{badge > 99 ? '99+' : badge}</span>}
               </span>

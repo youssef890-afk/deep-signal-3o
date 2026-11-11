@@ -115,7 +115,7 @@ export default function ProfilePage() {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [generatingImage, setGeneratingImage] = useState<'avatar' | 'cover' | null>(null);
+  const [generatingImage, setGeneratingImage] = useState<'cover' | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const t = (key: TranslationKey) => translate(getStoredLanguage(), key);
 
@@ -393,6 +393,8 @@ export default function ProfilePage() {
           .from('profiles')
           .update({
             avatar_url: avatarUrl,
+            avatar_type: 'uploaded',
+            avatar_emoji: null,
           })
           .eq('id', user.id);
 
@@ -422,14 +424,12 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleGenerateProfileImage(kind: 'avatar' | 'cover') {
+  async function handleGenerateProfileImage() {
     if (!user || !isOwnProfile || generatingImage) return;
-    setGeneratingImage(kind);
+    setGeneratingImage('cover');
 
     try {
-      const prompt = kind === 'avatar'
-        ? 'Create a polished, original square profile avatar illustration for a social app. Do not include text, logos, or recognizable people.'
-        : 'Create an elegant abstract 16:9 social profile cover with a calm dark background and subtle emerald, rose, and gold details. No text or logos.';
+      const prompt = 'Create an elegant abstract 16:9 social profile cover with a calm dark background and subtle emerald, rose, and gold details. No text or logos.';
       let imageBlob: Blob;
       try {
         const base64 = await generateAiImage(prompt);
@@ -437,12 +437,11 @@ export default function ProfilePage() {
         const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
         imageBlob = new Blob([bytes], { type: 'image/png' });
       } catch (error) {
-        if (kind !== 'cover') throw error;
         console.error('AI cover generation is unavailable; using a local branded design:', error);
         imageBlob = await createFallbackCover();
       }
 
-      const filePath = `${user.id}/generated-${kind}-${Date.now()}.png`;
+      const filePath = `${user.id}/generated-cover-${Date.now()}.png`;
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, imageBlob, {
@@ -454,16 +453,13 @@ export default function ProfilePage() {
 
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const url = data.publicUrl;
-      const column = kind === 'avatar' ? 'avatar_url' : 'cover_url';
-      const { error: updateError } = await supabase.from('profiles').update({ [column]: url }).eq('id', user.id);
+      const { error: updateError } = await supabase.from('profiles').update({ cover_url: url }).eq('id', user.id);
       if (updateError) throw updateError;
 
-      setProfile((current) => current ? { ...current, [column]: url } : current);
+      setProfile((current) => current ? { ...current, cover_url: url } : current);
     } catch (error) {
-      console.error(`Profile ${kind} image could not be saved:`, error);
-      alert(kind === 'cover'
-        ? 'تعذر حفظ الغلاف. جرّب رفع صورة من جهازك.'
-        : 'تعذر إنشاء الصورة حالياً. يمكنك رفع صورة من جهازك.');
+      console.error('Profile cover image could not be saved:', error);
+      alert('تعذر حفظ الغلاف. جرّب رفع صورة من جهازك.');
     } finally {
       setGeneratingImage(null);
     }
@@ -705,7 +701,7 @@ export default function ProfilePage() {
             <div className="mr-auto flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => void handleGenerateProfileImage('cover')}
+                onClick={() => void handleGenerateProfileImage()}
                 disabled={generatingImage !== null || uploadingCover}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-black/45 px-2.5 py-1.5 text-[10px] font-medium text-white transition hover:bg-black/65 disabled:opacity-50"
               >
@@ -808,13 +804,13 @@ export default function ProfilePage() {
             {isOwnProfile && (
               <button
                 type="button"
-                onClick={() => void handleGenerateProfileImage('avatar')}
-                disabled={generatingImage !== null}
+                onClick={() => navigate('/avatar')}
+                disabled={uploadingAvatar}
                 title="توليد صورة بروفايل بالذكاء الاصطناعي"
                 aria-label="توليد صورة بروفايل بالذكاء الاصطناعي"
                 className="absolute bottom-0 left-0 grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-[var(--accent)] text-[var(--accent-foreground)] shadow-lg disabled:opacity-50"
               >
-                {generatingImage === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <WandSparkles className="h-3.5 w-3.5" />}
+                <WandSparkles className="h-3.5 w-3.5" />
               </button>
             )}
           </div>

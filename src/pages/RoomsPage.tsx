@@ -21,7 +21,7 @@ interface Room {
   member_count: number;
 }
 
-const roomCapacities = [2, 3, 4, 5, 6, 8, 10, 12];
+const roomCapacities = [2, 4, 6, 8, 10];
 
 export default function RoomsPage() {
   const { user } = useAuth();
@@ -39,6 +39,8 @@ export default function RoomsPage() {
   const [joinCodeError, setJoinCodeError] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
   useModalScrollLock(createOpen);
 
   useEffect(() => {
@@ -61,7 +63,8 @@ export default function RoomsPage() {
       .limit(50);
 
     if (error) {
-      setLoadError('تعذر تحميل الغرف. تأكد من تطبيق migrations ديال Supabase.');
+      console.error('Could not load audio rooms:', error);
+      setLoadError('تعذر تحميل الغرف الصوتية الآن. تحقق من اتصالك ثم أعد المحاولة.');
       setRooms([]);
       setLoading(false);
       return;
@@ -73,7 +76,8 @@ export default function RoomsPage() {
       : { data: [], error: null };
 
     if (membersError) {
-      setLoadError('تعذر تحميل عدد المقاعد. حاول تحديث قاعدة البيانات.');
+      console.error('Could not load audio room member counts:', membersError);
+      setLoadError('تعذر تحميل عدد المشاركين الآن. حاول مرة أخرى بعد قليل.');
       setRooms([]);
       setLoading(false);
       return;
@@ -106,13 +110,23 @@ export default function RoomsPage() {
     if (!user) return;
     const cleanName = roomName.trim();
     const cleanDescription = description.trim();
-    if (!cleanName || cleanName.length > 80 || cleanDescription.length > 500) {
-      setCreateError('اسم الغرفة مطلوب (80 حرف كحد أقصى)، والوصف ما يفوتش 500 حرف.');
+    setNameError('');
+    setDescriptionError('');
+    setCreateError('');
+    if (!cleanName) {
+      setNameError('اسم الغرفة مطلوب.');
+      return;
+    }
+    if (cleanName.length > 40) {
+      setNameError('اسم الغرفة يجب ألا يتجاوز 40 حرف.');
+      return;
+    }
+    if (cleanDescription && cleanDescription.length > 120) {
+      setDescriptionError('الوصف يجب ألا يتجاوز 120 حرف.');
       return;
     }
 
     setCreating(true);
-    setCreateError('');
     const { data, error } = await supabase
       .from('rooms')
       .insert({

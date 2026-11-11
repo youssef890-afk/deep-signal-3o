@@ -5,7 +5,7 @@ import PostCard, { type PostCardPost } from '@/components/PostCard';
 import { Link } from 'react-router-dom';
 import { ArrowUpLeft, Plus } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
-import Avatar from '@/components/Avatar';
+import AnimatedAvatar from '@/components/AnimatedAvatar';
 import { Button, Card } from '@/components/ui';
 
 export default function FeedPage() {
@@ -123,7 +123,7 @@ export default function FeedPage() {
 
           <Card className="mb-6 p-3">
             <button type="button" onClick={() => setComposerOpen(true)} className="flex w-full items-center gap-3 rounded-xl text-right transition hover:bg-white/[0.03]">
-              <Avatar src={profile?.avatar_url ?? null} name={profile?.username ?? user?.email ?? 'مستخدم'} size="sm" />
+              <AnimatedAvatar src={profile?.avatar_url ?? null} name={profile?.username ?? user?.email ?? 'مستخدم'} size="sm" />
               <span className="min-w-0 flex-1 truncate py-2 text-sm text-[var(--text-muted)]">شارك فكرة أو لحظة مع المجتمع...</span>
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)]"><Plus className="h-5 w-5" /></span>
             </button>

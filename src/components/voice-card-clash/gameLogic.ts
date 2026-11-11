@@ -1,4 +1,5 @@
 export type Team = 'alpha' | 'beta';
+export type TeamSize = 2 | 3 | 4;
 export type Suit = '♠' | '♥' | '♦' | '♣';
 export type GamePhase = 'lobby' | 'bidding' | 'playing' | 'round_end' | 'match_end';
 
@@ -19,6 +20,7 @@ export interface PlayedCard {
 export interface ClashState {
   phase: GamePhase;
   hostId: string;
+  teamSize: TeamSize;
   round: number;
   trick: number;
   turnSeat: number;
@@ -46,10 +48,11 @@ const labels: Record<number, string> = {
   14: 'A',
 };
 
-export function createLobbyState(hostId: string): ClashState {
+export function createLobbyState(hostId: string, teamSize: TeamSize = 4): ClashState {
   return {
     phase: 'lobby',
     hostId,
+    teamSize,
     round: 0,
     trick: 0,
     turnSeat: 0,
@@ -67,7 +70,7 @@ export function createLobbyState(hostId: string): ClashState {
 }
 
 export function startClashRound(state: ClashState, seatUserIds: string[]): ClashState {
-  if (seatUserIds.length !== 8 || new Set(seatUserIds).size !== 8) return state;
+  if (seatUserIds.length < 2 || seatUserIds.length > state.teamSize * 2 || new Set(seatUserIds).size !== seatUserIds.length) return state;
 
   const deck: ClashCard[] = suits.flatMap((suit) =>
     Array.from({ length: 13 }, (_, index) => {
@@ -113,8 +116,8 @@ export function applyClashAction(
   if (state.seatUserIds[state.turnSeat] !== actorId) return null;
 
   const seat = state.turnSeat;
-  const team: Team = seat < 4 ? 'alpha' : 'beta';
-  const nextSeat = (seat + 1) % 8;
+  const team: Team = seat % 2 === 0 ? 'alpha' : 'beta';
+  const nextSeat = (seat + 1) % state.seatUserIds.length;
   const now = Date.now();
 
   if (state.phase === 'bidding') {
@@ -137,7 +140,7 @@ export function applyClashAction(
 
   const hands = { ...state.hands, [actorId]: hand.filter((item) => item.id !== card.id) };
   const playedCards = [...state.playedCards, { playerId: actorId, seat, team, card }];
-  if (playedCards.length < 8) {
+  if (playedCards.length < state.seatUserIds.length) {
     return { ...state, hands, playedCards, turnSeat: nextSeat, turnStartedAt: now };
   }
 
@@ -163,7 +166,7 @@ export function applyClashAction(
 
   const roundBids: Record<Team, number> = { alpha: 0, beta: 0 };
   state.seatUserIds.forEach((userId, index) => {
-    roundBids[index < 4 ? 'alpha' : 'beta'] += state.bids[userId] ?? 0;
+    roundBids[index % 2 === 0 ? 'alpha' : 'beta'] += state.bids[userId] ?? 0;
   });
   const score = {
     alpha: state.score.alpha + (tricksWon.alpha >= roundBids.alpha ? 10 + tricksWon.alpha : tricksWon.alpha),

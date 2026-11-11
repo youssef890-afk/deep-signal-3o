@@ -119,6 +119,13 @@
     animation: shimmer 2s infinite;
   }
   .animate-pulse-slow { animation: pulseSlow 4s ease-in-out infinite; }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .animate-pulse-accent { animation: pulse-accent 4s ease-in-out infinite; }
+
+@keyframes pulse-accent {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
   .animate-orbit { animation: orbit 20s linear infinite; }
 }
 
@@ -155,6 +162,24 @@
 @keyframes orbit {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+@keyframes avatarFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes avatarGlow {
+  0%, 100% { box-shadow: 0 0 28px var(--accent-glow); }
+  50% { box-shadow: 0 0 48px var(--accent-glow); }
+}
+@keyframes avatarBlink {
+  0%, 95%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.98); }
+}
+.avatar-result { animation: avatarFloat 4s ease-in-out infinite, avatarGlow 3s ease-in-out infinite; }
+.avatar-result img { animation: avatarBlink 6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .avatar-result,
+  .avatar-result img { animation: none; }
 }
 @keyframes heartBurst {
   0% { transform: scale(0) rotate(-15deg); opacity: 0; }

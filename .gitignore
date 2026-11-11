@@ -45,3 +45,4 @@ voice-samples/
 .gitfiles.log
 .vercel
 .env*
+supabase/.temp/

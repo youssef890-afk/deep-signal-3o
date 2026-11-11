@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Bookmark, Heart, MessageCircle, MoreHorizontal, Play, Send, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useModalScrollLock } from '@/hooks/useModalLayer';
-import { directionForLanguage, getStoredLanguage } from '@/lib/i18n';
+import { directionForLanguage, getStoredLanguage, translate } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 
 export interface PostComment {
@@ -37,6 +37,7 @@ interface PostCardProps {
 
 const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }: PostCardProps) => {
   const navigate = useNavigate();
+  const commentsLabel = translate(getStoredLanguage(), 'comments');
   const [liked, setLiked] = useState(post.likedByCurrentUser);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [saved, setSaved] = useState(false);
@@ -236,7 +237,7 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
       <div className="px-4 pb-4 pt-3">
         <div className="mb-3 flex items-center gap-2" dir="ltr">
           <button type="button" onClick={() => void toggleLike()} disabled={likeLoading || !currentUserId} aria-label={liked ? 'إزالة الإعجاب' : 'إعجاب'} aria-pressed={liked} className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition disabled:cursor-wait disabled:opacity-60 ${liked ? 'border-[var(--text)]/30 bg-[var(--text)]/10 text-[var(--text)]' : 'border-[var(--text)]/10 text-[var(--text)]/75 hover:border-[var(--text)]/25 hover:bg-[var(--text)]/[0.04]'}`}><Heart className="h-4 w-4" fill={liked ? 'currentColor' : 'none'} /><span>تفاعل</span></button>
-          <button type="button" onClick={() => document.getElementById(`comment-input-${post.id}`)?.focus()} aria-label="التعليقات" className="inline-flex items-center gap-2 rounded-xl border border-[var(--text)]/10 px-3 py-2 text-xs font-semibold text-[var(--text)]/75 transition hover:border-[var(--text)]/25 hover:bg-[var(--text)]/[0.04]"><MessageCircle className="h-4 w-4" /><span>ناقش</span></button>
+          <button type="button" onClick={() => document.getElementById(`comment-input-${post.id}`)?.focus()} aria-label={commentsLabel} className="inline-flex items-center gap-2 rounded-xl border border-[var(--text)]/10 px-3 py-2 text-xs font-semibold text-[var(--text)]/75 transition hover:border-[var(--text)]/25 hover:bg-[var(--text)]/[0.04]"><MessageCircle className="h-4 w-4" /><span>{commentsLabel}</span></button>
           <button type="button" onClick={() => { void navigator.clipboard?.writeText(window.location.href); }} aria-label="مشاركة المنشور" className="inline-flex items-center gap-2 rounded-xl border border-[var(--text)]/10 px-3 py-2 text-xs font-semibold text-[var(--text)]/75 transition hover:border-[var(--text)]/25 hover:bg-[var(--text)]/[0.04]"><Send className="h-4 w-4" /><span>شارك</span></button>
           <button type="button" onClick={() => setSaved((current) => !current)} aria-label={saved ? 'إزالة من المحفوظات' : 'حفظ المنشور'} aria-pressed={saved} className={`mr-auto rounded-xl border p-2 transition ${saved ? 'border-[var(--text)]/30 bg-[var(--text)]/10 text-[var(--text)]' : 'border-[var(--text)]/10 text-[var(--text)]/65 hover:bg-[var(--text)]/[0.04]'}`}><Bookmark className="h-4 w-4" fill={saved ? 'currentColor' : 'none'} /></button>
         </div>
@@ -261,7 +262,7 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
         )}
         {interactionError && <p role="alert" className="mt-3 text-xs leading-5 text-[var(--error)]">{interactionError}</p>}
         <form onSubmit={addComment} className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--text)]/[0.08] bg-black/15 px-3">
-          <input id={`comment-input-${post.id}`} value={commentText} maxLength={2000} onChange={(event) => setCommentText(event.target.value)} placeholder="زيد فكرة للنقاش..." aria-label="أضف تعليقاً" className="min-w-0 flex-1 bg-transparent py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text)]/40" />
+          <input id={`comment-input-${post.id}`} value={commentText} maxLength={2000} onChange={(event) => setCommentText(event.target.value)} placeholder="زيد تعليقك..." aria-label="أضف تعليقاً" className="min-w-0 flex-1 bg-transparent py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text)]/40" />
           <button type="submit" disabled={!commentText.trim() || commentLoading || !currentUserId} className="rounded-lg px-2 py-1 text-xs font-semibold text-[var(--text)] transition hover:bg-[var(--text)]/10 disabled:opacity-40">{commentLoading ? 'جارٍ الإرسال…' : 'إرسال'}</button>
         </form>
       </div>

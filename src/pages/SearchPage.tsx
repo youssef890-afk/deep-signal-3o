@@ -5,7 +5,7 @@ import { Search as SearchIcon, MessageSquare, Loader2 } from 'lucide-react';
 import { formatDisplayId } from '@/utils/format';
 import { getStoredLanguage, translate } from '@/lib/i18n';
 import { useAuth } from '@/context/AuthContext';
-import Avatar from '@/components/Avatar';
+import AnimatedAvatar from '@/components/AnimatedAvatar';
 import Handle from '@/components/Handle';
 
 interface Profile {
@@ -142,7 +142,7 @@ export default function SearchPage() {
                 className="bg-[var(--surface)] hover:bg-[var(--surface-2)] border border-[var(--border)] rounded-xl p-3 flex items-center justify-between cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Avatar src={item.avatar_url} name={item.full_name || item.username} size="sm" />
+                  <AnimatedAvatar src={item.avatar_url} name={item.full_name || item.username} size="sm" />
                   <div>
                     <h3 className="text-xs font-bold text-white">
                       {item.full_name || item.username}

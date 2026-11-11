@@ -8,7 +8,8 @@ import MobileNav from '@/components/MobileNav';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PageBackground from '@/components/PageBackground';
-import AuthEntryPage, { OnboardingCompletionPage } from '@/pages/AuthEntryPage';
+import { useHostHeartbeat, useStaleRoomSweeper } from '@/hooks/useRoomPresence';
+import AuthEntryPage from '@/pages/AuthEntryPage';
 import AuthRecoveryPage from '@/pages/AuthRecoveryPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import LegalPage from '@/pages/LegalPage';
@@ -37,6 +38,7 @@ const GamesPage = lazy(() => import('@/pages/GamesPage'));
 const VoiceCardClashPage = lazy(() => import('@/pages/VoiceCardClashPage'));
 const JokalPage = lazy(() => import('@/pages/JokalPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const AvatarOnboardingPage = lazy(() => import('@/pages/AvatarOnboardingPage'));
 
 function RouteFallback() {
   return (
@@ -47,7 +49,10 @@ function RouteFallback() {
 }
 
 function ProtectedLayout({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const location = useLocation();
+  useHostHeartbeat(!!user);
+  useStaleRoomSweeper(!!user);
   const [direction, setDirection] = useState<'rtl' | 'ltr'>(() =>
     localStorage.getItem('ds-language')
       ? directionForLanguage(getStoredLanguage())
@@ -93,7 +98,7 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
 }
 
 function AuthGate() {
-  const { session, loading } = useAuth();
+  const { session, loading, profile, profileLoading, profileLoadError, refreshProfile } = useAuth();
   const location = useLocation();
 
   if (location.pathname === '/terms') {
@@ -106,10 +111,6 @@ function AuthGate() {
 
   if (location.pathname === '/youssef555') {
     return <Youssef555Page />;
-  }
-
-  if (location.pathname === '/auth/complete') {
-    return <OnboardingCompletionPage />;
   }
 
   if (loading) {
@@ -155,10 +156,40 @@ function AuthGate() {
     );
   }
 
+  if (profileLoading) {
+    return (
+      <div className="grid min-h-[100dvh] place-items-center bg-[var(--bg)]">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
+      </div>
+    );
+  }
+
+  if (profileLoadError || !profile) {
+    return (
+      <main dir="rtl" className="grid min-h-[100dvh] place-items-center bg-[var(--bg)] px-4 text-[var(--text)]">
+        <section className="max-w-md rounded-3xl border border-[var(--text)]/10 bg-[var(--surface-1)] p-6 text-center">
+          <h1 className="text-xl font-bold">تعذر تحميل ملفك الشخصي</h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--text)]/65">تحقق من اتصالك ثم أعد المحاولة للمتابعة بأمان.</p>
+          <button type="button" onClick={() => void refreshProfile()} className="mt-5 rounded-xl bg-[var(--accent)] px-5 py-3 font-semibold text-[var(--accent-foreground)]">
+            إعادة المحاولة
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (!profile.onboarding_completed) {
+    if (location.pathname !== '/onboarding') return <Navigate to="/onboarding" replace />;
+    return <Suspense fallback={<RouteFallback />}><AvatarOnboardingPage /></Suspense>;
+  }
+
+  if (location.pathname === '/onboarding') return <Navigate to="/feed" replace />;
+
   return (
     <MessagesProvider>
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/avatar" element={<ProtectedLayout><AvatarOnboardingPage /></ProtectedLayout>} />
         <Route path="/feed" element={<ProtectedLayout><FeedPage /></ProtectedLayout>} />
         <Route path="/search" element={<ProtectedLayout><SearchPage /></ProtectedLayout>} />
         <Route path="/discover" element={<ProtectedLayout><DiscoverPage /></ProtectedLayout>} />

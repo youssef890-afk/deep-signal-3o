@@ -12,6 +12,7 @@
     "voices:samples": "node --env-file=.env scripts/voice-samples.mjs"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.2",
     "@supabase/supabase-js": "^2.57.4",
     "browser-image-compression": "^2.0.2",
     "flag-icons": "^7.6.0",

@@ -292,7 +292,11 @@ export default function SettingsPage() {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { cacheControl: '3600', upsert: true });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      const { error: updateError } = await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+      const { error: updateError } = await supabase.from('profiles').update({
+        avatar_url: data.publicUrl,
+        avatar_type: 'uploaded',
+        avatar_emoji: null,
+      }).eq('id', user.id);
       if (updateError) throw updateError;
       setAvatarUrl(data.publicUrl);
       await refreshProfile();

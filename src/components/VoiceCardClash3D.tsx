@@ -15,7 +15,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import Avatar from '@/components/Avatar';
+import AnimatedAvatar from '@/components/AnimatedAvatar';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -27,6 +27,7 @@ import {
   type ClashCard,
   type ClashState,
   type Team,
+  type TeamSize,
 } from '@/components/voice-card-clash/gameLogic';
 
 interface VoiceCardClash3DProps {
@@ -50,10 +51,8 @@ interface VoiceStatus {
 const LIVEKIT_URL = (import.meta.env as ImportMetaEnv & { VITE_LIVEKIT_URL?: string }).VITE_LIVEKIT_URL;
 
 function getRoomRpcErrorMessage(error: { code?: string; message: string }) {
-  if (error.code === 'PGRST202' || error.message.toLowerCase().includes('schema cache')) {
-    return 'إنشاء الغرف مازال ما تفعلش فـSupabase. طبّق migration 20261002160000_voice_card_clash_rooms.sql ومن بعد جرّب.';
-  }
-  return error.message;
+  if (error.message.toLowerCase().includes('full')) return 'الغرفة مكتملة. اختَر غرفة أخرى أو أنشئ غرفة جديدة.';
+  return 'تعذر إكمال العملية على الغرفة الآن. تحقق من اتصالك ثم حاول مرة أخرى.';
 }
 
 function makeRoomCode() {
@@ -65,6 +64,7 @@ function isClashState(value: unknown): value is ClashState {
   const state = value as Partial<ClashState>;
   return ['lobby', 'bidding', 'playing', 'round_end', 'match_end'].includes(String(state.phase))
     && typeof state.hostId === 'string'
+    && (state.teamSize === 2 || state.teamSize === 3 || state.teamSize === 4)
     && Array.isArray(state.seatUserIds)
     && state.score !== undefined;
 }
@@ -86,7 +86,7 @@ function PlayerSeat({
   voice?: VoiceStatus;
   onPlay: (cardId: string) => void;
 }) {
-  const team: Team = seat < 4 ? 'alpha' : 'beta';
+  const team: Team = seat % 2 === 0 ? 'alpha' : 'beta';
   const isMuted = voice?.microphone !== true;
 
   return (
@@ -94,7 +94,7 @@ function PlayerSeat({
       <div className="flex items-center gap-2">
         <div className="relative shrink-0">
           {player ? (
-            <Avatar src={player.avatarUrl} name={player.username} size="sm" ring={active} />
+            <AnimatedAvatar src={player.avatarUrl} name={player.username} size="sm" ring={active} />
           ) : (
             <div className="grid h-10 w-10 place-items-center rounded-full border border-dashed border-white/15 text-white/25">
               <Users className="h-4 w-4" />
@@ -137,6 +137,7 @@ function PlayerSeat({
 export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
   const { user, profile } = useAuth();
   const [roomCode, setRoomCode] = useState('');
+  const [teamSize, setTeamSize] = useState<TeamSize>(4);
   const [joinCode, setJoinCode] = useState('');
   const [roomActionLoading, setRoomActionLoading] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -164,7 +165,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
   const username = profile?.username ?? user?.user_metadata?.username ?? 'لاعب';
   const stateSeat = gameState?.seatUserIds.indexOf(user?.id ?? '') ?? -1;
   const localSeat = stateSeat >= 0 ? stateSeat : mySeat ?? -1;
-  const localTeam: Team = localSeat >= 4 ? 'beta' : 'alpha';
+  const localTeam: Team = localSeat % 2 === 1 ? 'beta' : 'alpha';
   const currentTurnId = gameState?.seatUserIds[gameState.turnSeat];
   const currentTurnName = players.find((player) => player.userId === currentTurnId)?.username ?? 'اللاعب';
   const isLocalTurn = currentTurnId === user?.id;
@@ -199,12 +200,12 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
           isHost: Boolean(item.isHost),
         });
       }
-      const nextPlayers = [...uniquePlayers.values()].sort((first, second) => first.seat - second.seat).slice(0, 8);
+      const nextPlayers = [...uniquePlayers.values()].sort((first, second) => first.seat - second.seat).slice(0, teamSize * 2);
       setPlayers(nextPlayers);
 
       const host = nextPlayers.find((player) => player.isHost);
       if (host && host.userId === user.id && !stateRef.current) {
-        syncGameState(createLobbyState(user.id));
+        syncGameState(createLobbyState(user.id, teamSize));
       } else if (host && host.userId === user.id && stateRef.current) {
         void channel.send({ type: 'broadcast', event: 'game-state', payload: { state: stateRef.current } });
       }
@@ -245,7 +246,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
           });
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setConnectionStatus('تعذر الاتصال');
-          setError('تعذر الاتصال بالغرفة. تحقق من Supabase Realtime وحاول مرة أخرى.');
+          setError('تعذر الاتصال بالغرفة الآن. تحقق من اتصالك ثم أعد المحاولة.');
         }
       });
 
@@ -255,7 +256,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
       void supabase.removeChannel(channel);
       setConnectionStatus('غير متصل');
     };
-  }, [isOwner, mySeat, profile?.avatar_url, roomCode, syncGameState, user, username]);
+  }, [isOwner, mySeat, profile?.avatar_url, roomCode, syncGameState, teamSize, user, username]);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -322,8 +323,9 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
         if (liveKitRoom) void liveKitRoom.disconnect();
         if (roomRef.current === liveKitRoom) roomRef.current = null;
         if (active) {
+          console.error('Voice Card Clash audio connection failed:', connectError);
           setVoiceConnected(false);
-          setVoiceError(connectError instanceof Error ? connectError.message : 'تعذر الاتصال بالصوت');
+          setVoiceError('تعذر الاتصال بالصوت الآن. تحقق من اتصالك ثم أعد المحاولة.');
         }
       }
     };
@@ -372,8 +374,9 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
     setGameState(null);
     setError('');
     try {
-      const { data: seat, error: roomError } = await supabase.rpc('create_voice_card_clash_room', { target_code: newCode });
+      const { data: seat, error: roomError } = await supabase.rpc('create_voice_card_clash_room', { target_code: newCode, target_team_size: teamSize });
       if (roomError) {
+        console.error('Could not create Voice Card Clash room:', roomError);
         setError(getRoomRpcErrorMessage(roomError));
         return;
       }
@@ -381,7 +384,8 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
       setIsOwner(true);
       setRoomCode(newCode);
     } catch (roomError) {
-      setError(roomError instanceof Error ? roomError.message : 'تعذر إنشاء الغرفة. حاول مرة أخرى.');
+      console.error('Could not create Voice Card Clash room:', roomError);
+      setError('تعذر إنشاء الغرفة الآن. تحقق من اتصالك ثم حاول مرة أخرى.');
     } finally {
       setRoomActionLoading(false);
     }
@@ -397,6 +401,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
     try {
       const { data: seat, error: roomError } = await supabase.rpc('join_voice_card_clash_room', { target_code: code });
       if (roomError) {
+        console.error('Could not join Voice Card Clash room:', roomError);
         setError(getRoomRpcErrorMessage(roomError));
         return;
       }
@@ -404,7 +409,8 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
       setIsOwner(false);
       setRoomCode(code);
     } catch (roomError) {
-      setError(roomError instanceof Error ? roomError.message : 'تعذر الانضمام للغرفة. حاول مرة أخرى.');
+      console.error('Could not join Voice Card Clash room:', roomError);
+      setError('تعذر الانضمام للغرفة الآن. تحقق من اتصالك ثم حاول مرة أخرى.');
     } finally {
       setRoomActionLoading(false);
     }
@@ -445,7 +451,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
   };
 
   const startRound = () => {
-    if (!user || !gameState || !isHost || players.length !== 8) return;
+    if (!user || !gameState || !isHost || players.length < 2 || players.length > gameState.teamSize * 2) return;
     syncGameState(startClashRound(gameState, players.map((player) => player.userId)));
   };
 
@@ -464,7 +470,8 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
         payload: { userId: user?.id, microphone: enabled, speaking: localSpeaking },
       });
     } catch (micError) {
-      setVoiceError(micError instanceof Error ? micError.message : 'تعذر تشغيل الميكروفون');
+      console.error('Voice Card Clash microphone update failed:', micError);
+      setVoiceError('تعذر تشغيل الميكروفون. تحقق من إذن الجهاز ثم حاول مرة أخرى.');
     }
   };
 
@@ -473,9 +480,10 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
   }
 
   const playerById = new Map(players.map((player) => [player.userId, player]));
-  const liveSeats = gameState?.seatUserIds ?? players.map((player) => player.userId);
-  const teamPlayers = (team: Team) => Array.from({ length: 4 }, (_, position) => {
-    const seat = team === 'alpha' ? position : position + 4;
+  const liveSeats = gameState?.seatUserIds.length ? gameState.seatUserIds : players.map((player) => player.userId);
+  const currentTeamSize = gameState?.teamSize ?? teamSize;
+  const teamPlayers = (team: Team) => Array.from({ length: currentTeamSize }, (_, position) => {
+    const seat = position * 2 + (team === 'alpha' ? 0 : 1);
     const playerId = liveSeats[seat];
     return { seat, player: playerId ? playerById.get(playerId) : undefined, hand: gameState?.hands[playerId ?? ''] ?? [] };
   });
@@ -490,14 +498,14 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
           : 'غرفة الانتظار';
 
   return (
-    <section className="relative mx-auto w-full max-w-[1280px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-2xl" dir="rtl" aria-label="Voice Card Clash 4 ضد 4">
+    <section className="relative mx-auto w-full max-w-[1280px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-2xl" dir="rtl" aria-label={`Voice Card Clash ${currentTeamSize} ضد ${currentTeamSize}`}>
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 16%, transparent), transparent 58%)' }} />
       <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.08] text-[var(--accent)]"><Sparkles className="h-5 w-5" /></div>
           <div>
             <h1 className="text-base font-bold sm:text-lg">Voice Card Clash</h1>
-            <p className="text-[10px] text-white/45">مواجهة 4 ضد 4 · خدع ومزايدات</p>
+            <p className="text-[10px] text-white/45">مواجهة {currentTeamSize} ضد {currentTeamSize} · خدع ومزايدات</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -513,14 +521,22 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
           <div className="flex flex-col justify-center">
             <div className="mb-3 flex items-center gap-2 text-[var(--accent)]"><Radio className="h-4 w-4" /><span className="text-xs font-semibold">طاولة مباشرة</span></div>
             <h2 className="max-w-md text-2xl font-bold leading-tight sm:text-3xl">اجمع فريقك.<br />واكسب الخدعة.</h2>
-            <p className="mt-3 max-w-md text-sm leading-6 text-white/50">ثمانية لاعبين، مزايدات سريعة، وثلاث خدع في كل جولة. أوراق مكشوفة للجميع، والدور عندك 15 ثانية.</p>
+            <p className="mt-3 max-w-md text-sm leading-6 text-white/50">لاعبان على الأقل، مزايدات سريعة، وثلاث خدع في كل جولة. أوراق مكشوفة للجميع، والدور عندك 15 ثانية.</p>
             <div className="mt-5 flex flex-wrap gap-2 text-[10px] text-white/50">
-              <span className="rounded-full border border-white/10 px-3 py-1.5">4 × Alpha</span>
-              <span className="rounded-full border border-white/10 px-3 py-1.5">4 × Beta</span>
+              <span className="rounded-full border border-white/10 px-3 py-1.5">{currentTeamSize} × Alpha</span>
+              <span className="rounded-full border border-white/10 px-3 py-1.5">{currentTeamSize} × Beta</span>
               <span className="rounded-full border border-white/10 px-3 py-1.5">15 ثانية لكل دور</span>
             </div>
           </div>
           <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:p-5">
+            <label className="block text-xs font-medium text-white/65">
+              حجم الفريق
+              <select value={teamSize} onChange={(event) => setTeamSize(Number(event.target.value) as TeamSize)} className="mt-2 w-full rounded-xl border border-white/10 bg-[var(--bg)] px-3 py-3 text-sm text-white outline-none focus:border-[var(--accent)]/40">
+                <option value={2}>2 ضد 2</option>
+                <option value={3}>3 ضد 3</option>
+                <option value={4}>4 ضد 4</option>
+              </select>
+            </label>
             <button type="button" onClick={createRoom} disabled={roomActionLoading} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-bold text-[var(--accent-foreground)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"><Radio className="h-4 w-4" />{roomActionLoading ? 'كنوجدو الغرفة...' : 'إنشاء غرفة جديدة'}</button>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-white/30"><span className="h-px flex-1 bg-white/10" /> أو انضم بكود <span className="h-px flex-1 bg-white/10" /></div>
             <div className="flex gap-2">
@@ -535,7 +551,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2.5 sm:px-4">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
               <span className="inline-flex items-center gap-1.5 text-[var(--text-muted)]"><span className={`h-2 w-2 rounded-full ${connectionStatus === 'متصل' ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'}`} />{connectionStatus}</span>
-              <span className="text-white/45">{players.length}/8 لاعبين</span>
+              <span className="text-white/45">{players.length}/{currentTeamSize * 2} لاعبين</span>
               <span className="text-white/45">الغرفة <b className="font-mono tracking-[0.14em] text-white/80" dir="ltr">{roomCode}</b></span>
             </div>
             <button type="button" onClick={() => void copyRoomCode()} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-white/65 hover:bg-white/[0.06]"><Copy className="h-3 w-3" />{copied ? 'تم النسخ' : 'نسخ الدعوة'}</button>
@@ -566,23 +582,23 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
                   <div key={`${played.playerId}-${played.card.id}`} className={`grid h-[62px] w-[44px] place-items-center rounded-md border border-slate-200 bg-white text-sm font-bold shadow-lg ${played.card.suit === '♥' || played.card.suit === '♦' ? 'text-rose-600' : 'text-slate-900'}`} aria-label={`${playerById.get(played.playerId)?.username ?? 'لاعب'} لعب ${played.card.label} ${played.card.suit}`}>
                     <span>{played.card.label}<br />{played.card.suit}</span>
                   </div>
-                )) : <div className="text-center"><div className="mb-2 flex justify-center gap-1.5 text-[var(--text-muted)]/25"><span className="grid h-9 w-7 place-items-center rounded border border-current">♠</span><span className="grid h-9 w-7 place-items-center rounded border border-current">♥</span><span className="grid h-9 w-7 place-items-center rounded border border-current">♣</span></div><p className="text-[10px] text-white/35">{players.length === 8 ? 'الطاولة جاهزة' : `بانتظار ${8 - players.length} لاعبين`}</p></div>}
+                )) : <div className="text-center"><div className="mb-2 flex justify-center gap-1.5 text-[var(--text-muted)]/25"><span className="grid h-9 w-7 place-items-center rounded border border-current">♠</span><span className="grid h-9 w-7 place-items-center rounded border border-current">♥</span><span className="grid h-9 w-7 place-items-center rounded border border-current">♣</span></div><p className="text-[10px] text-white/35">{players.length >= 2 ? 'الطاولة جاهزة' : `بانتظار ${2 - players.length} لاعبين على الأقل`}</p></div>}
               </div>
 
               <div className="mt-3 min-h-8 text-center text-[11px] text-white/55">
                 {gameState?.phase === 'lobby' && (isHost
-                  ? <span>اجمعو 8 لاعبين باش تبداو</span>
+                  ? <span>{players.length >= 2 ? 'الطاولة جاهزة، بداو ملي تكونو واجدين' : `خاص لاعبين على الأقل باش تبداو (${players.length}/2)`}</span>
                   : <span>المضيف {playerById.get(gameState.hostId)?.username ?? 'لاعب'} غادي يبدا الجولة</span>)}
                 {(gameState?.phase === 'bidding' || gameState?.phase === 'playing') && <span>الدور على <b className="text-white">{currentTurnName}</b>{isLocalTurn ? ' · دورك دابا' : ''}</span>}
                 {gameState?.phase === 'round_end' && <span>Alpha: {gameState.lastRoundTricks?.alpha ?? 0}/{gameState.lastRoundBids?.alpha ?? 0} · Beta: {gameState.lastRoundTricks?.beta ?? 0}/{gameState.lastRoundBids?.beta ?? 0}</span>}
                 {gameState?.phase === 'match_end' && <span className="font-semibold text-[var(--success)]">{gameState.score.alpha >= 50 ? 'Alpha' : 'Beta'} ربح المباراة!</span>}
               </div>
 
-              {gameState?.phase === 'lobby' && isHost && <button type="button" onClick={startRound} disabled={players.length !== 8} className="mt-2 min-h-10 w-full rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-[var(--accent-foreground)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-35">{players.length === 8 ? 'ابدأ المزايدة' : `بانتظار ${8 - players.length} لاعبين`}</button>}
+              {gameState?.phase === 'lobby' && isHost && <button type="button" onClick={startRound} disabled={players.length < 2 || players.length > currentTeamSize * 2} className="mt-2 min-h-10 w-full rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-[var(--accent-foreground)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-35">{players.length >= 2 ? 'ابدأ المزايدة' : `بانتظار ${2 - players.length} لاعبين`}</button>}
               {gameState?.phase === 'bidding' && isLocalTurn && <div className="mt-2 grid grid-cols-4 gap-1.5">{[0, 1, 2, 3].map((value) => <button key={value} type="button" onClick={() => applyAction({ type: 'bid', value })} className="min-h-10 rounded-lg border border-white/10 bg-white/[0.05] text-sm font-bold hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/10">{value}</button>)}</div>}
               {gameState?.phase === 'playing' && <p className="mt-2 text-center text-[9px] text-white/35">اختار بطاقة من يدك المكشوفة تحت اسمك</p>}
               {gameState?.phase === 'round_end' && isHost && <button type="button" onClick={() => syncGameState(startClashRound(gameState, gameState.seatUserIds))} className="mt-2 min-h-10 w-full rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/[0.08] text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/[0.14]">الجولة التالية</button>}
-              {gameState?.phase === 'match_end' && isHost && <button type="button" onClick={() => syncGameState({ ...createLobbyState(user.id), score: { alpha: 0, beta: 0 } })} className="mt-2 min-h-10 w-full rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/[0.08] text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/[0.14]">مباراة جديدة</button>}
+              {gameState?.phase === 'match_end' && isHost && <button type="button" onClick={() => syncGameState({ ...createLobbyState(user.id, gameState.teamSize), score: { alpha: 0, beta: 0 } })} className="mt-2 min-h-10 w-full rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/[0.08] text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/[0.14]">مباراة جديدة</button>}
             </section>
 
             <section className="order-3 space-y-2 rounded-xl border border-[var(--accent-secondary)]/10 bg-[var(--accent-secondary)]/[0.025] p-2.5 sm:p-3" aria-label="فريق Beta">

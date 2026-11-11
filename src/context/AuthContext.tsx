@@ -14,6 +14,12 @@ interface Profile {
   full_name?: string | null;
   bio: string | null;
   avatar_url?: string | null;
+  avatar_type?: 'uploaded' | 'generated' | 'emoji' | null;
+  avatar_emoji?: string | null;
+  pending_avatar_url?: string | null;
+  avatar_generations_used?: number;
+  last_avatar_generated_at?: string | null;
+  onboarding_completed?: boolean;
   display_id?: number | null;
 }
 
@@ -22,6 +28,8 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
+  profileLoadError: boolean;
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{
     error: Error | null;
   }>;
@@ -60,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoadError, setProfileLoadError] = useState(false);
 
   const ensureProfileExists = async (userData: User) => {
     try {
@@ -106,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('SKIP LOAD PROFILE - recovery mode');
       return;
     }
+    setProfileLoading(true);
+    setProfileLoadError(false);
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -115,12 +127,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error("Profile loading error:", error);
+        setProfile(null);
+        setProfileLoadError(true);
+        return;
+      }
+
+      if (!data) {
+        console.error("Profile loading error: profile row was not found");
+        setProfile(null);
+        setProfileLoadError(true);
         return;
       }
 
       setProfile(data);
     } catch (error) {
       console.error("Profile loading error:", error);
+      setProfile(null);
+      setProfileLoadError(true);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -140,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          setProfileLoading(true);
           await ensureProfileExists(session.user);
           await loadProfile(session.user.id);
         }
@@ -167,14 +193,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        setProfileLoading(true);
         window.clearTimeout(profileSyncTimeout);
         profileSyncTimeout = window.setTimeout(() => {
-          if (!mounted || sessionStorage.getItem('password_recovery') === '1') return;
+          if (!mounted) return;
+          if (sessionStorage.getItem('password_recovery') === '1') {
+            setProfileLoading(false);
+            return;
+          }
           void ensureProfileExists(session.user).then(() => loadProfile(session.user.id));
         }, 0);
       } else {
         window.clearTimeout(profileSyncTimeout);
         setProfile(null);
+        setProfileLoading(false);
+        setProfileLoadError(false);
       }
     });
 
@@ -453,6 +486,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setSession(null);
       setProfile(null);
+      setProfileLoading(false);
+      setProfileLoadError(false);
     } catch (error) {
       console.error("Sign out error:", error);
     }
@@ -460,6 +495,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     if (!user?.id) return;
+    await ensureProfileExists(user);
     await loadProfile(user.id);
   };
 
@@ -468,6 +504,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     profile,
     loading,
+    profileLoading,
+    profileLoadError,
     signIn,
     signUp,
     verifyRecoveryOtp,

@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -7,6 +8,7 @@ import {
 import {
   useNavigate,
   Link,
+  useSearchParams,
 } from 'react-router-dom';
 
 import { supabase } from '@/lib/supabase';
@@ -22,7 +24,7 @@ import {
   Play,
 } from 'lucide-react';
 
-import Avatar from '@/components/Avatar';
+import AnimatedAvatar from '@/components/AnimatedAvatar';
 import Handle from '@/components/Handle';
 import PostSummarizer from '@/components/PostSummarizer';
 import { getStoredLanguage, translate } from '@/lib/i18n';
@@ -47,14 +49,12 @@ export default function ReelsPage() {
   const [loadError, setLoadError] = useState(false);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetReelId = searchParams.get('reel');
   const t = (key: 'reelsTitle' | 'reelsLoadError' | 'reelsEmpty' | 'returnFeed' | 'retry') =>
     translate(getStoredLanguage(), key);
 
-  useEffect(() => {
-    void loadReels();
-  }, []);
-
-  async function loadReels() {
+  const loadReels = useCallback(async (targetId: string | null = null) => {
     setLoading(true);
 
     try {
@@ -85,15 +85,47 @@ export default function ReelsPage() {
         throw error;
       }
 
+      const loadedReels = (data ?? []).map((reel) => ({
+        ...reel,
+        profile: Array.isArray(reel.profile)
+          ? reel.profile[0] ?? null
+          : reel.profile,
+      })) as Reel[];
+
+      if (targetId && !loadedReels.some((reel) => reel.id === targetId)) {
+        const { data: targetReel, error: targetError } = await supabase
+          .from('posts')
+          .select(`
+            id,
+            user_id,
+            video_url,
+            caption,
+            created_at,
+            post_type,
+            video_type,
+            profile:profiles(
+              username,
+              avatar_url
+            )
+          `)
+          .eq('id', targetId)
+          .eq('post_type', 'reel')
+          .eq('video_type', 'reel')
+          .not('video_url', 'is', null)
+          .maybeSingle();
+        if (targetError) throw targetError;
+        if (targetReel) {
+          loadedReels.push({
+            ...targetReel,
+            profile: Array.isArray(targetReel.profile)
+              ? targetReel.profile[0] ?? null
+              : targetReel.profile,
+          } as Reel);
+        }
+      }
+
       setLoadError(false);
-      setReels(
-        (data ?? []).map((reel) => ({
-          ...reel,
-          profile: Array.isArray(reel.profile)
-            ? reel.profile[0] ?? null
-            : reel.profile,
-        })) as Reel[]
-      );
+      setReels(loadedReels);
     } catch (error) {
       console.error(
         'Error loading reels:',
@@ -105,7 +137,16 @@ export default function ReelsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void loadReels(targetReelId);
+  }, [loadReels, targetReelId]);
+
+  useEffect(() => {
+    if (!targetReelId || !reels.some((reel) => reel.id === targetReelId)) return;
+    document.getElementById(`reel-${targetReelId}`)?.scrollIntoView({ block: 'start' });
+  }, [reels, targetReelId]);
 
   if (loading) {
     return (
@@ -124,7 +165,7 @@ export default function ReelsPage() {
           {loadError ? (
             <>
               <p role="alert" className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{t('reelsLoadError')}</p>
-              <button type="button" onClick={() => void loadReels()} className="mt-5 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-[var(--accent-foreground)] transition hover:brightness-110">{t('retry')}</button>
+              <button type="button" onClick={() => void loadReels(targetReelId)} className="mt-5 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-[var(--accent-foreground)] transition hover:brightness-110">{t('retry')}</button>
             </>
           ) : (
             <>
@@ -276,35 +317,58 @@ function ReelItem({
   }
 
   async function handleShare() {
-    const url =
-      `${window.location.origin}/post/${reel.id}`;
+    const shareUrl = new URL('/reels', window.location.origin);
+    shareUrl.searchParams.set('reel', reel.id);
+    const url = shareUrl.toString();
 
-    try {
-      if (navigator.share) {
+    const copyLink = async () => {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        return;
+      }
+
+      const input = document.createElement('textarea');
+      input.value = url;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      let copied = false;
+      try {
+        input.select();
+        copied = document.execCommand('copy');
+      } finally {
+        input.remove();
+      }
+      if (!copied) throw new Error('Clipboard copy was rejected.');
+    };
+
+    if (typeof navigator.share === 'function') {
+      try {
         await navigator.share({
           title: 'Deep-Signal Reel',
           text: reel.caption || 'شوف هاد الـReel',
           url,
         });
-      } else {
-        await navigator.clipboard.writeText(url);
-
-        alert(
-          'تم نسخ الرابط'
-        );
-      }
-    } catch (error) {
-      if (
-        error instanceof DOMException &&
-        error.name === 'AbortError'
-      ) {
         return;
-      }
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name === 'AbortError'
+        ) {
+          return;
+        }
 
-      console.error(
-        'Share error:',
-        error
-      );
+        console.error('Native share failed; trying to copy the Reel link:', error);
+      }
+    }
+
+    try {
+      await copyLink();
+      alert('تم نسخ الرابط');
+    } catch (error) {
+      console.error('Reel link could not be copied:', error);
+      alert('تعذر نسخ الرابط. حاول مرة أخرى.');
     }
   }
 
@@ -315,6 +379,7 @@ function ReelItem({
   return (
     <section
       ref={containerRef}
+      id={`reel-${reel.id}`}
       className="
         relative
         h-screen
@@ -413,7 +478,7 @@ function ReelItem({
             )
           }
         >
-          <Avatar
+          <AnimatedAvatar
             src={
               reel.profile?.avatar_url
             }

@@ -294,7 +294,7 @@ export default function AuthEntryPage({ initialScreen = 'welcome' }: Props) {
         setFieldError(getCodeError(result.error, language), 'code');
         return;
       }
-      navigate('/auth/complete', { replace: true });
+      navigate('/onboarding', { replace: true });
       return;
     }
 
@@ -597,82 +597,6 @@ export default function AuthEntryPage({ initialScreen = 'welcome' }: Props) {
           )}
         </section>
       </div>
-    </main>
-  );
-}
-
-export function OnboardingCompletionPage() {
-  const navigate = useNavigate();
-  const { user, refreshProfile } = useAuth();
-  const language = getStoredLanguage();
-  const t = (key: Parameters<typeof translateAuth>[1]) => translateAuth(language, key);
-  const [avatar, setAvatar] = useState<File | null>(null);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const direction = directionForLanguage(language);
-
-  const continueToApp = async () => {
-    if (!avatar || !user) {
-      navigate('/feed', { replace: true });
-      return;
-    }
-    setBusy(true);
-    setError('');
-    const extension = avatar.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const filePath = `${user.id}/${user.id}_avatar.${extension}`;
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, avatar, { cacheControl: '3600', upsert: true, contentType: avatar.type });
-    if (uploadError) {
-      setBusy(false);
-      setError(t('avatarUploadError'));
-      return;
-    }
-    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-    const { error: profileError } = await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
-    if (profileError) {
-      setBusy(false);
-      setError(t('avatarUploadError'));
-      return;
-    }
-    await refreshProfile();
-    navigate('/feed', { replace: true });
-  };
-
-  const chooseAvatar = (file?: File) => {
-    if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      setError(t('photoTooLarge'));
-      return;
-    }
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setError(t('photoFormat'));
-      return;
-    }
-    setError('');
-    setAvatar(file);
-  };
-
-  return (
-    <main dir={direction} lang={language} className="flex min-h-[100dvh] items-center justify-center bg-[var(--bg)] px-4 py-6 text-[var(--text)]">
-      <section className="welcome-glass-card w-full max-w-lg rounded-[28px] border border-[var(--text)]/10 p-5 text-center sm:p-8">
-        <AuthRobot language={language} message={t('signupDone')} status="success" compact />
-        <h1 className="mt-4 text-xl font-bold">{t('signupDone')}</h1>
-        <label className="mt-5 block text-start">
-          <span className="mb-2 block text-sm text-[var(--text)]/75">{t('chooseAvatar')}</span>
-          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseAvatar(event.target.files?.[0])} className="block w-full text-sm text-[var(--text)] file:me-3 file:rounded-lg file:border file:border-[var(--text)]/15 file:bg-[var(--surface-2)] file:px-3 file:py-2 file:text-[var(--text)]" />
-        </label>
-        {avatar && <p className="mt-2 text-xs text-[var(--text)]/55">{avatar.name}</p>}
-        {error && <p role="alert" className="mt-3 text-sm text-[var(--accent)]">{error}</p>}
-        <div className="mt-5 grid gap-2">
-          <button type="button" onClick={() => void continueToApp()} disabled={busy} className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3 font-semibold text-[var(--accent-foreground)] disabled:opacity-60">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {t('finish')}
-          </button>
-          {avatar && <button type="button" onClick={() => { setAvatar(null); setError(''); }} className="text-sm text-[var(--text)]/60">{t('removePhoto')}</button>}
-          <button type="button" onClick={() => navigate('/feed', { replace: true })} className="text-sm text-[var(--text)]/60">{t('skipAvatar')}</button>
-        </div>
-      </section>
     </main>
   );
 }

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useMessages } from '@/context/MessagesContext';
 import { useDirectCall } from '@/hooks/useDirectCall';
-import Avatar from '@/components/Avatar';
+import AnimatedAvatar from '@/components/AnimatedAvatar';
 import Handle from '@/components/Handle';
 import { Send, ArrowLeft, Loader2, MessageCircle, Mic, Square, AudioLines, Video, VideoOff, MicOff, PhoneOff, PhoneCall, Smartphone, Search, X, PhoneIncoming } from 'lucide-react';
 import { formatTime } from '@/utils/format';
@@ -409,7 +409,7 @@ export default function ChatPage() {
                     onClick={() => navigate(`/chat/${conv.otherUser.id}`)}
                     className={`mb-1 flex w-full items-center gap-3 border-r-2 px-3 py-3 text-right transition ${isActive ? 'border-[var(--accent)] bg-[var(--accent)]/[0.07]' : 'border-transparent hover:bg-white/[0.035]'}`}
                   >
-                    <span className="relative shrink-0"><Avatar src={conv.otherUser.avatar_url} name={displayName(conv.otherUser)} size="md" /><span className="absolute bottom-0 start-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--success)]" /></span>
+                    <span className="relative shrink-0"><AnimatedAvatar src={conv.otherUser.avatar_url} name={displayName(conv.otherUser)} size="md" /><span className="absolute bottom-0 start-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--success)]" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
                         <span className={`truncate text-xs font-semibold ${isActive ? 'text-white' : 'text-white/80'}`}>{displayName(conv.otherUser)}</span>
@@ -436,7 +436,7 @@ export default function ChatPage() {
             <>
               <header className="flex min-h-[68px] items-center gap-3 border-b border-white/[0.08] px-3 sm:px-5">
                 <button type="button" onClick={() => navigate('/chat')} aria-label="العودة للمحادثات" className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white/55 transition hover:bg-white/[0.06] hover:text-white md:hidden"><ArrowLeft className="h-5 w-5" /></button>
-                <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="shrink-0"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="sm" /></button>
+                <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="shrink-0"><AnimatedAvatar src={activeUser.avatar_url} name={displayName(activeUser)} size="sm" /></button>
                 <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="min-w-0 flex-1 text-right">
                   <span className="block truncate text-sm font-bold text-white">{displayName(activeUser)}</span>
                   <span className="mt-0.5 block truncate text-[10px] text-[var(--accent)]/75"><Handle username={activeUser.username} /> <span className="text-white/30">· مباشر</span></span>
@@ -453,7 +453,7 @@ export default function ChatPage() {
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 0.7px, transparent 0.7px)', backgroundSize: '18px 18px' }}>
                 {messages.length === 0 ? (
                   <div className="flex h-full min-h-64 flex-col items-center justify-center text-center">
-                    <span className="mb-4 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-1"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span>
+                    <span className="mb-4 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/[0.06] p-1"><AnimatedAvatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span>
                     <p className="font-serif text-lg font-bold text-white">{displayName(activeUser)}</p>
                     <p className="mt-2 max-w-xs text-xs leading-5 text-white/45">بداية إشارة جديدة. كتب رسالة أو بدا مكالمة فيديو مباشرة.</p>
                     <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady} className="mt-5 inline-flex items-center gap-2 border border-[var(--accent)]/25 px-3 py-2 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/10 disabled:opacity-40"><Video className="h-4 w-4" /> مكالمة فيديو</button>
@@ -469,7 +469,7 @@ export default function ChatPage() {
                       const showAvatar = !isMine && (!prevMessage || prevMessage.sender_id !== msg.sender_id);
                       return (
                         <div key={msg.id} className={`flex items-end gap-2 ${isMine ? 'justify-start' : 'justify-end'} animate-slide-up`}>
-                          {!isMine && <div className="w-7 shrink-0">{showAvatar && <Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xs" />}</div>}
+                          {!isMine && <div className="w-7 shrink-0">{showAvatar && <AnimatedAvatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xs" />}</div>}
                           <div className={`max-w-[min(78%,560px)] px-4 py-2.5 text-sm leading-6 ${isMine ? 'rounded-[14px_14px_4px_14px] border border-[var(--accent)]/15 bg-[var(--accent)]/[0.09] text-white' : 'rounded-[14px_14px_14px_4px] border border-white/[0.08] bg-white/[0.045] text-white/90'}`}>
                             {msg.message_type === 'audio' && msg.audio_url ? <VoiceNotePlayer path={msg.audio_url} durationMs={msg.audio_duration_ms ?? 0} /> : <p className="whitespace-pre-wrap break-words">{msg.content}</p>}
                             <time className={`mt-1 block text-[9px] ${isMine ? 'text-[var(--accent)]/55' : 'text-white/35'}`}>{formatTime(msg.created_at)}</time>
@@ -525,7 +525,7 @@ export default function ChatPage() {
           <aside className="hidden w-[220px] shrink-0 flex-col border-r border-white/[0.08] bg-[var(--surface)] xl:flex">
             <div className="border-b border-white/[0.08] px-4 py-5">
               <p className="font-mono text-[9px] text-white/35">{t('signalProfile')}</p>
-              <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="mt-5 flex w-full flex-col items-center text-center"><span className="rounded-full border border-[var(--accent)]/20 p-1"><Avatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span><span className="mt-3 max-w-full truncate text-sm font-bold text-white">{displayName(activeUser)}</span><span className="mt-1 max-w-full truncate text-[10px] text-white/40"><Handle username={activeUser.username} /></span></button>
+              <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="mt-5 flex w-full flex-col items-center text-center"><span className="rounded-full border border-[var(--accent)]/20 p-1"><AnimatedAvatar src={activeUser.avatar_url} name={displayName(activeUser)} size="xl" /></span><span className="mt-3 max-w-full truncate text-sm font-bold text-white">{displayName(activeUser)}</span><span className="mt-1 max-w-full truncate text-[10px] text-white/40"><Handle username={activeUser.username} /></span></button>
             </div>
             <div className="px-4 py-5">
               <p className="mb-3 text-[9px] font-bold text-white/40">الاتصال</p>
