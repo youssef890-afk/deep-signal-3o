@@ -134,7 +134,7 @@ function AvatarIllustration({ config, svgRef }: { config: AvatarConfig; svgRef?:
         <rect x="189" y="184" width="39" height="28" rx="10" fill="#8fc6e8" fillOpacity=".12" stroke="#171b27" strokeWidth="5" />
         <path d="M171 194 H189 M132 194 L119 188 M228 194 L241 188" fill="none" stroke="#171b27" strokeWidth="5" strokeLinecap="round" />
         <path d="M138 190 L148 187 M195 190 L205 187" stroke="#ffffff" strokeOpacity=".55" strokeWidth="2" strokeLinecap="round" />
-      </g>
+      </g>}
       {config.accessory === 'headphones' && <g fill="none" stroke="#252637" strokeWidth="12"><path d="M116 194 V165 Q116 93 180 93 Q244 93 244 165 V194" /><rect x="108" y="179" width="18" height="44" rx="8" fill="#4e526c" stroke="none" /><rect x="234" y="179" width="18" height="44" rx="8" fill="#4e526c" stroke="none" /></g>}
       {config.accessory === 'cap' && <g><path d="M112 145 Q116 76 180 78 Q244 76 248 145 Q181 122 112 145Z" fill={config.hair} /><path d="M112 143 Q180 127 260 150 Q202 170 112 143Z" fill="#202331" /></g>}
       {config.outfit === 'hoodie' && <g fill="none" stroke="#ffffff" strokeOpacity=".22">
