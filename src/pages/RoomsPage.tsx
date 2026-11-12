@@ -8,6 +8,7 @@ import { ArrowUpRight, Loader2, Mic2, Plus, Radio, Search, Users, X } from 'luci
 import { useModalScrollLock } from '@/hooks/useModalLayer';
 import { getStoredDirection } from '@/lib/i18n';
 import Handle from '@/components/Handle';
+import { useOnlineUsers } from '@/hooks/useOnlinePresence';
 
 interface Room {
   id: string;
@@ -25,6 +26,7 @@ const roomCapacities = [2, 4, 6, 8, 10];
 
 export default function RoomsPage() {
   const { user } = useAuth();
+  const { onlineIds } = useOnlineUsers();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -265,6 +267,7 @@ export default function RoomsPage() {
                 <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[var(--surface-2)] text-sm font-bold text-white">
                   {room.profiles?.avatar_url ? <img src={room.profiles.avatar_url} alt="" className="h-full w-full object-cover" /> : (room.profiles?.username?.charAt(0) || 'غ').toUpperCase()}
                   <span className="absolute bottom-0.5 start-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--success)]" />
+                  {onlineIds.includes(room.created_by) && <span aria-label="متصل الآن" className="absolute end-0.5 top-0.5 h-3 w-3 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)]" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

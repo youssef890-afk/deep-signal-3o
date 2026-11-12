@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PageBackground from '@/components/PageBackground';
 import { useHostHeartbeat, useStaleRoomSweeper } from '@/hooks/useRoomPresence';
+import { OnlinePresenceProvider } from '@/hooks/useOnlinePresence';
 import AuthEntryPage from '@/pages/AuthEntryPage';
 import AuthRecoveryPage from '@/pages/AuthRecoveryPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
@@ -73,27 +74,29 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="relative min-h-[100dvh] bg-[var(--bg-base)] text-white" dir={direction} lang={direction === 'rtl' ? 'ar' : 'en'}>
-      <PageBackground />
-      <div dir="ltr" className="mx-auto min-h-[100dvh] max-w-[1600px] lg:grid lg:grid-cols-[72px_minmax(0,1fr)]">
-        <div className="hidden lg:block" dir="rtl">
-          <Sidebar />
+    <OnlinePresenceProvider userId={user?.id ?? null} loadRecentProfiles={location.pathname === '/feed'}>
+      <div className="relative min-h-[100dvh] bg-[var(--bg-base)] text-white" dir={direction} lang={direction === 'rtl' ? 'ar' : 'en'}>
+        <PageBackground />
+        <div dir="ltr" className="mx-auto min-h-[100dvh] max-w-[1600px] lg:grid lg:grid-cols-[72px_minmax(0,1fr)]">
+          <div className="hidden lg:block" dir="rtl">
+            <Sidebar />
+          </div>
+          <div dir={direction} className="relative z-10 min-h-[100dvh] min-w-0">
+            <Navbar direction={direction} onToggleDirection={() => setDirection((current) => current === 'rtl' ? 'ltr' : 'rtl')} />
+            <main className="min-h-[calc(100dvh-72px)] pb-[92px] lg:pb-8">
+              <AnimatePresence mode="wait">
+                <div key={location.pathname}>
+                  <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+                </div>
+              </AnimatePresence>
+            </main>
+          </div>
         </div>
-        <div dir={direction} className="relative z-10 min-h-[100dvh] min-w-0">
-          <Navbar direction={direction} onToggleDirection={() => setDirection((current) => current === 'rtl' ? 'ltr' : 'rtl')} />
-          <main className="min-h-[calc(100dvh-72px)] pb-[92px] lg:pb-8">
-            <AnimatePresence mode="wait">
-              <div key={location.pathname}>
-                <Suspense fallback={<RouteFallback />}>{children}</Suspense>
-              </div>
-            </AnimatePresence>
-          </main>
+        <div className="lg:hidden">
+          <MobileNav />
         </div>
       </div>
-      <div className="lg:hidden">
-        <MobileNav />
-      </div>
-    </div>
+    </OnlinePresenceProvider>
   );
 }
 
