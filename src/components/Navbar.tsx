@@ -5,7 +5,7 @@ import { ArrowLeftRight, Bell, CircleUserRound, Gamepad2, Heart, Loader2, Messag
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { DSLogo } from '@/components/icons/BrandIcons';
-import AnimatedAvatar from '@/components/AnimatedAvatar';
+import Avatar from '@/components/Avatar';
 import { getStoredLanguage, translate } from '@/lib/i18n';
 
 interface ActivityItem {
@@ -288,7 +288,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
               aria-expanded={profileMenuOpen}
               className="grid h-10 w-10 place-items-center rounded-full ring-1 ring-[var(--border)] transition hover:ring-[var(--accent)]"
             >
-              <AnimatedAvatar src={profile?.avatar_url} name={profile?.username ?? user?.email ?? 'مستخدم'} size="xs" />
+              <Avatar src={profile?.avatar_url} name={profile?.username ?? user?.email ?? 'مستخدم'} type={profile?.avatar_type} emoji={profile?.avatar_emoji} size={32} />
             </button>
             {profileMenuOpen && (
               profileMenuPosition && createPortal(

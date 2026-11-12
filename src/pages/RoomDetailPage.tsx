@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useLiveRoomAudio } from '@/hooks/useLiveRoomAudio';
+import { useOnlineUsers } from '@/hooks/useOnlinePresence';
 import {
   Loader2,
   Mic,
@@ -53,6 +54,7 @@ export default function RoomDetailPage() {
   }>();
 
   const { user } = useAuth();
+  const { onlineIds } = useOnlineUsers();
   const navigate = useNavigate();
 
   const [room, setRoom] =
@@ -467,7 +469,7 @@ export default function RoomDetailPage() {
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/75 transition hover:bg-white/[0.06] hover:text-white"
           >
             <Copy className="h-4 w-4" />
-            {inviteCopied ? '✓ تم النسخ' : 'نسخ الرمز'}
+            {inviteCopied ? 'تم النسخ ✓' : 'نسخ الرمز'}
           </button>
         </div>
       )}
@@ -503,7 +505,9 @@ export default function RoomDetailPage() {
               >
                 {member ? (
                   <>
-                    <div className="relative flex items-center justify-center w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-white/10 overflow-hidden ring-2 ring-white/10 transition-transform duration-200 hover:scale-105">
+                    <div
+                className="relative flex items-center justify-center w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-white/10 overflow-hidden ring-2 ring-white/10 transition-transform duration-200 hover:scale-105"
+              >
                       {member.profiles?.avatar_url ? (
                         <img
                           src={member.profiles.avatar_url}
@@ -514,6 +518,9 @@ export default function RoomDetailPage() {
                         <span className="text-2xl font-bold text-white/60">
                           {member.profiles?.username?.charAt(0)?.toUpperCase() || 'U'}
                         </span>
+                      )}
+                      {onlineIds.includes(member.user_id) && (
+                        <span aria-label="متصل الآن" className="absolute bottom-1 start-1 h-3.5 w-3.5 rounded-full border-2 border-[var(--bg)] bg-[var(--accent)]" />
                       )}
                       {isHost && (
                         <span className="absolute -bottom-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full bg-green-500/40 text-green-400">
@@ -568,6 +575,36 @@ export default function RoomDetailPage() {
           </button>
         )}
       </div>
+
+      {isMember && (
+        <div className="sticky bottom-0 left-0 right-0 bg-black/30 backdrop-blur-md rounded-t-2xl p-4 flex items-center justify-center gap-4 border-t border-white/10">
+          <button
+            onClick={() => liveAudio.audioStarted ? (isMuted ? setIsMuted(false) : liveAudio.stopAudio()) : liveAudio.startAudio()}
+            className="relative w-16 h-16 rounded-full bg-white/10 text-white flex items-center justify-center transition hover:bg-white/20"
+            aria-label={liveAudio.audioStarted ? (isMuted ? 'إلغاء كتم الميكروفون' : 'كتم الميكروفون') : 'تشغيل الميكروفون'}
+          >
+            {liveAudio.audioStarted && !isMuted ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
+          </button>
+          <div className="flex items-center gap-3">
+            {!isCreator && (
+              <button
+                onClick={() => leaveRoom()}
+                className="px-4 py-2 rounded-xl bg-white/10 text-white font-medium text-sm transition hover:bg-white/20"
+              >
+                مغادرة الغرفة
+              </button>
+            )}
+            {isCreator && (
+              <button
+                onClick={() => endRoom()}
+                className="px-4 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 font-medium text-sm transition hover:bg-red-500/20"
+              >
+                إنهاء الجلسة
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="bg-neutral-900 border border-white/10 rounded-2xl p-5">
         <div className="flex justify-between items-center mb-4">

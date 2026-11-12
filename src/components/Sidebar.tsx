@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Compass, Gamepad2, House, MessagesSquare, Radio, Settings2, Sparkles, Video } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import AnimatedAvatar from '@/components/AnimatedAvatar';
+import Avatar from '@/components/Avatar';
 import { DSLogo } from '@/components/icons/BrandIcons';
 import { getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language } from '@/lib/i18n';
 import { useMessages } from '@/context/MessagesContext';
@@ -58,7 +58,7 @@ export default function Sidebar() {
         <NavLink to="/settings" aria-label="الإعدادات" title="الإعدادات" className={({ isActive }) => `grid h-11 w-11 place-items-center rounded-2xl transition-colors ${isActive ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--text)]/45 hover:bg-[var(--text)]/[0.06] hover:text-[var(--text)]/85'}`}>
           <Settings2 className="h-[19px] w-[19px]" />
         </NavLink>
-        {profile && <NavLink to={`/profile/${profile.id}`} aria-label="الملف الشخصي" title={profile.username} className="rounded-full p-1 ring-1 ring-[var(--text)]/10 transition hover:ring-[var(--text)]/30"><AnimatedAvatar src={profile.avatar_url} name={profile.username} size="sm" /></NavLink>}
+        {profile && <NavLink to={`/profile/${profile.id}`} aria-label="الملف الشخصي" title={profile.username} className="rounded-full p-1 ring-1 ring-[var(--text)]/10 transition hover:ring-[var(--text)]/30"><Avatar src={profile.avatar_url} name={profile.username} type={profile.avatar_type} emoji={profile.avatar_emoji} size={40} /></NavLink>}
       </div>
     </aside>
   );
