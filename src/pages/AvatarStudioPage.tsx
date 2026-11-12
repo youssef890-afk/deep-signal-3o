@@ -62,7 +62,7 @@ function AvatarIllustration({ config, svgRef }: { config: AvatarConfig; svgRef?:
     : config.background === 'green' ? ['#163b35', '#477b68']
       : config.background === 'sunset' ? ['#613b49', '#d58c5b'] : ['#30254d', '#65528f'];
   return (
-    <svg ref={svgRef} viewBox="0 0 360 440" role="img" aria-label="معاينة الشخصية" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+    <svg ref={svgRef} width="360" height="440" viewBox="0 0 360 440" role="img" aria-label="معاينة الشخصية" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
       <defs>
         <linearGradient id="avatar-bg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor={bg[0]} /><stop offset="100%" stopColor={bg[1]} />
