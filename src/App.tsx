@@ -39,6 +39,7 @@ const VoiceCardClashPage = lazy(() => import('@/pages/VoiceCardClashPage'));
 const JokalPage = lazy(() => import('@/pages/JokalPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const AvatarOnboardingPage = lazy(() => import('@/pages/AvatarOnboardingPage'));
+const AvatarStudioPage = lazy(() => import('@/pages/AvatarStudioPage'));
 
 function RouteFallback() {
   return (
@@ -190,6 +191,7 @@ function AuthGate() {
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/avatar" element={<ProtectedLayout><AvatarOnboardingPage /></ProtectedLayout>} />
+        <Route path="/avatar-studio" element={<ProtectedLayout><AvatarStudioPage /></ProtectedLayout>} />
         <Route path="/feed" element={<ProtectedLayout><FeedPage /></ProtectedLayout>} />
         <Route path="/search" element={<ProtectedLayout><SearchPage /></ProtectedLayout>} />
         <Route path="/discover" element={<ProtectedLayout><DiscoverPage /></ProtectedLayout>} />

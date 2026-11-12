@@ -14,6 +14,7 @@ interface Profile {
   full_name?: string | null;
   bio: string | null;
   avatar_url?: string | null;
+  avatar_config?: Record<string, string> | null;
   avatar_type?: 'uploaded' | 'generated' | 'emoji' | null;
   avatar_emoji?: string | null;
   pending_avatar_url?: string | null;

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { ArrowLeftRight, Bell, CircleUserRound, Gamepad2, Heart, Loader2, MessageCircle, Search, Settings2, UserRound, UserRoundPlus } from 'lucide-react';
+import { ArrowLeftRight, Bell, CircleUserRound, Gamepad2, Heart, Loader2, MessageCircle, Search, Settings2, UserRound, UserRoundPlus, WandSparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { DSLogo } from '@/components/icons/BrandIcons';
@@ -310,6 +310,9 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
                       <UserRound className="h-4 w-4 text-[var(--accent)]" /> الملف الشخصي
                     </Link>
                   )}
+                  <Link role="menuitem" to="/avatar-studio" onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
+                    <WandSparkles className="h-4 w-4 text-[var(--accent)]" /> استوديو الأفاتار
+                  </Link>
                   <Link role="menuitem" to="/settings" onClick={() => setProfileMenuOpen(false)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text)] transition hover:bg-[var(--accent-soft)]">
                     <Settings2 className="h-4 w-4 text-[var(--accent)]" /> الإعدادات
                   </Link>
