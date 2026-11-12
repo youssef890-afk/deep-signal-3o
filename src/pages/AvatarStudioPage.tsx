@@ -68,47 +68,82 @@ function AvatarIllustration({ config, svgRef }: { config: AvatarConfig; svgRef?:
           <stop offset="0%" stopColor={bg[0]} /><stop offset="100%" stopColor={bg[1]} />
         </linearGradient>
         <linearGradient id="avatar-shirt" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={config.outfitColor} /><stop offset="100%" stopColor={config.outfitColor} />
+          <stop offset="0%" stopColor={config.outfitColor} /><stop offset="58%" stopColor={config.outfitColor} /><stop offset="100%" stopColor="#080b12" stopOpacity=".42" />
         </linearGradient>
+        <linearGradient id="avatar-skin" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity=".25" /><stop offset="42%" stopColor={config.skin} /><stop offset="100%" stopColor="#4b241c" stopOpacity=".25" />
+        </linearGradient>
+        <linearGradient id="avatar-hair" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity=".18" /><stop offset="35%" stopColor={config.hair} /><stop offset="100%" stopColor="#09090d" stopOpacity=".48" />
+        </linearGradient>
+        <radialGradient id="avatar-face-light" cx="35%" cy="25%" r="80%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity=".2" /><stop offset="100%" stopColor="#4b241c" stopOpacity=".12" />
+        </radialGradient>
+        <filter id="avatar-shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7" /></filter>
       </defs>
       <rect width="360" height="440" rx="28" fill="url(#avatar-bg)" />
       <circle cx="54" cy="70" r="42" fill="#fff" opacity=".06" />
       <circle cx="310" cy="350" r="76" fill="#fff" opacity=".05" />
-      <ellipse cx="180" cy="405" rx="116" ry="15" fill="#090d18" opacity=".25" />
+      <ellipse cx="180" cy="405" rx="116" ry="15" fill="#090d18" opacity=".3" filter="url(#avatar-shadow)" />
       <path d="M72 440 Q82 330 145 315 L180 328 L215 315 Q278 330 288 440Z" fill="url(#avatar-shirt)" />
+      <path d="M83 440 Q94 350 145 326 M277 440 Q266 350 215 326" fill="none" stroke="#ffffff" strokeOpacity=".13" strokeWidth="3" />
+      <path d="M101 370 Q180 390 259 370" fill="none" stroke="#ffffff" strokeOpacity=".07" strokeWidth="2" />
       {config.outfit === 'hoodie' && <path d="M139 321 Q180 354 221 321 L241 440 H119Z" fill={config.outfitColor} stroke="#ffffff" strokeOpacity=".12" strokeWidth="3" />}
       {config.outfit === 'jacket' && <path d="M144 319 L180 357 L216 319 L240 440 H120Z" fill={config.outfitColor} stroke="#ffffff" strokeOpacity=".2" strokeWidth="3" />}
       {config.outfit === 'suit' && <><path d="M142 319 L180 356 L218 319 L244 440 H116Z" fill={config.outfitColor} /><path d="M145 320 L180 357 L164 440 H135Z" fill="#e9e7e2" /><path d="M215 320 L180 357 L196 440 H225Z" fill="#e9e7e2" /><path d="M180 358 L170 383 L180 398 L190 383Z" fill="#b44d58" /></>}
-      <path d="M154 268 H206 V331 Q180 354 154 331Z" fill={config.skin} />
-      <ellipse cx="116" cy="194" rx="14" ry="24" fill={config.skin} />
-      <ellipse cx="244" cy="194" rx="14" ry="24" fill={config.skin} />
+      <path d="M154 268 H206 V331 Q180 354 154 331Z" fill="url(#avatar-skin)" />
+      <path d="M158 276 Q180 286 202 276" fill="none" stroke="#6f4032" strokeOpacity=".24" strokeWidth="3" />
+      <ellipse cx="116" cy="194" rx="14" ry="24" fill="url(#avatar-skin)" />
+      <ellipse cx="244" cy="194" rx="14" ry="24" fill="url(#avatar-skin)" />
+      <path d="M111 193 Q116 181 122 194 M238 194 Q244 181 249 193" fill="none" stroke="#754b39" strokeOpacity=".35" strokeWidth="2" />
       {config.hairStyle === 'long' && <path d="M111 145 Q92 196 109 291 L137 310 L137 170Z M249 145 Q268 196 251 291 L223 310 L223 170Z" fill={config.hair} />}
-      <path d={facePath} fill={config.skin} />
+      <path d={facePath} fill="url(#avatar-skin)" />
+      <path d={facePath} fill="url(#avatar-face-light)" />
+      <ellipse cx="139" cy="229" rx="13" ry="7" fill="#c76d69" opacity=".12" /><ellipse cx="221" cy="229" rx="13" ry="7" fill="#c76d69" opacity=".12" />
       {config.hairStyle !== 'bald' && (
-        <g fill={config.hair}>
+        <g fill="url(#avatar-hair)">
           {config.hairStyle === 'curly' ? <><path d="M112 151 Q96 95 137 84 Q147 57 176 76 Q207 54 225 83 Q264 83 249 154 Q233 119 215 122 Q185 101 157 122 Q130 112 112 151Z" /><circle cx="124" cy="110" r="17"/><circle cx="148" cy="88" r="18"/><circle cx="178" cy="82" r="17"/><circle cx="207" cy="91" r="18"/><circle cx="236" cy="112" r="17"/></>
             : config.hairStyle === 'fade' ? <path d="M113 156 Q104 93 150 84 Q190 67 226 88 Q256 108 247 157 Q226 124 210 123 Q180 106 149 125 Q128 126 113 156Z" />
               : <path d="M111 157 Q103 99 144 84 Q181 64 218 83 Q257 98 249 157 Q224 122 202 123 Q170 103 143 128 Q125 130 111 157Z" />}
         </g>
       )}
-      <path d="M139 178 Q153 168 166 177" stroke={config.hair} strokeWidth="6" strokeLinecap="round" fill="none" />
-      <path d="M194 177 Q208 168 221 178" stroke={config.hair} strokeWidth="6" strokeLinecap="round" fill="none" />
-      <ellipse cx="153" cy="197" rx="9" ry="6" fill="#fff" /><ellipse cx="207" cy="197" rx="9" ry="6" fill="#fff" />
+      <path d="M137 177 Q152 165 168 176" stroke={config.hair} strokeWidth="6" strokeLinecap="round" fill="none" />
+      <path d="M192 176 Q208 165 223 177" stroke={config.hair} strokeWidth="6" strokeLinecap="round" fill="none" />
+      <path d="M140 180 Q153 174 164 180 M196 180 Q207 174 220 180" stroke="#ffffff" strokeOpacity=".18" strokeWidth="1.5" fill="none" />
+      <ellipse cx="153" cy="197" rx="10" ry="7" fill="#fff" /><ellipse cx="207" cy="197" rx="10" ry="7" fill="#fff" />
       <circle cx="154" cy="197" r="4.5" fill={config.eyes} /><circle cx="206" cy="197" r="4.5" fill={config.eyes} />
-      <circle cx="155" cy="195" r="1.5" fill="#fff" /><circle cx="207" cy="195" r="1.5" fill="#fff" />
-      <path d="M180 204 Q171 230 181 232" stroke="#754b39" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".65" />
+      <circle cx="155" cy="195" r="1.8" fill="#fff" /><circle cx="207" cy="195" r="1.8" fill="#fff" />
+      <path d="M143 207 Q153 211 163 207 M197 207 Q207 211 217 207" stroke="#6b4438" strokeOpacity=".25" strokeWidth="1.5" fill="none" />
+      <path d="M180 204 Q171 230 181 232" stroke="#754b39" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".55" />
+      <path d="M176 233 Q180 236 184 233" stroke="#ffffff" strokeOpacity=".2" strokeWidth="1.5" fill="none" />
       {config.expression === 'calm'
         ? <path d="M161 254 Q180 257 199 254" stroke="#743e3d" strokeWidth="4" strokeLinecap="round" fill="none" />
         : config.expression === 'laugh'
           ? <path d="M157 247 Q180 281 203 247 Q180 265 157 247Z" fill="#743e3d" />
           : <path d="M159 250 Q180 270 201 250" stroke="#743e3d" strokeWidth="4" strokeLinecap="round" fill="none" />}
       {config.beard !== 'none' && config.beard !== 'mustache' && <path d={config.beard === 'full' ? 'M126 226 Q131 278 180 292 Q229 278 234 226 Q221 250 206 244 Q180 259 154 244 Q139 250 126 226Z' : 'M133 235 Q143 270 180 277 Q217 270 227 235 Q211 251 197 246 Q180 255 163 246 Q149 251 133 235Z'} fill={config.hair} opacity={config.beard === 'stubble' ? '.38' : '.92'} />}
-      {(config.beard === 'mustache' || config.beard === 'short' || config.beard === 'full') && <path d="M159 235 Q169 224 180 235 Q191 224 201 235 Q193 248 180 243 Q167 248 159 235Z" fill={config.hair} />}
-      {config.accessory === 'glasses' && <g fill="none" stroke="#1b1b24" strokeWidth="5"><rect x="132" y="184" width="39" height="28" rx="10" /><rect x="189" y="184" width="39" height="28" rx="10" /><path d="M171 194 H189 M132 194 L119 188 M228 194 L241 188" /></g>}
+      {(config.beard === 'mustache' || config.beard === 'short' || config.beard === 'full') && <g>
+        <path d="M159 235 Q169 224 180 235 Q191 224 201 235 Q193 248 180 243 Q167 248 159 235Z" fill="url(#avatar-hair)" />
+        <path d="M164 235 Q171 231 178 237 M182 237 Q190 231 196 235" stroke="#ffffff" strokeOpacity=".14" strokeWidth="1.4" fill="none" />
+      </g>}
+      {config.beard === 'stubble' && <g fill={config.hair} opacity=".35">
+        {Array.from({ length: 22 }, (_, i) => <circle key={i} cx={140 + (i % 8) * 11} cy={250 + Math.floor(i / 8) * 7} r="1.15" />)}
+      </g>}
+      {config.accessory === 'glasses' && <g>
+        <rect x="132" y="184" width="39" height="28" rx="10" fill="#8fc6e8" fillOpacity=".12" stroke="#171b27" strokeWidth="5" />
+        <rect x="189" y="184" width="39" height="28" rx="10" fill="#8fc6e8" fillOpacity=".12" stroke="#171b27" strokeWidth="5" />
+        <path d="M171 194 H189 M132 194 L119 188 M228 194 L241 188" fill="none" stroke="#171b27" strokeWidth="5" strokeLinecap="round" />
+        <path d="M138 190 L148 187 M195 190 L205 187" stroke="#ffffff" strokeOpacity=".55" strokeWidth="2" strokeLinecap="round" />
+      </g>
       {config.accessory === 'headphones' && <g fill="none" stroke="#252637" strokeWidth="12"><path d="M116 194 V165 Q116 93 180 93 Q244 93 244 165 V194" /><rect x="108" y="179" width="18" height="44" rx="8" fill="#4e526c" stroke="none" /><rect x="234" y="179" width="18" height="44" rx="8" fill="#4e526c" stroke="none" /></g>}
       {config.accessory === 'cap' && <g><path d="M112 145 Q116 76 180 78 Q244 76 248 145 Q181 122 112 145Z" fill={config.hair} /><path d="M112 143 Q180 127 260 150 Q202 170 112 143Z" fill="#202331" /></g>}
-      {config.outfit === 'hoodie' && <path d="M146 319 Q180 360 214 319" fill="none" stroke="#ffffff" strokeOpacity=".18" strokeWidth="4" />
-      }
+      {config.outfit === 'hoodie' && <g fill="none" stroke="#ffffff" strokeOpacity=".22">
+        <path d="M146 319 Q180 360 214 319" strokeWidth="4" />
+        <path d="M168 352 L164 390 M192 352 L196 390" strokeWidth="2" />
+        <path d="M160 392 Q180 400 200 392" strokeWidth="2" />
+      </g>}
+      {config.outfit === 'jacket' && <path d="M180 357 V440 M145 321 L166 350 M215 321 L194 350" fill="none" stroke="#ffffff" strokeOpacity=".3" strokeWidth="2" />}
+      {config.outfit === 'tee' && <path d="M133 339 Q180 355 227 339" fill="none" stroke="#ffffff" strokeOpacity=".2" strokeWidth="3" />}
     </svg>
   );
 }
