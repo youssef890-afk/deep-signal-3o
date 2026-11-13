@@ -123,7 +123,7 @@ export function useDirectCall(userId: string | undefined, peerId: string | undef
     let active = true;
     const channelId = [userId, peerId].sort().join(':');
     const channel = supabase.channel(`direct-call:${channelId}`, {
-      config: { broadcast: { self: false } },
+      config: { private: true, broadcast: { self: false } },
     });
     channel.on('broadcast', { event: 'call-signal' }, async ({ payload }) => {
       const signal = payload as CallSignal;

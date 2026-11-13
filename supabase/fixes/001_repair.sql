@@ -99,7 +99,32 @@ ON public.profiles FOR UPDATE TO authenticated
 USING (id = (SELECT auth.uid()))
 WITH CHECK (id = (SELECT auth.uid()));
 
-GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
+REVOKE INSERT, UPDATE ON public.profiles FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.profiles TO authenticated;
+GRANT INSERT (id, username, full_name, avatar_url)
+ON public.profiles TO authenticated;
+DO $$
+DECLARE
+  update_columns text;
+BEGIN
+  SELECT string_agg(format('%I', column_name), ', ' ORDER BY column_name)
+  INTO update_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'profiles'
+    AND column_name = ANY (ARRAY[
+      'username', 'full_name', 'avatar_url', 'avatar_type',
+      'avatar_emoji', 'avatar_config', 'bio', 'cover_url'
+    ]);
+
+  IF update_columns IS NOT NULL THEN
+    EXECUTE format(
+      'GRANT UPDATE (%s) ON public.profiles TO authenticated',
+      update_columns
+    );
+  END IF;
+END
+$$;
 
 DROP POLICY IF EXISTS messages_read_own ON public.messages;
 DROP POLICY IF EXISTS "messages_read_own" ON public.messages;

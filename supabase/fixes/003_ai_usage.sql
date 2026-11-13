@@ -18,7 +18,7 @@ CREATE OR REPLACE FUNCTION public.consume_jokal_ai_quota(p_mode text)
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = pg_catalog
 AS $$
 DECLARE
   v_user_id uuid := auth.uid();

@@ -31,7 +31,7 @@ CREATE OR REPLACE FUNCTION public.enforce_room_member_capacity()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $$
 DECLARE
   active_room_id uuid;
@@ -45,6 +45,15 @@ BEGIN
     ) THEN
       RAISE EXCEPTION 'Only the room creator may be its owner';
     END IF;
+    RETURN NEW;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.room_members
+    WHERE room_id = NEW.room_id
+      AND user_id = NEW.user_id
+  ) THEN
     RETURN NEW;
   END IF;
 

@@ -168,7 +168,7 @@ export default function ProfilePage() {
       // جلب منشورات المستخدم
       const { data: posts, error: postsError } = await supabase
         .from('posts')
-        .select('id, image_url, video_url, media_urls, post_type, caption, created_at')
+        .select('id, image_url, video_url, audio_url, media_urls, post_type, caption, created_at')
         .eq('user_id', profileId)
         .order('created_at', { ascending: false });
 
@@ -176,10 +176,7 @@ export default function ProfilePage() {
         throw postsError;
       }
 
-      const loadedPosts = ((posts ?? []) as Omit<PostData, 'audio_url'>[]).map((post) => ({
-        ...post,
-        audio_url: null,
-      }));
+      const loadedPosts = (posts ?? []) as PostData[];
       setUserPosts(loadedPosts);
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -469,8 +466,8 @@ export default function ProfilePage() {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file || !user || !isOwnProfile || uploadingCover) return;
-    if (!file.type.startsWith('image/') || file.size > 8 * 1024 * 1024) {
-      alert('اختار صورة صالحة وحجمها أقل من 8 ميغابايت.');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      alert('اختار صورة JPG أو PNG أو WebP وحجمها أقل من 5 ميغابايت.');
       return;
     }
 

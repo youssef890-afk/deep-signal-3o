@@ -182,7 +182,7 @@ export default function VoiceCardClash3D({ onExit }: VoiceCardClash3DProps) {
     let active = true;
     const joinedAt = Date.now();
     const channel = supabase.channel(`voice-card-clash:${roomCode}`, {
-      config: { presence: { key: user.id }, broadcast: { self: false } },
+      config: { private: true, presence: { key: user.id }, broadcast: { self: false } },
     });
     channelRef.current = channel;
 

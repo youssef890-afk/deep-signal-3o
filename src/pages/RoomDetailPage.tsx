@@ -167,7 +167,7 @@ export default function RoomDetailPage() {
     }
 
     const channel = supabase
-      .channel(`room:${roomId}`)
+      .channel(`room:${roomId}`, { config: { private: true } })
       .on(
         'postgres_changes',
         {
@@ -193,7 +193,7 @@ export default function RoomDetailPage() {
     if (!roomId) return;
 
     const channel = supabase
-      .channel(`room-status-${roomId}`)
+      .channel(`room-status-${roomId}`, { config: { private: true } })
       .on(
         'postgres_changes',
         {
@@ -350,18 +350,18 @@ export default function RoomDetailPage() {
       return;
     }
 
-    const {
-      error,
-    } = await supabase
-      .from('rooms')
-      .update({
-        is_active: false,
-      })
-      .eq('id', roomId);
+    const { data: closed, error } = await supabase.rpc('deep_signal_close_room', {
+      target_room_id: roomId,
+    });
 
     if (error) {
       console.error('Could not end room:', error);
       alert('تعذر إنهاء الجلسة الآن. تحقق من اتصالك ثم حاول مرة أخرى.');
+      return;
+    }
+
+    if (!closed) {
+      alert('تعذر إنهاء الجلسة. تأكد أنك منشئ الغرفة ثم حاول مرة أخرى.');
       return;
     }
 
@@ -495,7 +495,7 @@ export default function RoomDetailPage() {
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-4">
-          {Array.from({ length: room.capacity }).map((_, index) => {
+          {seats.map((_, index) => {
             const member = sortedMembers[index] ?? null;
             const isHost = member?.user_id === room.created_by;
             return (

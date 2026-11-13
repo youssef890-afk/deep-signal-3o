@@ -83,7 +83,7 @@ export function useLiveRoomAudio(roomId: string, userId: string | undefined, isM
     if (!roomId || !userId || !isMember) return;
     let active = true;
     const peers = peersRef.current;
-    const channel = supabase.channel(`room-audio:${roomId}`, { config: { broadcast: { self: false } } });
+    const channel = supabase.channel(`room-audio:${roomId}`, { config: { private: true, broadcast: { self: false } } });
 
     channel.on('broadcast', { event: 'signal' }, async ({ payload }) => {
       const message = payload as SignalMessage;

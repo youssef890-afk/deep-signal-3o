@@ -77,7 +77,6 @@ export default function GamesPage() {
   const [progressError, setProgressError] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const scoreRecordedRef = useRef(false);
   const boardRef = useRef<Array<string | null>>(Array(9).fill(null));
   const boardSizeRef = useRef(3);
   const playersRef = useRef<MatchPlayer[]>([]);
@@ -137,7 +136,9 @@ export default function GamesPage() {
         todayGames: Number(stats.today_games),
         todayWins: Number(stats.today_wins),
       });
-      setProgressError('');
+      setProgressError(Number(stats.total_games) > 0
+        ? ''
+        : 'النقاط ومهام التقدم متوقفة مؤقتاً حتى يعتمد الخادم نتائج المباريات.');
     }
 
     const { data: follows, error: followError } = await supabase
@@ -154,6 +155,7 @@ export default function GamesPage() {
       .from('game_scores')
       .select('user_id, points')
       .in('user_id', friendIds)
+      .not('verified_at', 'is', null)
       .gte('created_at', monday.toISOString());
 
     if (scoreError) {
@@ -179,18 +181,6 @@ export default function GamesPage() {
   useEffect(() => () => {
     if (channelRef.current) void supabase.removeChannel(channelRef.current);
   }, []);
-
-  useEffect(() => {
-    if ((!winner && !isDraw) || !user || scoreRecordedRef.current) return;
-    scoreRecordedRef.current = true;
-    const result = isDraw ? 'draw' : onlineMode && winningPlayer?.userId !== user.id ? 'loss' : 'win';
-    const points = result === 'win' ? 5 : result === 'draw' ? 2 : 0;
-    void supabase.from('game_scores').insert({ user_id: user.id, game: 'tic-tac-toe', result, points })
-      .then(({ error }) => {
-        if (error) setLeaderboardError('طبّق migration ديال النقاط باش تتحفظ النتائج.');
-        else void loadLeaderboard();
-      });
-  }, [isDraw, loadLeaderboard, onlineMode, onlinePlayers, user, winner, winningPlayer?.userId]);
 
   function getPresencePlayers(channel: RealtimeChannel) {
     const present = Object.values(channel.presenceState<MatchPresence>()).flat();
@@ -239,7 +229,7 @@ export default function GamesPage() {
 
   function connectToMatch(code: string, role: 'host' | 'guest', size = 3, capacity = 2) {
     if (channelRef.current) void supabase.removeChannel(channelRef.current);
-    const channel = supabase.channel(`ttt:${code}`, { config: { broadcast: { self: false } } });
+    const channel = supabase.channel(`ttt:${code}`, { config: { private: true, broadcast: { self: false } } });
     let tracked = false;
 
     const syncPlayers = () => {
@@ -363,7 +353,6 @@ export default function GamesPage() {
     gameStartedRef.current = false;
     setOnlinePlayers([]);
     playersRef.current = [];
-    scoreRecordedRef.current = false;
   }
 
   function createOnlineMatch() {
@@ -404,7 +393,6 @@ export default function GamesPage() {
     setBoardSize(3);
     setIsXNext(true);
     setCurrentTurn(0);
-    scoreRecordedRef.current = false;
   }
 
   // حركة الكمبيوتر
@@ -496,14 +484,12 @@ export default function GamesPage() {
     if (onlineMode) {
       if (onlineRole !== 'host' || !gameStarted) return;
       publishOnlineSnapshot(Array(boardSize * boardSize).fill(null), boardSize, 0, true, roomCapacity);
-      scoreRecordedRef.current = false;
       return;
     }
     boardRef.current = Array(boardSize * boardSize).fill(null);
     setCurrentTurn(0);
     setBoard(Array(boardSize * boardSize).fill(null));
     setIsXNext(true);
-    scoreRecordedRef.current = false;
   };
 
   const handleCopyCode = async () => {
@@ -635,7 +621,6 @@ export default function GamesPage() {
                 setBoardSize(size);
                 setBoard(Array(size * size).fill(null));
                 setIsXNext(true);
-                scoreRecordedRef.current = false;
               }}
               disabled={onlineMode}
               aria-pressed={boardSize === size}
@@ -775,7 +760,7 @@ export default function GamesPage() {
               <h2 className="text-sm font-semibold">المستويات والمهام</h2>
               <p className="mt-1 text-[11px] text-white/40">كل 100 نقطة كتفتح مستوى جديد</p>
             </div>
-            {gameStats && <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-bold text-[var(--accent)]">المستوى {Math.floor(gameStats.totalPoints / 100) + 1}</span>}
+            {gameStats && !progressError && <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-bold text-[var(--accent)]">المستوى {Math.floor(gameStats.totalPoints / 100) + 1}</span>}
           </div>
           {progressError ? (
             <p className="text-xs leading-5 text-amber-200/80">{progressError}</p>
@@ -825,7 +810,7 @@ export default function GamesPage() {
           {leaderboardError ? (
             <p className="text-xs leading-5 text-amber-200/80">{leaderboardError}</p>
           ) : leaderboard.length === 0 ? (
-            <p className="text-xs text-white/45">العب جولة باش تبدأ تجمع النقاط.</p>
+            <p className="text-xs text-white/45">لا توجد نتائج موثوقة لعرضها حالياً.</p>
           ) : (
             <ol className="space-y-2">
               {leaderboard.map((entry, index) => (
@@ -837,7 +822,7 @@ export default function GamesPage() {
               ))}
             </ol>
           )}
-          <p className="mt-3 text-[10px] text-white/35">الفوز 5 نقاط، التعادل نقطتان. الترتيب من الاثنين حتى اليوم.</p>
+          <p className="mt-3 text-[10px] text-white/35">يظهر هنا فقط الترتيب الناتج عن مباريات تحقّق منها الخادم.</p>
         </section>
 
       </div>

@@ -55,7 +55,7 @@ export function OnlinePresenceProvider({ userId, loadRecentProfiles = false, chi
 
     let active = true;
     const channel: RealtimeChannel = supabase.channel('online-users', {
-      config: { presence: { key: userId } },
+      config: { private: true, presence: { key: userId } },
     });
 
     channel.on('presence', { event: 'sync' }, () => {

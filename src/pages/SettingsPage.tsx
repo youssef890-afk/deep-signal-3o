@@ -32,6 +32,7 @@ interface LocalSettings {
   comments: boolean;
   follows: boolean;
   messages: boolean;
+  readReceipts: boolean;
   sound: boolean;
   vibration: boolean;
   reduceMotion: boolean;
@@ -47,7 +48,7 @@ interface LocalSettings {
 const defaults: LocalSettings = {
   privateAccount: false, messageAccess: 'everyone', showEmail: false, showLastSeen: true,
   twoFactor: false, postNotifications: true, likes: true, comments: true, follows: true,
-  messages: true, sound: true, vibration: true, reduceMotion: false, highContrast: false,
+  messages: true, readReceipts: true, sound: true, vibration: true, reduceMotion: false, highContrast: false,
   screenReader: false, autoTranslate: false, commentFilter: 'normal', fontSize: 16,
   density: 'comfortable', blockedWords: [],
 };

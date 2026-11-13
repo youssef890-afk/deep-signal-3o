@@ -11,6 +11,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useModalScrollLock } from '@/hooks/useModalLayer';
 import { directionForLanguage, getStoredLanguage, translate } from '@/lib/i18n';
+import { readBooleanPreference, writeBooleanPreference } from '@/lib/localPreferences';
+import { useTheme } from '@/context/ThemeContext';
 import Handle from '@/components/Handle';
 
 interface Props {
@@ -41,6 +43,7 @@ interface ContentReport {
 
 export default function SettingsPanel({ open, onClose }: Props) {
   const { user, signOut } = useAuth();
+  const { mode, setMode } = useTheme();
   const navigate = useNavigate();
   const [view, setView] = useState<'main' | 'theme' | 'password' | 'blocked' | 'moderation'>('main');
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
@@ -48,10 +51,16 @@ export default function SettingsPanel({ open, onClose }: Props) {
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
-  const [darkMode, setDarkMode] = useState(true);
-  const [readReceipts, setReadReceipts] = useState(true);
-  const [notifications, setNotifications] = useState(true);
+  const darkMode = mode !== 'light';
+  const [readReceipts, setReadReceipts] = useState(() => readBooleanPreference('readReceipts'));
+  const [notifications, setNotifications] = useState(() => readBooleanPreference('messages'));
   useModalScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return;
+    setReadReceipts(readBooleanPreference('readReceipts'));
+    setNotifications(readBooleanPreference('messages'));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -258,10 +267,13 @@ export default function SettingsPanel({ open, onClose }: Props) {
                       </div>
                       <div className="flex-1 text-right">
                         <div className="text-white font-semibold text-sm">الوضع الليلي</div>
-                        <div className="text-white/40 text-xs">مفعّل دائماً</div>
+                        <div className="text-white/40 text-xs">تفعيل أو إيقاف الوضع الليلي</div>
                       </div>
                       <button
-                        onClick={() => setDarkMode(!darkMode)}
+                        type="button"
+                        aria-label="الوضع الليلي"
+                        aria-pressed={darkMode}
+                        onClick={() => setMode(darkMode ? 'light' : 'dark')}
                         className="w-12 h-7 rounded-full transition-colors relative shrink-0"
                         style={{ background: darkMode ? 'var(--accent)' : 'rgba(255,255,255,0.15)' }}
                       >
@@ -278,7 +290,20 @@ export default function SettingsPanel({ open, onClose }: Props) {
                         <div className="text-white/40 text-xs">إشعار عند القراءة</div>
                       </div>
                       <button
-                        onClick={() => setReadReceipts(!readReceipts)}
+                        type="button"
+                        aria-label="وضع قراءة الرسائل"
+                        aria-pressed={readReceipts}
+                        onClick={() => {
+                          const nextValue = !readReceipts;
+                          try {
+                            writeBooleanPreference('readReceipts', nextValue);
+                            setReadReceipts(nextValue);
+                            setMsg(null);
+                          } catch (error) {
+                            console.error('Read receipt preference could not be saved:', error);
+                            setMsg({ type: 'err', text: 'تعذر حفظ الإعداد على هذا الجهاز.' });
+                          }
+                        }}
                         className="w-12 h-7 rounded-full transition-colors relative shrink-0"
                         style={{ background: readReceipts ? 'var(--accent)' : 'rgba(255,255,255,0.15)' }}
                       >
@@ -295,7 +320,20 @@ export default function SettingsPanel({ open, onClose }: Props) {
                         <div className="text-white/40 text-xs">تفعيل/إيقاف</div>
                       </div>
                       <button
-                        onClick={() => setNotifications(!notifications)}
+                        type="button"
+                        aria-label="الإشعارات"
+                        aria-pressed={notifications}
+                        onClick={() => {
+                          const nextValue = !notifications;
+                          try {
+                            writeBooleanPreference('messages', nextValue);
+                            setNotifications(nextValue);
+                            setMsg(null);
+                          } catch (error) {
+                            console.error('Notification preference could not be saved:', error);
+                            setMsg({ type: 'err', text: 'تعذر حفظ الإعداد على هذا الجهاز.' });
+                          }
+                        }}
                         className="w-12 h-7 rounded-full transition-colors relative shrink-0"
                         style={{ background: notifications ? 'var(--accent)' : 'rgba(255,255,255,0.15)' }}
                       >

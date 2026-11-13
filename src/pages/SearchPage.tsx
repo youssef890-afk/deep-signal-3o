@@ -156,7 +156,7 @@ export default function SearchPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/chat`);
+                    navigate(`/chat/${item.id}`);
                   }}
                   aria-label={t('directMessages')}
                   className="bg-[var(--surface-2)] hover:brightness-110 p-2 rounded-lg text-[var(--text-muted)] border border-[var(--border)]"

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { getStoredLanguage, translate } from '@/lib/i18n';
+import { readBooleanPreference } from '@/lib/localPreferences';
 
 interface MessagesContextValue {
   unreadCount: number;
@@ -50,7 +51,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     // Filter on the server so a client is not woken by every message written in
     // the system. The channel name is stable so a re-render does not resubscribe.
     const channel = supabase
-      .channel(`unread:${user.id}`)
+      .channel(`unread:${user.id}`, { config: { private: true } })
       .on(
         'postgres_changes',
         {
@@ -136,13 +137,5 @@ export function useMessages() {
 }
 
 function areMessageNotificationsEnabled(): boolean {
-  try {
-    const saved = localStorage.getItem('ds-settings-v1');
-    if (!saved) return true;
-    const settings = JSON.parse(saved) as { messages?: unknown };
-    return settings.messages !== false;
-  } catch (error) {
-    console.error('Saved notification preferences could not be read:', error);
-    return true;
-  }
+  return readBooleanPreference('messages');
 }

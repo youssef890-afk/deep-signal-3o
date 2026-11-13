@@ -12,6 +12,7 @@ import { formatTime } from '@/utils/format';
 import type { Profile, Message } from '@/types';
 import { useModalScrollLock } from '@/hooks/useModalLayer';
 import { getStoredDirection, getStoredLanguage, translate, type TranslationKey } from '@/lib/i18n';
+import { readBooleanPreference } from '@/lib/localPreferences';
 
 function voiceErrorKey(error: unknown): TranslationKey {
   const errorName = typeof error === 'object' && error !== null && 'name' in error
@@ -167,7 +168,7 @@ export default function ChatPage() {
     const unread = (data as Message[]).filter(
       (message) => message.receiver_id === user.id && !message.read_at
     );
-    if (unread.length) {
+    if (unread.length && readBooleanPreference('readReceipts')) {
       const { error: readError } = await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
@@ -191,7 +192,7 @@ export default function ChatPage() {
     if (!user || !activeUserId) return;
 
     const channel = supabase
-      .channel(`chat-${user.id}-${activeUserId}-${Date.now()}`)
+      .channel(`chat-${user.id}-${activeUserId}-${Date.now()}`, { config: { private: true } })
       .on(
         'postgres_changes',
         {
@@ -211,8 +212,10 @@ export default function ChatPage() {
             return [...prev, newMsg];
           });
 
-          if (newMsg.receiver_id === user.id) {
-            supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', newMsg.id);
+          if (newMsg.receiver_id === user.id && readBooleanPreference('readReceipts')) {
+            void supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', newMsg.id).then(({ error }) => {
+              if (error) console.error('Received message could not be marked as read:', error);
+            });
           }
         }
       )

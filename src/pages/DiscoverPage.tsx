@@ -48,7 +48,7 @@ export default function DiscoverPage() {
             .limit(50),
           supabase
             .from('posts')
-            .select('id, user_id, image_url, video_url, caption, created_at, likes(count), comments_count:comments(count), comments(id, user_id, content, created_at, profiles:profiles(username)), profiles:profiles(id, username, avatar_url)')
+            .select('id, user_id, post_type, image_url, video_url, audio_url, caption, created_at, likes(count), comments_count:comments(count), comments(id, user_id, content, created_at, profiles:profiles(username)), profiles:profiles(id, username, avatar_url)')
             .neq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(50),
@@ -64,16 +64,24 @@ export default function DiscoverPage() {
           .map((p) => ({ ...p, isFollowing: false }));
 
         const postIds = (postsResult.data ?? []).map((post) => String(post.id));
-        const likesResult = postIds.length
-          ? await supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
-          : { data: [], error: null };
+        const [likesResult, bookmarksResult] = postIds.length
+          ? await Promise.all([
+            supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+            supabase.from('post_bookmarks').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+          ])
+          : [{ data: [], error: null }, { data: [], error: null }];
         if (likesResult.error) throw likesResult.error;
+        if (bookmarksResult.error) throw bookmarksResult.error;
         if (cancelled) return;
         const likedPostIds = new Set((likesResult.data ?? []).map((like) => String(like.post_id)));
+        const savedPostIds = new Set((bookmarksResult.data ?? []).map((bookmark) => String(bookmark.post_id)));
         const discoveredPosts: PostCardPost[] = (postsResult.data ?? [])
           .filter((post) => String(post.user_id) !== user.id)
           .map((post) => {
             const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+            const audioUrl = typeof post.audio_url === 'string' ? post.audio_url : null;
+            const videoUrl = typeof post.video_url === 'string' ? post.video_url : null;
+            const imageUrl = typeof post.image_url === 'string' ? post.image_url : null;
             const postComments = Array.isArray(post.comments) ? post.comments : [];
             const commentCount = Array.isArray(post.comments_count)
               ? Number(post.comments_count[0]?.count ?? 0)
@@ -81,8 +89,8 @@ export default function DiscoverPage() {
             const likesCount = Array.isArray(post.likes) ? Number(post.likes[0]?.count ?? 0) : 0;
             return {
               id: String(post.id),
-              type: typeof post.video_url === 'string' ? 'video' : 'image',
-              url: typeof post.video_url === 'string' ? post.video_url : typeof post.image_url === 'string' ? post.image_url : '',
+              type: audioUrl ? 'audio' : videoUrl ? 'video' : imageUrl ? 'image' : 'text',
+              url: audioUrl ?? videoUrl ?? imageUrl,
               userId: String(post.user_id),
               author: profile && typeof profile.username === 'string' ? profile.username : 'مستخدم',
               avatar: profile && typeof profile.avatar_url === 'string' ? profile.avatar_url : null,
@@ -90,6 +98,7 @@ export default function DiscoverPage() {
               likes: likesCount,
               commentCount,
               likedByCurrentUser: likedPostIds.has(String(post.id)),
+              savedByCurrentUser: savedPostIds.has(String(post.id)),
               comments: postComments.map((comment) => {
                 const commentProfile = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
                 return {

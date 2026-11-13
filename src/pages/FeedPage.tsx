@@ -82,7 +82,7 @@ export default function FeedPage() {
 
         const { data, error } = await supabase
           .from('posts')
-          .select('id, user_id, image_url, video_url, caption, created_at, likes(count), comments_count:comments(count), comments(id, user_id, content, created_at, profiles:profiles(username)), profiles:profiles(id, username, avatar_url)')
+          .select('id, user_id, post_type, image_url, video_url, audio_url, caption, created_at, likes(count), comments_count:comments(count), comments(id, user_id, content, created_at, profiles:profiles(username)), profiles:profiles(id, username, avatar_url)')
           .order('created_at', { ascending: false })
           .limit(2, { foreignTable: 'comments' })
           .limit(40);
@@ -97,21 +97,25 @@ export default function FeedPage() {
 
         const postIds = (data ?? []).map((post) => String(post.id));
         let likedPostIds = new Set<string>();
+        let savedPostIds = new Set<string>();
         if (user?.id && postIds.length > 0) {
-          const { data: userLikes, error: likesError } = await supabase
-            .from('likes')
-            .select('post_id')
-            .eq('user_id', user.id)
-            .in('post_id', postIds);
-          if (likesError) throw likesError;
-          likedPostIds = new Set((userLikes ?? []).map((like) => String(like.post_id)));
+          const [likesResult, bookmarksResult] = await Promise.all([
+            supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+            supabase.from('post_bookmarks').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+          ]);
+          if (likesResult.error) throw likesResult.error;
+          if (bookmarksResult.error) throw bookmarksResult.error;
+          likedPostIds = new Set((likesResult.data ?? []).map((like) => String(like.post_id)));
+          savedPostIds = new Set((bookmarksResult.data ?? []).map((bookmark) => String(bookmark.post_id)));
         }
 
         if (!isMounted) return;
 
         const normalizedPosts: PostCardPost[] = (data ?? []).map((post) => {
           const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+          const audioUrl = typeof post.audio_url === 'string' ? post.audio_url : null;
           const videoUrl = typeof post.video_url === 'string' ? post.video_url : null;
+          const imageUrl = typeof post.image_url === 'string' ? post.image_url : null;
           const postComments = Array.isArray(post.comments) ? post.comments : [];
           const commentCount = Array.isArray(post.comments_count)
             ? Number(post.comments_count[0]?.count ?? 0)
@@ -119,8 +123,8 @@ export default function FeedPage() {
           const likesCount = Array.isArray(post.likes) ? Number(post.likes[0]?.count ?? 0) : 0;
           return {
             id: String(post.id),
-            type: videoUrl ? 'video' : 'image',
-            url: videoUrl ?? (typeof post.image_url === 'string' ? post.image_url : ''),
+            type: audioUrl ? 'audio' : videoUrl ? 'video' : imageUrl ? 'image' : 'text',
+            url: audioUrl ?? videoUrl ?? imageUrl,
             userId: String(post.user_id),
             author: profile && typeof profile.username === 'string' ? profile.username : 'مستخدم',
             avatar: profile && typeof profile.avatar_url === 'string' ? profile.avatar_url : null,
@@ -128,6 +132,7 @@ export default function FeedPage() {
             likes: likesCount,
             commentCount,
             likedByCurrentUser: likedPostIds.has(String(post.id)),
+            savedByCurrentUser: savedPostIds.has(String(post.id)),
             comments: postComments.map((comment) => {
               const commentProfile = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles;
               return {
@@ -161,6 +166,14 @@ export default function FeedPage() {
       isMounted = false;
     };
   }, [retryCount, user?.id]);
+
+  useEffect(() => {
+    if (loading || !window.location.hash.startsWith('#post-')) return;
+    document.getElementById(window.location.hash.slice(1))?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  }, [loading, posts]);
 
   return (
     <div className="relative isolate min-h-[calc(100dvh-68px)] overflow-x-clip bg-[var(--bg)] text-[var(--text)]" dir="rtl">

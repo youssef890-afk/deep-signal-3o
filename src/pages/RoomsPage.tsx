@@ -100,7 +100,7 @@ export default function RoomsPage() {
   useEffect(() => {
     void loadRooms();
     const channel = supabase
-      .channel('active-rooms-list')
+      .channel('active-rooms-list', { config: { private: true } })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => void loadRooms())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_members' }, () => void loadRooms())
       .subscribe();
@@ -301,11 +301,13 @@ export default function RoomsPage() {
             </div>
             <label className="mb-4 block text-xs font-medium text-white/70">
               اسم الغرفة
-              <input autoFocus required maxLength={80} value={roomName} onChange={(event) => setRoomName(event.target.value)} placeholder="مثال: نقاشات التقنية" className="mt-2 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-[var(--accent)]/50" />
+              <input autoFocus required maxLength={40} value={roomName} onChange={(event) => { setRoomName(event.target.value); setNameError(''); }} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'room-name-error' : undefined} placeholder="مثال: نقاشات التقنية" className="mt-2 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-[var(--accent)]/50" />
+              {nameError && <span id="room-name-error" role="alert" className="mt-1 block text-xs text-[var(--error)]">{nameError}</span>}
             </label>
             <label className="block text-xs font-medium text-white/70">
               وصف مختصر
-              <textarea maxLength={500} rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="شنو موضوع الجلسة؟" className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-[var(--accent)]/50" />
+              <textarea maxLength={120} rows={3} value={description} onChange={(event) => { setDescription(event.target.value); setDescriptionError(''); }} aria-invalid={Boolean(descriptionError)} aria-describedby={descriptionError ? 'room-description-error' : undefined} placeholder="شنو موضوع الجلسة؟" className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-[var(--accent)]/50" />
+              {descriptionError && <span id="room-description-error" role="alert" className="mt-1 block text-xs text-[var(--error)]">{descriptionError}</span>}
             </label>
             <label className="mt-4 block text-xs font-medium text-white/70">
               عدد المقاعد
