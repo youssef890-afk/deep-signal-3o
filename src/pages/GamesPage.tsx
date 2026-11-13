@@ -39,6 +39,7 @@ const playerColors = ['text-[var(--accent)]', 'text-[var(--accent-secondary)]', 
 const gameCatalog = [
   { name: 'إكس-أو المتقدمة', category: 'ألعاب لوحية', status: 'متاحة', icon: '❌⭕', href: '#tic-tac-toe' },
   { name: 'Voice Card Clash', category: 'لعب جماعي', status: 'متاحة', icon: '🎴', href: '/games/voice-card-clash' },
+  { name: 'صدى الرماد', category: 'مغامرة 3D', status: 'متاحة', icon: '⚔️', href: '/games/echoes-of-ash' },
   { name: 'الحنش الملوّن', category: 'أركيد', status: 'قريباً', icon: '🐍' },
   { name: 'بلياردو 8', category: 'رياضة', status: 'قريباً', icon: '🎱' },
   { name: 'Connect Four', category: 'ألعاب لوحية', status: 'قريباً', icon: '🔴' },
