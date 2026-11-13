@@ -117,7 +117,9 @@ export class GameEngine {
   ) {
     this.callbacks = callbacks;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 500);
+    const width = Math.max(1, container.clientWidth);
+    const height = Math.max(1, container.clientHeight);
+    this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 500);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -128,7 +130,7 @@ export class GameEngine {
     container.appendChild(this.renderer.domElement);
 
     this.clock = new THREE.Clock();
-
+    this.clock.start();
     // Build player
     this.player = new THREE.Group();
     this.playerSword = new THREE.Group();
@@ -453,11 +455,12 @@ export class GameEngine {
   private spawnEnemy(type: 'beast' | 'mercenary' | 'boss', x: number, z: number) {
     const group = new THREE.Group();
     let color = type === 'beast' ? 0x881133 : type === 'boss' ? 0x440088 : 0x333366;
-    let bodyGeo: THREE.BufferGeometry;
-    let hp = type === 'boss' ? 100 : type === 'mercenary' ? 40 : 30;
-    let speed = type === 'boss' ? 2.2 : type === 'mercenary' ? 1.5 : 2.5;
-    let damage = type === 'boss' ? 20 : type === 'mercenary' ? 15 : 10;
+    const bodyGeo: THREE.BufferGeometry;
+    const hp = type === 'boss' ? 100 : type === 'mercenary' ? 40 : 30;
+    const speed = type === 'boss' ? 2.2 : type === 'mercenary' ? 1.5 : 2.5;
+    const damage = type === 'boss' ? 20 : type === 'mercenary' ? 15 : 10;
 
+    // mixed wave: ranged mercenaries guard ranged districts
     if (type === 'beast') {
       bodyGeo = new THREE.CapsuleGeometry(0.25, 0.6, 4, 6);
     } else if (type === 'boss') {
@@ -580,6 +583,7 @@ export class GameEngine {
     // Sword swing animation
     this.playerSword.rotation.z = -1.5;
 
+    // No unused ray for melee
     // Hit detection
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
@@ -610,13 +614,7 @@ export class GameEngine {
     this.scene.add(flash);
     this.slashArcs.push({ mesh: flash, ttl: 0.08 });
 
-    // Raycast
-    const ray = new THREE.Raycaster(
-      _v2.copy(this.player.position).setY(1.1),
-      _v3.copy(this.playerFacing).normalize(),
-      0.1,
-      30,
-    );
+    const aimDirection = this.playerFacing.clone().normalize();
 
     let hitEnemy: Enemy | null = null;
     let hitDist = 30;
@@ -624,9 +622,9 @@ export class GameEngine {
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       const dir = enemy.mesh.position.clone().sub(this.player.position);
-      const proj = dir.dot(this.playerFacing);
+      const proj = dir.dot(aimDirection);
       if (proj < 0) continue;
-      _v1.copy(this.playerFacing).multiplyScalar(proj);
+      _v1.copy(aimDirection).multiplyScalar(proj);
       const perp = dir.clone().sub(_v1).length();
       if (perp < 0.8 && proj < hitDist) {
         hitDist = proj;
@@ -636,7 +634,7 @@ export class GameEngine {
 
     const endPos = this.player.position.clone();
     endPos.y = 1.1;
-    endPos.add(this.playerFacing.clone().multiplyScalar(hitEnemy ? hitDist : 30));
+    endPos.add(aimDirection.clone().multiplyScalar(hitEnemy ? hitDist : 30));
 
     // Tracer
     const tracerGeo = new THREE.BufferGeometry().setFromPoints([
@@ -665,10 +663,12 @@ export class GameEngine {
     enemy.hpBar.scale.x = Math.max(0, enemy.hp / enemy.maxHp);
     // Flash
     const bodyMesh = enemy.mesh.children[0] as THREE.Mesh;
-    const mat = bodyMesh.material as THREE.MeshStandardMaterial;
-    const origColor = mat.color.getHex();
-    mat.color.setHex(0xffffff);
-    setTimeout(() => { mat.color.setHex(origColor); }, 80);
+    if (bodyMesh instanceof THREE.Mesh) {
+      const mat = bodyMesh.material as THREE.MeshStandardMaterial;
+      const origColor = mat.color.getHex();
+      mat.color.setHex(0xffffff);
+      setTimeout(() => { mat.color.setHex(origColor); }, 80);
+    }
 
     if (enemy.hp <= 0 && enemy.alive) {
       enemy.alive = false;
@@ -944,7 +944,7 @@ export class GameEngine {
     this.animationId = requestAnimationFrame(this.animate);
     const dt = Math.min(this.clock.getDelta(), 0.05);
 
-    if (!this.gameOver) {
+    if (!this.gameOver && this.enemies.length > 0) {
       this.updatePlayer(dt);
       this.updateEnemies(dt);
       this.updateProjectiles(dt);
