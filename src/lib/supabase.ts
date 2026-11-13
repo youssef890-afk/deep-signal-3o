@@ -55,12 +55,6 @@ function missingKeys(): string[] {
 
 const missing = missingKeys();
 
-// Dev / game-preview fallback: never crash module evaluation, just use a
-// clearly-invalid URL that fails at request time. This keeps the standalone
-// game preview playable without real Supabase configuration.
-const effectiveUrl = supabaseUrl && supabaseUrl !== 'undefined' ? supabaseUrl : 'http://127.0.0.1:54321';
-const effectiveKey = supabaseAnonKey && supabaseAnonKey !== 'undefined' ? supabaseAnonKey : 'placeholder-anon-key';
-
 if (missing.length > 0 && import.meta.env.PROD) {
   // In production this renders a setup screen rather than a blank page.
   const root = document.getElementById('root');
@@ -85,7 +79,7 @@ if (missing.length > 0 && import.meta.env.PROD) {
   throw new Error(`Missing environment variables: ${missing.join(', ')}`);
 }
 
-export const supabase = createClient(effectiveUrl, effectiveKey, {
+export const supabase = createClient(supabaseUrl as string, supabaseAnonKey as string, {
   auth: {
     persistSession: true,
     storage: authStorage,
