@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { Swords, Crosshair, Heart, Zap, Shield, ChevronRight, RotateCcw } from 'lucide-react';
 import { GameEngine, type HUDData } from './engine';
 import { chapters, determineEnding, type Choice, type GameStats } from './story';
@@ -360,7 +360,7 @@ function MobileControls({
   engineRef,
   hudData,
 }: {
-  engineRef: React.MutableRefObject<GameEngine | null>;
+  engineRef: MutableRefObject<GameEngine | null>;
   hudData: HUDData;
 }) {
   const press = (type: 'attack' | 'dodge') => () => {
