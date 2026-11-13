@@ -106,6 +106,14 @@ function AuthGate() {
   const { session, loading, profile, profileLoading, profileLoadError, refreshProfile } = useAuth();
   const location = useLocation();
 
+  if (location.pathname === '/play/echoes-of-ash') {
+    return (
+      <Suspense fallback={<div className="grid min-h-screen place-items-center bg-[#0a0a0f]"><Loader2 className="h-8 w-8 animate-spin text-amber-400" /></div>}>
+        <EchoesOfAshPage />
+      </Suspense>
+    );
+  }
+
   if (location.pathname === '/terms') {
     return <LegalPage kind="terms" />;
   }
