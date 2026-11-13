@@ -456,13 +456,12 @@ export class GameEngine {
 
   private spawnEnemy(type: 'beast' | 'mercenary' | 'boss', x: number, z: number) {
     const group = new THREE.Group();
-    let color = type === 'beast' ? 0x881133 : type === 'boss' ? 0x440088 : 0x333366;
-    const bodyGeo: THREE.BufferGeometry;
+    const color = type === 'beast' ? 0x881133 : type === 'boss' ? 0x440088 : 0x333366;
     const hp = type === 'boss' ? 100 : type === 'mercenary' ? 40 : 30;
     const speed = type === 'boss' ? 2.2 : type === 'mercenary' ? 1.5 : 2.5;
     const damage = type === 'boss' ? 20 : type === 'mercenary' ? 15 : 10;
 
-    // mixed wave: ranged mercenaries guard ranged districts
+    let bodyGeo: THREE.BufferGeometry;
     if (type === 'beast') {
       bodyGeo = new THREE.CapsuleGeometry(0.25, 0.6, 4, 6);
     } else if (type === 'boss') {
@@ -591,7 +590,7 @@ export class GameEngine {
       if (!enemy.alive) continue;
       _v1.copy(enemy.mesh.position).sub(this.player.position);
       _v1.y = 0;
-      const dist = _ Length: _v1.length();
+      const dist = _v1.length();
       if (dist < 2.5) {
         _v1.normalize();
         const dot = _v1.dot(this.playerFacing);
