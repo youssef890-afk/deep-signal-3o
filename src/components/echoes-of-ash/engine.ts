@@ -104,6 +104,8 @@ export class GameEngine {
   showWaypoint = false;
   objectiveComplete = false;
   gameOver = false;
+  playerActive = false;
+  resizeObserver: ResizeObserver | null = null;
 
   animationId = 0;
   disposed = false;
@@ -944,7 +946,7 @@ export class GameEngine {
     this.animationId = requestAnimationFrame(this.animate);
     const dt = Math.min(this.clock.getDelta(), 0.05);
 
-    if (!this.gameOver && this.enemies.length > 0) {
+    if (!this.gameOver && this.enemies.length > 0 && this.playerActive) {
       this.updatePlayer(dt);
       this.updateEnemies(dt);
       this.updateProjectiles(dt);

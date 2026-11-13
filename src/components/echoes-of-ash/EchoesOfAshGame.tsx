@@ -69,6 +69,7 @@ export default function EchoesOfAshGame() {
     setShowDialogue(false);
     setSelectedChoice(null);
     setPhase('narration');
+    if (engineRef.current) engineRef.current.playerActive = false;
     engineRef.current?.loadArena(chapters[ci].arena, chapters[ci].enemies);
   }, []);
 
@@ -146,6 +147,10 @@ export default function EchoesOfAshGame() {
     if (dialogueStep < ch.dialogue.length - 1) {
       setDialogueStep(prev => prev + 1);
       return;
+    }
+    if (engineRef.current) {
+      engineRef.current.playerActive = true;
+      engineRef.current.clock.getDelta();
     }
     setPhase('playing');
   };
