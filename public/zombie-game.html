@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>النجاة الأخيرة - محاكاة البقاء الواقعية</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #090c10;
+            color: #f8fafc;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        /* شاشة البداية */
+        #start-overlay, #gameover-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(15, 23, 42, 0.88) 0%, rgba(2, 6, 23, 0.98) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+        .card {
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #334155;
+            border-top: 4px solid #ef4444;
+            border-radius: 18px;
+            padding: 28px 24px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 900;
+            color: #ffffff;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .badge-danger {
+            display: inline-block;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 14px;
+        }
+        .controls-info {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 16px 0 22px;
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.7;
+            text-align: right;
+        }
+        .btn-play {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 900;
+            color: #fff;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            border: 2px solid #f87171;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.45);
+            transition: transform 0.12s;
+        }
+        .btn-play:active { transform: scale(0.96); }
+
+        /* واجهة المعلومات العلوية HUD */
+        #hud {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .hud-panel {
+            background: rgba(9, 13, 22, 0.85);
+            border: 1px solid rgba(71, 85, 105, 0.6);
+            border-radius: 12px;
+            padding: 8px 12px;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .bar-wrap {
+            width: 135px;
+            height: 10px;
+            background: #1e293b;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 3px;
+            border: 1px solid #334155;
+        }
+        .bar-fill { height: 100%; transition: width 0.12s; }
+        .stat-row { font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; }
+
+        /* أزرار التحكم السريعة (أسفل الوسط) */
+        #action-bar {
+            position: fixed;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 25;
+        }
+        .act-btn {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1.5px solid #475569;
+            color: #f8fafc;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+        .act-btn:active { background: #334155; transform: scale(0.95); }
+
+        /* عصا التحكم باللمس للموبايل */
+        .joy-container {
+            position: fixed;
+            bottom: 24px;
+            width: 104px;
+            height: 104px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.45);
+            border: 2px solid rgba(148, 163, 184, 0.35);
+            z-index: 25;
+        }
+        #joy-move { right: 20px; }
+        #joy-aim { left: 20px; border-color: rgba(239, 68, 68, 0.5); }
+        .joy-knob {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 40px; height: 40px;
+            margin: -20px 0 0 -20px;
+            border-radius: 50%;
+            background: rgba(248, 250, 252, 0.75);
+            pointer-events: none;
+        }
+        #joy-aim .joy-knob { background: rgba(239, 68, 68, 0.85); }
+
+        #toast {
+            position: fixed;
+            top: 78px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid #f59e0b;
+            color: #fbbf24;
+            padding: 6px 16px;
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: bold;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        #build-panel{position:fixed;right:14px;bottom:70px;z-index:28;display:flex;gap:7px;pointer-events:auto}
+        .build-choice{border:1px solid #64748b;background:#0b1220ef;color:#e2e8f0;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer;box-shadow:0 5px 18px #0008}
+        .build-choice.active{border-color:#fbbf24;color:#fde68a;background:#422006ef}
+        @media(max-width:700px){#build-panel{right:50%;transform:translateX(50%);bottom:132px}.build-choice{font-size:11px;padding:7px 8px}}
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- شاشة البداية -->
+    <div id="start-overlay">
+        <div class="card">
+            <div class="badge-danger">☣️ محاكاة البقاء الواقعية • SURVIVAL</div>
+            <h1>النجاة الأخيرة: منطقة الخطر</h1>
+            <p style="font-size: 14px; color: #94a3b8;">قاتل جحافل الزومبي، ابنِ المتاريس، وصمد لأكبر عدد من الأيام!</p>
+            <div class="controls-info">
+                <div>🕹️ <b>الحركة:</b> مفاتيح (WASD / الأسهم) أو الدائرة اليمنى باللمس</div>
+                <div>🔫 <b>التصويب والإطلاق:</b> الفأرة (Mouse) أو الدائرة اليسرى باللمس</div>
+                <div>🧱 <b>بناء حاجز دفاعي:</b> زر [B] أو زر البناء بالأسفل (يكلف 15 خشب)</div>
+                <div>🔄 <b>تعمير السلاح:</b> زر [R] | <b>ركض سريع:</b> [Shift]</div>
+            </div>
+            <button class="btn-play" id="btn-start">ابدأ اللعب / PLAY ⚔️</button>
+        </div>
+    </div>
+
+    <!-- شاشة نهاية اللعبة -->
+    <div id="gameover-overlay" class="hidden">
+        <div class="card">
+            <div style="font-size: 46px; margin-bottom: 8px;">💀</div>
+            <h1 style="color: #ef4444;">تم القضاء عليك!</h1>
+            <p id="final-stats" style="font-size: 15px; color: #e2e8f0; margin: 14px 0 22px; line-height: 1.8;"></p>
+            <button class="btn-play" id="btn-restart">العب مرة أخرى 🔄</button>
+        </div>
+    </div>
+
+    <!-- واجهة اللعب HUD -->
+    <div id="hud" class="hidden">
+        <!-- الصحة واللياقة -->
+        <div class="hud-panel">
+            <div class="stat-row"><span style="color:#f87171;">❤️ الصحة</span><span id="ui-hp">100%</span></div>
+            <div class="bar-wrap"><div id="bar-hp" class="bar-fill" style="width:100%; background:#ef4444;"></div></div>
+            <div class="stat-row" style="margin-top:6px;"><span style="color:#38bdf8;">⚡ اللياقة</span><span id="ui-stam">100%</span></div>
+            <div class="bar-wrap"><div id="bar-stam" class="bar-fill" style="width:100%; background:#0ea5e9;"></div></div>
+        </div>
+
+        <!-- اليوم والوقت -->
+        <div class="hud-panel" style="text-align:center;">
+            <div style="font-size:15px; font-weight:900; color:#fbbf24;">📅 اليوم <span id="ui-day">1</span></div>
+            <div id="ui-time" style="font-size:12px; font-weight:bold; color:#34d399; margin-top:2px;">☀️ نهار (08:00)</div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:3px;">💀 القتلى: <b id="ui-kills" style="color:#fff;">0</b></div>
+        </div>
+
+        <!-- الذخيرة والموارد -->
+        <div class="hud-panel" style="text-align:left;">
+            <div style="font-size:14px; font-weight:900; color:#fde047;">🔫 <span id="ui-ammo">30</span> / <span id="ui-reserve">90</span></div>
+            <div style="font-size:13px; font-weight:bold; color:#d97706; margin-top:4px;">🪵 خشب: <span id="ui-wood">30</span></div>
+            <div style="font-size:12px; font-weight:bold; color:#cbd5e1; margin-top:3px;">🔩 خردة: <span id="ui-scrap">0</span></div>
+        </div>
+    </div>
+
+    <div id="toast">تم البناء!</div>
+    <div id="build-panel" class="hidden" aria-label="اختيار مبنى">
+      <button class="build-choice active" data-build="barricade">🧱 حاجز · 15🪵</button>
+      <button class="build-choice" data-build="house">🏠 منزل · 55🪵 20🔩</button>
+      <button class="build-choice" data-build="palace">🏰 قصر · 150🪵 80🔩</button>
+    </div>
+
+    <!-- أزرار سريعة تعمل باللمس والفأرة -->
+    <div id="action-bar" class="hidden">
+        <button class="act-btn" id="btn-reload">🔄 تعمير [R]</button>
+        <button class="act-btn" id="btn-build" style="border-color:#d97706; color:#fbbf24;">🧱 حاجز (15🪵) [B]</button>
+    </div>
+
+    <!-- عصا التحكم للموبايل -->
+    <div id="joy-move" class="joy-container hidden"><div class="joy-knob" id="knob-move"></div></div>
+    <div id="joy-aim" class="joy-container hidden"><div class="joy-knob" id="knob-aim"></div></div>
+
+    <script>
+        /**
+         * =========================================================================
+         * 1. محرك الصوتيات الإجرائي (Web Audio API) - أصوات واقعية بدون ملفات خارجية
+         * =========================================================================
+         */
+        const AudioSys = {
+            ctx: null,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            gunshot() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                // صوت انفجار البارود (Noise)
+                const bufferSize = this.ctx.sampleRate * 0.14;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1400, t);
+                filter.frequency.exponentialRampToValueAtTime(180, t + 0.14);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.35, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.14);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(t);
+            },
+            reload() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                [0, 0.18].forEach((offset, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const g = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(idx === 0 ? 450 : 680, t + offset);
+                    g.gain.setValueAtTime(0.15, t + offset);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.08);
+                    osc.connect(g); g.connect(this.ctx.destination);
+                    osc.start(t + offset); osc.stop(t + offset + 0.09);
+                });
+            },
+            hit() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(110, t);
+                osc.frequency.exponentialRampToValueAtTime(38, t + 0.15);
+                g.gain.setValueAtTime(0.22, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                osc.connect(g); g.connect(this.ctx.destination);
+                osc.start(t); osc.stop(t + 0.16);
+            },
+            build() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(160, t);
+                osc.frequency.exponentialRampToValueAtTime(75, t + 0.12);
+                g.gain.setValueAtTime(0.2, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+                osc.connect(g); g.connect(this.ctx.destination);
+                osc.start(t); osc.stop(t + 0.13);
+            }
+        };
+
+        /**
+         * =========================================================================
+         * 2. إعدادات اللوحة والعالم
+         * =========================================================================
+         */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const WORLD_W = 2200;
+        const WORLD_H = 1800;
+        const DEPTH = 0.78;
+
+        let running = false;
+        let lastTime = 0;
+
+        // حالة اللعبة والأيام
+        let day = 1;
+        let timeOfDay = 8.0; // 0 إلى 24
+        let isNight = false;
+        let kills = 0;
+        let spawnTimer = 0;
+
+        // الكاميرا
+        const cam = { x: 0, y: 0, shake: 0 };
+
+        // اللاعب (شخصية مقاتل بتفاصيل كاملة)
+        const player = {
+            x: 1100,
+            y: 900,
+            angle: 0,
+            speed: 225,
+            hp: 100,
+            maxHp: 100,
+            stamina: 100,
+            ammo: 30,
+            maxAmmo: 30,
+            reserveAmmo: 90,
+            wood: 30,
+            scrap: 0,
+            walkCycle: 0,
+            recoil: 0,
+            muzzleFlash: 0,
+            fireTimer: 0,
+            reloading: 0
+        };
+
+        // الإدخال
+        const keys = {};
+        const mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
+        const joyMove = { active: false, dx: 0, dy: 0 };
+        const joyAim = { active: false, dx: 0, dy: 0 };
+
+        // كيانات العالم
+        let cars = [];
+        let crates = [];
+        let campfires = [];
+        let buildings = [];
+        let buildType = 'barricade';
+        let barricades = [];
+        let pickups = [];
+        let zombies = [];
+        let bullets = [];
+        let shells = [];
+        let bloodMarks = [];
+        let particles = [];
+
+        /**
+         * =========================================================================
+         * 3. بناء البيئة الواقعية (طريق إسفلتي، سيارات محطمة، صناديق، نيران مخيم)
+         * =========================================================================
+         */
+        function generateWorld() {
+            cars = [];
+            crates = [];
+            campfires = [];
+            barricades = [];
+            buildings = [];
+            pickups = [];
+            zombies = [];
+            bullets = [];
+            shells = [];
+            bloodMarks = [];
+            particles = [];
+
+            // نيران مخيم دافئة حول نقطة البداية
+            campfires.push({ x: 960, y: 820, phase: 0 });
+            campfires.push({ x: 1240, y: 980, phase: 2 });
+
+            // سيارات مهجورة على الطريق الإسفلتي
+            const carPositions = [
+                { x: 750, y: 840, angle: 0.2, color: '#7f1d1d' },
+                { x: 1420, y: 950, angle: -0.35, color: '#1e3a8a' },
+                { x: 1050, y: 620, angle: 1.4, color: '#3f3f46' },
+                { x: 1160, y: 1220, angle: 1.75, color: '#78350f' },
+                { x: 520, y: 930, angle: -0.1, color: '#064e3b' },
+                { x: 1680, y: 860, angle: 0.4, color: '#52525b' }
+            ];
+            carPositions.forEach(c => cars.push({ ...c, w: 74, h: 38 }));
+
+            // صناديق خشبية وحاويات عسكرية
+            for (let i = 0; i < 24; i++) {
+                let cx = 200 + Math.random() * (WORLD_W - 400);
+                let cy = 200 + Math.random() * (WORLD_H - 400);
+                if (Math.hypot(cx - player.x, cy - player.y) < 180) continue;
+                crates.push({ x: cx, y: cy, size: 34 });
+            }
+
+            buildings.push({x:1020,y:790,type:'house',w:106,d:88,h:72,hp:950,maxHp:950});
+            buildings.push({x:1240,y:970,type:'palace',w:178,d:142,h:110,hp:1800,maxHp:1800});
+            // متاريس خشبية مبدئية لحماية اللاعب
+            barricades.push({ x: player.x - 95, y: player.y - 70, angle: -0.6, hp: 140, maxHp: 140 });
+            barricades.push({ x: player.x + 95, y: player.y - 70, angle: 0.6, hp: 140, maxHp: 140 });
+
+            // توزيع إمدادات أولية
+            for (let i = 0; i < 16; i++) spawnPickup();
+            // موجة زومبي أولى
+            for (let i = 0; i < 10; i++) spawnZombie();
+        }
+
+        function spawnPickup() {
+            const types = ['ammo', 'wood', 'medkit', 'scrap'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let px = 150 + Math.random() * (WORLD_W - 300);
+            let py = 150 + Math.random() * (WORLD_H - 300);
+            pickups.push({ x: px, y: py, type, bob: Math.random() * 6 });
+        }
+
+        function spawnZombie() {
+            // يظهر الزومبي خارج شاشة اللاعب مباشرة
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.max(canvas.width, canvas.height) * 0.65 + 120;
+            const zx = Math.min(Math.max(player.x + Math.cos(angle) * dist, 60), WORLD_W - 60);
+            const zy = Math.min(Math.max(player.y + Math.sin(angle) * dist, 60), WORLD_H - 60);
+
+            const roll = Math.random();
+            let type = 'walker';
+            let hp = 50 + day * 10;
+            let speed = (isNight ? 95 : 70) + day * 4;
+            let scale = 1.0;
+
+            if (roll > 0.84) {
+                type = 'brute'; // عملاق مدرع
+                hp = 180 + day * 25;
+                speed = 55 + day * 2;
+                scale = 1.45;
+            } else if (roll > 0.58 || isNight) {
+                type = 'runner'; // عداء سريع بعيون حمراء
+                hp = 40 + day * 8;
+                speed = 135 + day * 5;
+                scale = 0.95;
+            }
+
+            zombies.push({
+                x: zx, y: zy,
+                type, hp, maxHp: hp, speed, scale,
+                angle: 0,
+                walkCycle: Math.random() * 10,
+                attackCd: 0
+            });
+        }
+
+        /**
+         * =========================================================================
+         * 4. الرسم التفصيلي للشخصيات (Procedural 2.5D Top-Down Sprites)
+         * =========================================================================
+         */
+        function drawSurvivor(p) {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+
+            // ظل واقعي على الأرض
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(-4, 6, 20, 16, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.rotate(p.angle);
+
+            // 1. الأرجل المتحركة أثناء المشي (Boots & Tactical Pants)
+            const legSwing = Math.sin(p.walkCycle) * 8;
+            ctx.fillStyle = '#1e293b';
+            // الرجل اليسرى
+            ctx.fillRect(legSwing - 5, -11, 12, 6);
+            // الرجل اليمنى
+            ctx.fillRect(-legSwing - 5, 5, 12, 6);
+            // الحذاء العسكري
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(legSwing + 3, -11, 5, 6);
+            ctx.fillRect(-legSwing + 3, 5, 5, 6);
+
+            // 2. حقيبة الظهر التكتيكية (Backpack)
+            ctx.fillStyle = '#3f3f46';
+            ctx.strokeStyle = '#18181b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-17, -11, 10, 22, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // 3. الأكتاف والسترة الواقية (Tactical Jacket & Shoulders)
+            ctx.fillStyle = '#2563eb';
+            ctx.beginPath();
+            ctx.roundRect(-9, -15, 18, 30, 8);
+            ctx.fill();
+            ctx.strokeStyle = '#1d4ed8';
+            ctx.stroke();
+
+            // درع الصدر الداكن
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.roundRect(-6, -10, 12, 20, 4);
+            ctx.fill();
+
+            // 4. الذراعان والبندقية الهجومية (Arms & Assault Rifle)
+            const gunOffset = -p.recoil;
+            // الذراع اليسرى تمسك مقدمة السلاح
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(2, -12);
+            ctx.lineTo(18 + gunOffset, -3);
+            ctx.stroke();
+
+            // البندقية الرشاشة (جسم السلاح، المخزن، السبطانة)
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(4 + gunOffset, -3, 28, 6); // جسم السلاح
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(26 + gunOffset, -2, 10, 4); // السبطانة
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(14 + gunOffset, 2, 6, 4); // مخزن الذخيرة
+
+            // الذراع اليمنى على الزناد
+            ctx.beginPath();
+            ctx.moveTo(2, 12);
+            ctx.lineTo(10 + gunOffset, 3);
+            ctx.stroke();
+
+            // 5. الرأس والخوذة التكتيكية (Head & Helmet)
+            ctx.fillStyle = '#f1c27d'; // لون البشرة
+            ctx.beginPath();
+            ctx.arc(0, 0, 9.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // الخوذة العسكرية
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.arc(-1.5, 0, 10, Math.PI * 0.45, Math.PI * 1.55);
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // 6. وميض إطلاق النار من فوهة البندقية (Muzzle Flash)
+            if (p.muzzleFlash > 0) {
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.moveTo(36, 0);
+                ctx.lineTo(54, -9);
+                ctx.lineTo(48, 0);
+                ctx.lineTo(56, 8);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function drawZombie(z) {
+            ctx.save();
+            ctx.translate(z.x, z.y);
+            ctx.scale(z.scale, z.scale);
+
+            // ظل الزومبي
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(-3, 6, 18, 14, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.rotate(z.angle);
+
+            const sway = Math.sin(z.walkCycle) * 4;
+            const skinColor = z.type === 'brute' ? '#64748b' : (z.type === 'runner' ? '#84cc16' : '#4d7c0f');
+            const shirtColor = z.type === 'brute' ? '#7f1d1d' : (z.type === 'runner' ? '#3f3f46' : '#1e293b');
+
+            // 1. الأذرع الممدودة للأمام للهجوم
+            ctx.strokeStyle = skinColor;
+            ctx.lineWidth = z.type === 'brute' ? 8 : 5.5;
+            ctx.lineCap = 'round';
+            // ذراع يسرى
+            ctx.beginPath();
+            ctx.moveTo(2, -11);
+            ctx.lineTo(18 + sway, -8);
+            ctx.stroke();
+            // ذراع يمنى
+            ctx.beginPath();
+            ctx.moveTo(2, 11);
+            ctx.lineTo(18 - sway, 8);
+            ctx.stroke();
+
+            // بقع دم على اليدين
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.arc(18 + sway, -8, 3, 0, Math.PI * 2);
+            ctx.arc(18 - sway, 8, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. الجذع والملابس الممزقة
+            ctx.fillStyle = shirtColor;
+            ctx.beginPath();
+            ctx.roundRect(-9, -14, 18, 28, 7);
+            ctx.fill();
+            ctx.strokeStyle = '#090d16';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // جرح دموي على الكتف
+            ctx.fillStyle = '#991b1b';
+            ctx.beginPath();
+            ctx.arc(-2, -7, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. الرأس المتعفن والعيون المتوهجة
+            ctx.fillStyle = skinColor;
+            ctx.beginPath();
+            ctx.arc(1, 0, 9.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // شعر متناثر داكن
+            ctx.fillStyle = '#18181b';
+            ctx.beginPath();
+            ctx.arc(-3, -2, 6, 0.8, 2.5);
+            ctx.fill();
+
+            // عيون مرعبة
+            ctx.fillStyle = (z.type === 'runner' || isNight) ? '#ef4444' : '#fef08a';
+            ctx.fillRect(7, -4.5, 3, 2.5);
+            ctx.fillRect(7, 2, 3, 2.5);
+
+            ctx.restore();
+
+            // شريط صحة للعمالقة أو المصابين
+            if (z.hp < z.maxHp) {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(z.x - 18, z.y - 26 * z.scale, 36, 5);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(z.x - 17, z.y - 25 * z.scale, 34 * (z.hp / z.maxHp), 3);
+            }
+        }
+
+        /**
+         * =========================================================================
+         * 5. منطق اللعب والتحديث (Update Loop)
+         * =========================================================================
+         */
+        function showToast(txt) {
+            const el = document.getElementById('toast');
+            el.textContent = txt;
+            el.style.opacity = '1';
+            clearTimeout(el.t);
+            el.t = setTimeout(() => el.style.opacity = '0', 1800);
+        }
+
+        function reloadWeapon() {
+            if (player.reloading > 0 || player.ammo === player.maxAmmo || player.reserveAmmo <= 0) return;
+            player.reloading = 1.1;
+            AudioSys.reload();
+            showToast('🔄 جاري تعمير السلاح...');
+        }
+
+        function buildBarricade() {
+            if (buildType !== 'barricade') { buildStructure(buildType); return; }
+            if (player.wood < 15) {
+                showToast('❌ تحتاج إلى 15 خشب لبناء حاجز!');
+                return;
+            }
+            const bx = player.x + Math.cos(player.angle) * 58;
+            const by = player.y + Math.sin(player.angle) * 58;
+            player.wood -= 15;
+            barricades.push({
+                x: bx, y: by,
+                angle: player.angle + Math.PI / 2,
+                hp: 160, maxHp: 160
+            });
+            AudioSys.build();
+            showToast('🧱 تم بناء حاجز خشبي دفاعي!');
+            updateUI();
+        }
+
+        function buildStructure(type) {
+            const spec = type === 'palace' ? {wood:150,scrap:80,w:178,d:142,h:110,hp:1800,label:'القصر'} : {wood:55,scrap:20,w:106,d:88,h:72,hp:950,label:'المنزل'};
+            if (player.wood < spec.wood || player.scrap < spec.scrap) { showToast(`تحتاج ${spec.wood} خشب و${spec.scrap} خردة لبناء ${spec.label}`); return; }
+            const bx = Math.round((player.x + Math.cos(player.angle)*145)/20)*20;
+            const by = Math.round((player.y + Math.sin(player.angle)*145)/20)*20;
+            if (Math.hypot(bx-player.x,by-player.y)<68 || buildings.some(b=>Math.abs(b.x-bx)<(b.w+spec.w)*.42&&Math.abs(b.y-by)<(b.d+spec.d)*.42) || hitsObstacle(bx,by,45)) { showToast('المكان غير مناسب للبناء'); return; }
+            buildings.push({x:bx,y:by,type,w:spec.w,d:spec.d,h:spec.h,hp:spec.hp,maxHp:spec.hp});
+            player.wood-=spec.wood; player.scrap-=spec.scrap; AudioSys.build(); showToast(`🏗️ تم تشييد ${spec.label}`); updateUI();
+        }
+
+        function drawBuilding(b) {
+            const palace=b.type==='palace', w=b.w, d=b.d, h=b.h, x=b.x, y=b.y;
+            const roof=palace?'#334155':'#7c2d12', wall=palace?'#d6c7a4':'#c8a779', side=palace?'#8c806d':'#80644c';
+            ctx.save(); ctx.translate(x,y);
+            ctx.fillStyle='#0008'; ctx.beginPath(); ctx.ellipse(16,12,w*.76,d*.62,0,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#514b43'; ctx.beginPath(); ctx.moveTo(-w/2,-d/2);ctx.lineTo(0,-d/2-18);ctx.lineTo(w/2,-d/2);ctx.lineTo(w/2,d/2);ctx.lineTo(0,d/2+18);ctx.lineTo(-w/2,d/2);ctx.closePath();ctx.fill();
+            ctx.fillStyle=side;ctx.beginPath();ctx.moveTo(w/2,-d/2);ctx.lineTo(w/2,d/2);ctx.lineTo(w/2,d/2-h);ctx.lineTo(w/2,-d/2-h);ctx.closePath();ctx.fill();
+            ctx.fillStyle=wall;ctx.beginPath();ctx.moveTo(-w/2,-d/2);ctx.lineTo(w/2,-d/2);ctx.lineTo(w/2,-d/2-h);ctx.lineTo(-w/2,-d/2-h);ctx.closePath();ctx.fill();
+            ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(-w/2-9,-d/2-h);ctx.lineTo(0,-d/2-h-30);ctx.lineTo(w/2+9,-d/2-h);ctx.lineTo(0,-d/2-h+15);ctx.closePath();ctx.fill();
+            ctx.strokeStyle=palace?'#f5d98a':'#a8a29e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-w/2-8,-d/2-h);ctx.lineTo(0,-d/2-h-30);ctx.lineTo(w/2+8,-d/2-h);ctx.stroke();
+            const win=palace?'#fbbf24':'#93c5fd';ctx.fillStyle='#1e293b';
+            for(let i=0;i<(palace?3:2);i++){const wx=-w*.32+i*w*.32;ctx.fillRect(wx-8,-d/2-h*.67,16,24);ctx.fillStyle=win;ctx.fillRect(wx-5,-d/2-h*.64,10,17);ctx.fillStyle='#1e293b';}
+            ctx.fillStyle=palace?'#713f12':'#422006';ctx.beginPath();ctx.roundRect(-11,-d/2-29,22,42,8);ctx.fill();
+            if(palace){ctx.fillStyle='#d4af37';ctx.fillRect(-w*.4,-d/2-h-6,w*.8,5);ctx.fillStyle='#fef3c7';ctx.font='bold 12px serif';ctx.textAlign='center';ctx.fillText('SAFE HAVEN',0,-d/2-h-42);}
+            ctx.restore();
+        }
+
+        function fireGun() {
+            if (player.reloading > 0 || player.fireTimer > 0) return;
+            if (player.ammo <= 0) {
+                if (player.reserveAmmo > 0) reloadWeapon();
+                else showToast('⚠️ نفدت الذخيرة! اجمع صناديق الذخيرة');
+                return;
+            }
+
+            player.ammo--;
+            player.fireTimer = 0.13;
+            player.recoil = 5;
+            player.muzzleFlash = 0.05;
+            cam.shake = 4.5;
+            AudioSys.gunshot();
+
+            const tipX = player.x + Math.cos(player.angle) * 34;
+            const tipY = player.y + Math.sin(player.angle) * 34;
+            const spread = (Math.random() - 0.5) * 0.08;
+
+            bullets.push({
+                x: tipX, y: tipY,
+                vx: Math.cos(player.angle + spread) * 950,
+                vy: Math.sin(player.angle + spread) * 950,
+                life: 0.85
+            });
+
+            // قذف ظرف الرصاصة الفارغ من السلاح
+            const ejectAngle = player.angle + Math.PI / 2 + (Math.random() - 0.5) * 0.4;
+            shells.push({
+                x: player.x + Math.cos(player.angle) * 12,
+                y: player.y + Math.sin(player.angle) * 12,
+                vx: Math.cos(ejectAngle) * (60 + Math.random() * 40),
+                vy: Math.sin(ejectAngle) * (60 + Math.random() * 40),
+                angle: Math.random() * 6,
+                life: 2.5
+            });
+
+            updateUI();
+        }
+
+        function update(dt) {
+            // 1. دورة اليوم والليل
+            timeOfDay += dt * 0.32; // ساعة كل 3 ثوانٍ تقريباً
+            if (timeOfDay >= 24) {
+                timeOfDay -= 24;
+                day++;
+                showToast(`🌅 أشرق اليوم ${day}! استعد لهجمات أقوى`);
+                for (let i = 0; i < 6; i++) spawnPickup();
+            }
+            const wasNight = isNight;
+            isNight = (timeOfDay >= 19.5 || timeOfDay < 5.5);
+            if (isNight && !wasNight) {
+                showToast('🌙 حل الظلام! شغّل كشافك الضوئي واحذر العداءين!');
+            }
+
+            // 2. حركة اللاعب
+            let mx = 0, my = 0;
+            if (keys['KeyW'] || keys['ArrowUp']) my -= 1;
+            if (keys['KeyS'] || keys['ArrowDown']) my += 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) mx -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) mx += 1;
+
+            if (joyMove.active) {
+                mx = joyMove.dx;
+                my = joyMove.dy;
+            }
+
+            const moving = Math.hypot(mx, my) > 0.1;
+            const sprinting = (keys['ShiftLeft'] || keys['ShiftRight']) && moving && player.stamina > 5;
+            let spd = player.speed;
+
+            if (sprinting) {
+                spd *= 1.5;
+                player.stamina = Math.max(0, player.stamina - dt * 28);
+            } else {
+                player.stamina = Math.min(100, player.stamina + dt * 18);
+            }
+
+            if (moving) {
+                const len = Math.hypot(mx, my);
+                const nx = player.x + (mx / len) * spd * dt;
+                const ny = player.y + (my / len) * spd * dt;
+                if (!hitsObstacle(nx, player.y, 16)) player.x = Math.min(Math.max(nx, 30), WORLD_W - 30);
+                if (!hitsObstacle(player.x, ny, 16)) player.y = Math.min(Math.max(ny, 30), WORLD_H - 30);
+                player.walkCycle += dt * (sprinting ? 18 : 12);
+            }
+
+            // التصويب (بالفأرة أو عصا التصويب باللمس)
+            if (joyAim.active) {
+                if (Math.hypot(joyAim.dx, joyAim.dy) > 0.2) {
+                    player.angle = Math.atan2(joyAim.dy, joyAim.dx);
+                    fireGun();
+                }
+            } else {
+                player.angle = Math.atan2((mouse.y / DEPTH + cam.y) - player.y, (mouse.x + cam.x) - player.x);
+                if (mouse.down) fireGun();
+            }
+
+            // مؤقتات السلاح والتعمير
+            if (player.fireTimer > 0) player.fireTimer -= dt;
+            if (player.recoil > 0) player.recoil = Math.max(0, player.recoil - dt * 35);
+            if (player.muzzleFlash > 0) player.muzzleFlash -= dt;
+
+            if (player.reloading > 0) {
+                player.reloading -= dt;
+                if (player.reloading <= 0) {
+                    const needed = player.maxAmmo - player.ammo;
+                    const take = Math.min(needed, player.reserveAmmo);
+                    player.ammo += take;
+                    player.reserveAmmo -= take;
+                    showToast('✅ السلاح جاهز!');
+                }
+            }
+
+            // 3. توليد الزومبي المستمر حسب اليوم
+            spawnTimer -= dt;
+            const maxZombies = 10 + day * 5;
+            if (spawnTimer <= 0 && zombies.length < maxZombies) {
+                spawnZombie();
+                spawnTimer = Math.max(0.45, (isNight ? 0.9 : 1.6) - day * 0.1);
+            }
+
+            // 4. تحديث الرصاص
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx * dt;
+                b.y += b.vy * dt;
+                b.life -= dt;
+
+                if (b.life <= 0 || hitsObstacle(b.x, b.y, 2)) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                for (let j = zombies.length - 1; j >= 0; j--) {
+                    const z = zombies[j];
+                    if (Math.hypot(b.x - z.x, b.y - z.y) < 18 * z.scale) {
+                        z.hp -= 28;
+                        bullets.splice(i, 1);
+                        spawnBloodParticles(b.x, b.y, 6);
+
+                        if (z.hp <= 0) {
+                            kills++;
+                            bloodMarks.push({ x: z.x, y: z.y, r: 16 * z.scale });
+                            if (bloodMarks.length > 80) bloodMarks.shift();
+                            if (Math.random() < 0.35) {
+                                const types = ['ammo', 'wood', 'medkit', 'scrap'];
+                                pickups.push({ x: z.x, y: z.y, type: types[Math.floor(Math.random() * types.length)], bob: 0 });
+                            }
+                            zombies.splice(j, 1);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // 5. تحديث الزومبي
+            for (let i = zombies.length - 1; i >= 0; i--) {
+                const z = zombies[i];
+                const ang = Math.atan2(player.y - z.y, player.x - z.x);
+                z.angle = ang;
+                z.walkCycle += dt * (z.speed * 0.12);
+
+                const nx = z.x + Math.cos(ang) * z.speed * dt;
+                const ny = z.y + Math.sin(ang) * z.speed * dt;
+
+                // التحقق من الاصطدام بالمتاريس الدفاعية
+                let blockedBarricade = null;
+                for (let bar of barricades) {
+                    if (Math.hypot(nx - bar.x, ny - bar.y) < 34) {
+                        blockedBarricade = bar;
+                        break;
+                    }
+                }
+
+                if (blockedBarricade) {
+                    blockedBarricade.hp -= (z.type === 'brute' ? 35 : 16) * dt;
+                    if (blockedBarricade.hp <= 0) {
+                        barricades = barricades.filter(b => b !== blockedBarricade);
+                        AudioSys.hit();
+                    }
+                } else {
+                    if (!hitsObstacle(nx, z.y, 14 * z.scale)) z.x = nx;
+                    if (!hitsObstacle(z.x, ny, 14 * z.scale)) z.y = ny;
+                }
+
+                // هجوم الزومبي على اللاعب
+                if (z.attackCd > 0) z.attackCd -= dt;
+                if (Math.hypot(player.x - z.x, player.y - z.y) < 28 * z.scale && z.attackCd <= 0) {
+                    player.hp = Math.max(0, player.hp - (z.type === 'brute' ? 22 : 12));
+                    z.attackCd = 0.85;
+                    cam.shake = 8;
+                    AudioSys.hit();
+                    spawnBloodParticles(player.x, player.y, 8);
+                    if (player.hp <= 0) {
+                        endGame();
+                        return;
+                    }
+                }
+            }
+
+            // 6. التقاط الإمدادات
+            for (let i = pickups.length - 1; i >= 0; i--) {
+                const pk = pickups[i];
+                pk.bob += dt * 4;
+                if (Math.hypot(player.x - pk.x, player.y - pk.y) < 32) {
+                    if (pk.type === 'ammo') {
+                        player.reserveAmmo += 30;
+                        showToast('🔫 +30 ذخيرة');
+                    } else if (pk.type === 'wood') {
+                        player.wood += 15;
+                        showToast('🪵 +15 خشب للبناء');
+                    } else if (pk.type === 'medkit') {
+                        player.hp = Math.min(player.maxHp, player.hp + 35);
+                        showToast('💊 +35 صحة');
+                    } else if (pk.type === 'scrap') {
+                        player.scrap += 20;
+                        showToast('🔩 +20 خردة معدنية');
+                    }
+                    AudioSys.reload();
+                    pickups.splice(i, 1);
+                }
+            }
+
+            // 7. تحديث أظرف الرصاص والجزيئات ونيران المخيم
+            shells.forEach((s, i) => {
+                s.x += s.vx * dt; s.y += s.vy * dt;
+                s.vx *= 0.9; s.vy *= 0.9;
+                s.life -= dt;
+                if (s.life <= 0) shells.splice(i, 1);
+            });
+            particles.forEach((pt, i) => {
+                pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+                pt.life -= dt;
+                if (pt.life <= 0) particles.splice(i, 1);
+            });
+            campfires.forEach(cf => cf.phase += dt * 8);
+
+            // تحديث الكاميرا
+            cam.x += (player.x - canvas.width / 2 - cam.x) * 9 * dt;
+            cam.y += (player.y - canvas.height / (2 * DEPTH) - cam.y) * 9 * dt;
+            if (cam.shake > 0) cam.shake = Math.max(0, cam.shake - 30 * dt);
+
+            updateUI();
+        }
+
+        function hitsObstacle(x, y, r) {
+            for (const b of buildings) if (Math.abs(x-b.x)<b.w*.43+r && Math.abs(y-b.y)<b.d*.43+r) return true;
+            for (let cr of crates) {
+                if (Math.abs(x - cr.x) < cr.size / 2 + r && Math.abs(y - cr.y) < cr.size / 2 + r) return true;
+            }
+            for (let c of cars) {
+                if (Math.hypot(x - c.x, y - c.y) < 32 + r) return true;
+            }
+            return false;
+        }
+
+        function spawnBloodParticles(x, y, count) {
+            for (let i = 0; i < count; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const s = 40 + Math.random() * 120;
+                particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.35 });
+            }
+        }
+
+        /**
+         * =========================================================================
+         * 6. محرك الرسم الكامل (Render Loop)
+         * =========================================================================
+         */
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            const sx = (Math.random() - 0.5) * cam.shake;
+            const sy = (Math.random() - 0.5) * cam.shake;
+            ctx.scale(1, DEPTH);
+            ctx.translate(-cam.x + sx, -cam.y + sy);
+
+            // 1. الأرضية العشبية الداكنة والتربة
+            ctx.fillStyle = '#182218';
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+            // نسيج عشبي خفيف
+            ctx.fillStyle = '#1f2d1f';
+            for (let gx = 40; gx < WORLD_W; gx += 120) {
+                for (let gy = 40; gy < WORLD_H; gy += 120) {
+                    ctx.fillRect(gx, gy, 18, 6);
+                }
+            }
+
+            // 2. الطريق الإسفلتي المتقاطع (Crossroads)
+            ctx.fillStyle = '#27272a';
+            ctx.fillRect(0, 820, WORLD_W, 170); // طريق أفقي
+            ctx.fillRect(1020, 0, 170, WORLD_H); // طريق عمودي
+
+            // خطوط الطريق الصفراء المتقطعة
+            ctx.strokeStyle = '#ca8a04';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([28, 24]);
+            ctx.beginPath();
+            ctx.moveTo(0, 905); ctx.lineTo(WORLD_W, 905);
+            ctx.moveTo(1105, 0); ctx.lineTo(1105, WORLD_H);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 3. بقع الدماء وأظرف الرصاص على الأرض
+            bloodMarks.forEach(b => {
+                ctx.fillStyle = 'rgba(127, 29, 29, 0.65)';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            shells.forEach(s => {
+                ctx.save();
+                ctx.translate(s.x, s.y);
+                ctx.rotate(s.angle);
+                ctx.fillStyle = '#eab308';
+                ctx.fillRect(-2.5, -1, 5, 2);
+                ctx.restore();
+            });
+
+            // 4. نيران المخيم المشتعلة
+            campfires.forEach(cf => {
+                const flick = Math.sin(cf.phase) * 4;
+                // هالة ضوء دافئة
+                const grad = ctx.createRadialGradient(cf.x, cf.y, 5, cf.x, cf.y, 130 + flick * 3);
+                grad.addColorStop(0, 'rgba(249, 115, 22, 0.35)');
+                grad.addColorStop(1, 'rgba(249, 115, 22, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(cf.x, cf.y, 140, 0, Math.PI * 2);
+                ctx.fill();
+
+                // الحطب والنار
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(cf.x - 14, cf.y - 10); ctx.lineTo(cf.x + 14, cf.y + 10);
+                ctx.moveTo(cf.x + 14, cf.y - 10); ctx.lineTo(cf.x - 14, cf.y + 10);
+                ctx.stroke();
+
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                ctx.arc(cf.x, cf.y, 10 + flick * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.arc(cf.x, cf.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 5. الإمدادات المرمية (ذخيرة، خشب، علاج)
+            pickups.forEach(pk => {
+                const yOff = Math.sin(pk.bob) * 3;
+                ctx.save();
+                ctx.translate(pk.x, pk.y + yOff);
+                ctx.fillStyle = pk.type === 'ammo' ? '#eab308' : (pk.type === 'wood' ? '#b45309' : (pk.type === 'scrap' ? '#94a3b8' : '#ef4444'));
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(-12, -12, 24, 24, 5);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(pk.type === 'ammo' ? 'A' : (pk.type === 'wood' ? 'W' : (pk.type === 'scrap' ? 'S' : '+')), 0, 1);
+                ctx.restore();
+            });
+
+            // 6. المتاريس الخشبية الدفاعية
+            barricades.forEach(bar => {
+                ctx.save();
+                ctx.translate(bar.x, bar.y);
+                ctx.rotate(bar.angle);
+                ctx.fillStyle = '#92400e';
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 2;
+                ctx.fillRect(-34, -8, 68, 16);
+                ctx.strokeRect(-34, -8, 68, 16);
+                ctx.restore();
+            });
+            buildings.slice().sort((a,b)=>a.y-b.y).forEach(drawBuilding);
+
+            // 7. الصناديق الخشبية والسيارات المهجورة بتفاصيلها
+            crates.forEach(cr => {
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fillRect(cr.x - cr.size / 2 + 4, cr.y - cr.size / 2 + 5, cr.size, cr.size);
+                ctx.fillStyle = '#78350f';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 2;
+                ctx.fillRect(cr.x - cr.size / 2, cr.y - cr.size / 2, cr.size, cr.size);
+                ctx.strokeRect(cr.x - cr.size / 2, cr.y - cr.size / 2, cr.size, cr.size);
+                ctx.beginPath();
+                ctx.moveTo(cr.x - cr.size / 2, cr.y - cr.size / 2);
+                ctx.lineTo(cr.x + cr.size / 2, cr.y + cr.size / 2);
+                ctx.stroke();
+            });
+
+            cars.forEach(c => {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.rotate(c.angle);
+                // ظل السيارة
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(-c.w / 2 + 5, -c.h / 2 + 6, c.w, c.h);
+                // هيكل السيارة
+                ctx.fillStyle = c.color;
+                ctx.beginPath();
+                ctx.roundRect(-c.w / 2, -c.h / 2, c.w, c.h, 6);
+                ctx.fill();
+                // الزجاج الأمامي والخلفي المحطم
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(8, -c.h / 2 + 4, 12, c.h - 8);
+                ctx.fillRect(-22, -c.h / 2 + 4, 9, c.h - 8);
+                ctx.restore();
+            });
+
+            // 8. رسم الزومبي واللاعب
+            zombies.forEach(z => drawZombie(z));
+            drawSurvivor(player);
+
+            // 9. الرصاص وجزيئات الدم
+            ctx.fillStyle = '#fef08a';
+            bullets.forEach(b => {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.fillStyle = '#dc2626';
+            particles.forEach(pt => ctx.fillRect(pt.x, pt.y, 3.5, 3.5));
+
+            ctx.restore();
+
+            // 10. إضاءة الليل والكشاف الضوئي الواقعي (Flashlight Cone)
+            if (isNight) {
+                const sxPlayer = player.x - cam.x;
+                const syPlayer = (player.y - cam.y) * DEPTH;
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.88)';
+                ctx.beginPath();
+                ctx.rect(0, 0, canvas.width, canvas.height);
+
+                // مخروط الكشاف الضوئي
+                ctx.moveTo(sxPlayer, syPlayer);
+                ctx.arc(sxPlayer, syPlayer, 360, player.angle - 0.42, player.angle + 0.42);
+                ctx.closePath();
+
+                // هالة حول اللاعب
+                ctx.moveTo(sxPlayer + 85, syPlayer);
+                ctx.arc(sxPlayer, syPlayer, 85, 0, Math.PI * 2);
+
+                ctx.fill('evenodd');
+                ctx.restore();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('ui-hp').textContent = `${Math.ceil(player.hp)}%`;
+            document.getElementById('bar-hp').style.width = `${(player.hp / player.maxHp) * 100}%`;
+            document.getElementById('ui-stam').textContent = `${Math.ceil(player.stamina)}%`;
+            document.getElementById('bar-stam').style.width = `${player.stamina}%`;
+
+            document.getElementById('ui-day').textContent = day;
+            const hrs = Math.floor(timeOfDay).toString().padStart(2, '0');
+            const mins = Math.floor((timeOfDay % 1) * 60).toString().padStart(2, '0');
+            const timeEl = document.getElementById('ui-time');
+            timeEl.textContent = isNight ? `🌙 ليل (${hrs}:${mins})` : `☀️ نهار (${hrs}:${mins})`;
+            timeEl.style.color = isNight ? '#f87171' : '#34d399';
+
+            document.getElementById('ui-kills').textContent = kills;
+            document.getElementById('ui-ammo').textContent = player.ammo;
+            document.getElementById('ui-reserve').textContent = player.reserveAmmo;
+            document.getElementById('ui-wood').textContent = player.wood;
+            document.getElementById('ui-scrap').textContent = player.scrap;
+        }
+
+        function startGame() {
+            AudioSys.init();
+            document.getElementById('start-overlay').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('action-bar').classList.remove('hidden');
+            document.getElementById('build-panel').classList.remove('hidden');
+
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.getElementById('joy-move').classList.remove('hidden');
+                document.getElementById('joy-aim').classList.remove('hidden');
+            }
+
+            day = 1;
+            timeOfDay = 8.0;
+            isNight = false;
+            kills = 0;
+            player.x = 1100;
+            player.y = 900;
+            player.hp = 100;
+            player.stamina = 100;
+            player.ammo = 30;
+            player.reserveAmmo = 90;
+            player.wood = 30;
+            player.scrap = 0;
+            player.reloading = 0;
+            cam.x = player.x - canvas.width / 2;
+            cam.y = player.y - canvas.height / (2 * DEPTH);
+
+            generateWorld();
+            updateUI();
+            running = true;
+            lastTime = performance.now();
+            requestAnimationFrame(loop);
+        }
+
+        function endGame() {
+            running = false;
+            document.getElementById('final-stats').innerHTML =
+                `📅 صمدت حتى: <b>اليوم ${day}</b><br>💀 عدد الزومبي المقتولين: <b>${kills}</b>`;
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+        }
+
+        function loop(now) {
+            if (!running) return;
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+            update(dt);
+            render();
+            requestAnimationFrame(loop);
+        }
+
+        /**
+         * =========================================================================
+         * 7. ربط أزرار التحكم (الكمبيوتر واللمس)
+         * =========================================================================
+         */
+        document.getElementById('btn-start').addEventListener('click', startGame);
+        document.getElementById('btn-restart').addEventListener('click', startGame);
+        document.getElementById('btn-reload').addEventListener('click', reloadWeapon);
+        document.getElementById('btn-build').addEventListener('click', buildBarricade);
+        document.querySelectorAll('.build-choice').forEach(btn=>btn.addEventListener('click',()=>{buildType=btn.dataset.build;document.querySelectorAll('.build-choice').forEach(b=>b.classList.toggle('active',b===btn));if(buildType!=='barricade')buildStructure(buildType);}));
+
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'KeyR') reloadWeapon();
+            if (e.code === 'KeyB') buildBarricade();
+            if (e.code === 'KeyB') document.getElementById('build-panel').classList.toggle('hidden');
+        });
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        canvas.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        canvas.addEventListener('mousedown', e => { if (e.button === 0) mouse.down = true; });
+        window.addEventListener('mouseup', () => mouse.down = false);
+
+        // إعداد عصي التحكم باللمس للموبايل
+        function bindJoystick(zoneId, knobId, stateObj) {
+            const zone = document.getElementById(zoneId);
+            const knob = document.getElementById(knobId);
+            let touchId = null;
+
+            zone.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const t = e.changedTouches[0];
+                touchId = t.identifier;
+                stateObj.active = true;
+                moveKnob(t);
+            });
+            zone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchId) moveKnob(t);
+                }
+            });
+            const reset = e => {
+                for (let t of e.changedTouches) {
+                    if (t.identifier === touchId) {
+                        touchId = null;
+                        stateObj.active = false;
+                        stateObj.dx = 0;
+                        stateObj.dy = 0;
+                        knob.style.transform = 'translate(0px, 0px)';
+                    }
+                }
+            };
+            zone.addEventListener('touchend', reset);
+            zone.addEventListener('touchcancel', reset);
+
+            function moveKnob(t) {
+                const r = zone.getBoundingClientRect();
+                let dx = t.clientX - (r.left + r.width / 2);
+                let dy = t.clientY - (r.top + r.height / 2);
+                const max = 34;
+                const d = Math.hypot(dx, dy);
+                if (d > max) { dx = (dx / d) * max; dy = (dy / d) * max; }
+                knob.style.transform = `translate(${dx}px, ${dy}px)`;
+                stateObj.dx = dx / max;
+                stateObj.dy = dy / max;
+            }
+        }
+        bindJoystick('joy-move', 'knob-move', joyMove);
+        bindJoystick('joy-aim', 'knob-aim', joyAim);
+    </script>
+</body>
+</html>

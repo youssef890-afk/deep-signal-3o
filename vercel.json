@@ -6,7 +6,7 @@
   "installCommand": "npm ci",
   "rewrites": [
     {
-      "source": "/((?!assets/|sw\\.js$|manifest\\.json$|icon).*)",
+      "source": "/((?!assets/|sw\\.js$|manifest\\.json$|zombie-game\\.html$|icon).*)",
       "destination": "/index.html"
     }
   ],

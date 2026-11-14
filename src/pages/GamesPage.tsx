@@ -40,6 +40,7 @@ const gameCatalog = [
   { name: 'إكس-أو المتقدمة', category: 'ألعاب لوحية', status: 'متاحة', icon: '❌⭕', href: '#tic-tac-toe' },
   { name: 'Voice Card Clash', category: 'لعب جماعي', status: 'متاحة', icon: '🎴', href: '/games/voice-card-clash' },
   { name: 'صدى الرماد', category: 'مغامرة 3D', status: 'متاحة', icon: '⚔️', href: '/games/echoes-of-ash' },
+  { name: 'زومبي: النجاة الأخيرة', category: 'بقاء وأكشن', status: 'متاحة', icon: '🧟', href: '/games/zombie' },
   { name: 'الحنش الملوّن', category: 'أركيد', status: 'قريباً', icon: '🐍' },
   { name: 'بلياردو 8', category: 'رياضة', status: 'قريباً', icon: '🎱' },
   { name: 'Connect Four', category: 'ألعاب لوحية', status: 'قريباً', icon: '🔴' },
@@ -568,6 +569,12 @@ export default function GamesPage() {
             </a>
           ))}
         </nav>
+
+        <Link to="/games/echoes-of-ash" className="mx-auto flex max-w-2xl items-center gap-3 rounded-xl border border-amber-400/20 bg-amber-950/20 px-4 py-3 transition hover:border-amber-300/40 hover:bg-amber-900/25">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-400/10 text-xl">⚔️</span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-amber-100">صدى الرماد</span><span className="mt-0.5 block text-[11px] text-white/50">مغامرة فردية تفاعلية ثلاثية الأبعاد</span></span>
+          <span className="shrink-0 text-xs font-semibold text-amber-200">ابدأ اللعب</span>
+        </Link>
 
         <Link to="/games/voice-card-clash" className="mx-auto flex max-w-2xl items-center gap-3 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.045] px-4 py-3 transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.08]">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]"><Gamepad2 className="h-5 w-5" /></span>
