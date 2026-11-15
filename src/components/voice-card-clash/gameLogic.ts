@@ -107,6 +107,14 @@ export function startClashRound(state: ClashState, seatUserIds: string[]): Clash
   };
 }
 
+export function isLegalClashCard(hand: ClashCard[], playedCards: PlayedCard[], cardId: string): boolean {
+  const card = hand.find((item) => item.id === cardId);
+  if (!card) return false;
+  const leadSuit = playedCards[0]?.card.suit;
+  if (!leadSuit || card.suit === leadSuit) return true;
+  return !hand.some((item) => item.suit === leadSuit);
+}
+
 export function applyClashAction(
   state: ClashState,
   actorId: string,
@@ -136,7 +144,7 @@ export function applyClashAction(
   if (action.type !== 'play') return null;
   const hand = state.hands[actorId] ?? [];
   const card = hand.find((item) => item.id === action.cardId);
-  if (!card) return null;
+  if (!card || !isLegalClashCard(hand, state.playedCards, action.cardId)) return null;
 
   const hands = { ...state.hands, [actorId]: hand.filter((item) => item.id !== card.id) };
   const playedCards = [...state.playedCards, { playerId: actorId, seat, team, card }];

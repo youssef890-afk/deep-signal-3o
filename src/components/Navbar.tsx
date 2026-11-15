@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { ArrowLeftRight, Bell, CircleUserRound, Gamepad2, Heart, Loader2, MessageCircle, Search, Settings2, UserRound, UserRoundPlus, WandSparkles } from 'lucide-react';
+import { ArrowLeftRight, Bell, CircleUserRound, Heart, Loader2, MessageCircle, Search, Settings2, UserRound, UserRoundPlus, WandSparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { DSLogo } from '@/components/icons/BrandIcons';
@@ -254,6 +254,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
 
         <Link to="/search" aria-label="البحث" className="flex h-10 w-full max-w-[420px] items-center justify-self-center gap-3 rounded-xl border border-[var(--text)]/[0.08] bg-[var(--text)]/[0.035] px-3 text-right text-xs text-[var(--text)]/45 transition hover:border-[var(--text)]/25 hover:bg-[var(--text)]/[0.06]">
           <DSLogo size={24} />
+          <span className="hidden shrink-0 font-semibold tracking-wide text-[var(--text)]/85 md:inline">Deep Signal</span>
           <Search className="h-4 w-4 shrink-0 text-[var(--text)]/70" />
           <span className="min-w-0 flex-1 truncate">ابحث عن أشخاص أو غرف أو مقاطع</span>
         </Link>
@@ -274,7 +275,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           aria-label={`الألعاب، ${online ? 'متصل' : 'غير متصل'}`}
           className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--text)]/10 bg-[var(--text)]/[0.03] px-3 text-[var(--text)]/80 transition hover:border-[var(--text)]/20 hover:bg-[var(--text)]/[0.07]"
           >
-            <Gamepad2 className="h-[19px] w-[19px] text-[var(--text)]" />
+            <Heart className="h-[19px] w-[19px] text-[var(--text)]" />
             <span className="hidden text-xs font-medium sm:inline">الألعاب</span>
             <span className={`h-2 w-2 rounded-full ${online ? 'bg-[var(--success)]' : 'bg-[var(--text-muted)]/50'}`} />
             <span className="hidden text-[10px] text-[var(--text)]/45 md:inline">{online ? 'متصل' : 'أوفلاين'}</span>

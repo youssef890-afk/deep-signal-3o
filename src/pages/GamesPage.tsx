@@ -5,6 +5,14 @@ import { Gamepad2, RotateCcw, Bot, Users, Trophy, Wifi, Copy } from 'lucide-reac
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import {
+  calculateTicTacToeWinner,
+  chooseTicTacToeAiMove,
+  isValidTicTacToeSnapshot,
+  TIC_TAC_TOE_MARKS,
+  type TicTacToeCell,
+  type TicTacToeMark,
+} from '@/lib/ticTacToe';
 
 interface LeaderboardEntry {
   userId: string;
@@ -30,10 +38,10 @@ interface MatchPresence {
 }
 
 interface MatchPlayer extends MatchPresence {
-  mark: string;
+  mark: TicTacToeMark;
 }
 
-const playerMarks = ['X', 'O', '△', '□'];
+const playerMarks = TIC_TAC_TOE_MARKS;
 const playerColors = ['text-[var(--accent)]', 'text-[var(--accent-secondary)]', 'text-[var(--text-muted)]', 'text-[var(--text)]'];
 
 const gameCatalog = [
@@ -59,7 +67,7 @@ function createInviteCode(): string {
 
 export default function GamesPage() {
   const { user, profile } = useAuth();
-  const [board, setBoard] = useState<Array<string | null>>(Array(9).fill(null));
+  const [board, setBoard] = useState<TicTacToeCell[]>(Array(9).fill(null));
   const [boardSize, setBoardSize] = useState(3);
   const [roomSize, setRoomSize] = useState(2);
   const [roomCapacity, setRoomCapacity] = useState(2);
@@ -79,40 +87,15 @@ export default function GamesPage() {
   const [progressError, setProgressError] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const boardRef = useRef<Array<string | null>>(Array(9).fill(null));
+  const boardRef = useRef<TicTacToeCell[]>(Array(9).fill(null));
   const boardSizeRef = useRef(3);
   const playersRef = useRef<MatchPlayer[]>([]);
   const currentTurnRef = useRef(0);
   const gameStartedRef = useRef(false);
   const roomCapacityRef = useRef(2);
+  const aiMoveTimerRef = useRef<number | null>(null);
 
-  // حساب الفائز
-  const calculateWinner = (squares: Array<string | null>, size: number) => {
-    const target = size === 3 ? 3 : 4;
-    const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
-
-    for (let row = 0; row < size; row++) {
-      for (let column = 0; column < size; column++) {
-        const mark = squares[row * size + column];
-        if (!mark) continue;
-
-        for (const [rowStep, columnStep] of directions) {
-          let matches = 1;
-          for (let step = 1; step < target; step++) {
-            const nextRow = row + rowStep * step;
-            const nextColumn = column + columnStep * step;
-            if (nextRow < 0 || nextRow >= size || nextColumn < 0 || nextColumn >= size) break;
-            if (squares[nextRow * size + nextColumn] !== mark) break;
-            matches++;
-          }
-          if (matches === target) return mark;
-        }
-      }
-    }
-    return null;
-  };
-
-  const winner = calculateWinner(board, boardSize);
+  const winner = calculateTicTacToeWinner(board, boardSize);
   const isDraw = !winner && board.every((square) => square !== null);
   const winningPlayer = onlinePlayers.find((player) => player.mark === winner);
   const playerLost = Boolean(winner && (onlineMode
@@ -182,6 +165,7 @@ export default function GamesPage() {
 
   useEffect(() => () => {
     if (channelRef.current) void supabase.removeChannel(channelRef.current);
+    if (aiMoveTimerRef.current !== null) window.clearTimeout(aiMoveTimerRef.current);
   }, []);
 
   function getPresencePlayers(channel: RealtimeChannel) {
@@ -193,7 +177,7 @@ export default function GamesPage() {
     return [...unique.values()].sort((a, b) => Number(b.isHost) - Number(a.isHost) || a.joinedAt - b.joinedAt || a.userId.localeCompare(b.userId));
   }
 
-  function updateOnlineSnapshot(nextBoard: Array<string | null>, size: number, turn: number, started: boolean, capacity: number) {
+  function updateOnlineSnapshot(nextBoard: TicTacToeCell[], size: number, turn: number, started: boolean, capacity: number) {
     boardRef.current = nextBoard;
     boardSizeRef.current = size;
     currentTurnRef.current = turn;
@@ -206,7 +190,7 @@ export default function GamesPage() {
     setRoomCapacity(capacity);
   }
 
-  function publishOnlineSnapshot(nextBoard: Array<string | null>, size: number, turn: number, started: boolean, capacity: number) {
+  function publishOnlineSnapshot(nextBoard: TicTacToeCell[], size: number, turn: number, started: boolean, capacity: number) {
     updateOnlineSnapshot(nextBoard, size, turn, started, capacity);
     void channelRef.current?.send({
       type: 'broadcast',
@@ -220,11 +204,14 @@ export default function GamesPage() {
     const activePlayer = players[currentTurnRef.current];
     const currentBoard = boardRef.current;
     const size = boardSizeRef.current;
-    if (!gameStartedRef.current || !activePlayer || activePlayer.userId !== playerId || currentBoard[index] !== null) return;
+    if (!Number.isInteger(index) || index < 0 || index >= currentBoard.length
+      || !gameStartedRef.current || !activePlayer || activePlayer.userId !== playerId
+      || currentBoard[index] !== null || calculateTicTacToeWinner(currentBoard, size)
+      || currentBoard.every((cell) => cell !== null)) return;
 
     const nextBoard = [...currentBoard];
     nextBoard[index] = activePlayer.mark;
-    const ended = Boolean(calculateWinner(nextBoard, size)) || nextBoard.every((square) => square !== null);
+    const ended = Boolean(calculateTicTacToeWinner(nextBoard, size)) || nextBoard.every((square) => square !== null);
     const nextTurn = ended ? currentTurnRef.current : (currentTurnRef.current + 1) % roomCapacityRef.current;
     publishOnlineSnapshot(nextBoard, size, nextTurn, true, roomCapacityRef.current);
   }
@@ -275,7 +262,7 @@ export default function GamesPage() {
 
       const players = present.slice(0, host?.capacity ?? capacity).map((player, index) => ({
         ...player,
-        mark: playerMarks[index],
+        mark: playerMarks[index] ?? 'X',
       }));
       playersRef.current = players;
       setOnlinePlayers(players);
@@ -296,8 +283,11 @@ export default function GamesPage() {
         const nextBoardSize = Number(payload.boardSize);
         const nextCapacity = Number(payload.capacity);
         const nextTurn = Number(payload.currentTurn);
-        if (!Array.isArray(payload.board) || ![3, 4, 5].includes(nextBoardSize) || payload.board.length !== nextBoardSize * nextBoardSize || ![2, 3, 4].includes(nextCapacity) || !Number.isInteger(nextTurn)) return;
-        updateOnlineSnapshot(payload.board as Array<string | null>, nextBoardSize, nextTurn, Boolean(payload.gameStarted), nextCapacity);
+        // The host owns the room state. Guests display the host's snapshots;
+        // ignore client broadcasts locally submitted to the host's channel.
+        if (role !== 'guest' || !isValidTicTacToeSnapshot(payload.board, nextBoardSize, nextCapacity, nextTurn)
+          || typeof payload.gameStarted !== 'boolean') return;
+        updateOnlineSnapshot(payload.board, nextBoardSize, nextTurn, payload.gameStarted, nextCapacity);
       })
       .on('broadcast', { event: 'move' }, ({ payload }) => {
         if (role === 'host' && typeof payload.playerId === 'string' && Number.isInteger(payload.index)) {
@@ -398,62 +388,20 @@ export default function GamesPage() {
   }
 
   // حركة الكمبيوتر
-  const makeAIMove = (currentBoard: Array<string | null>) => {
-    const emptyIndices = currentBoard
-      .map((val, idx) => (val === null ? idx : null))
-      .filter((val): val is number => val !== null);
-
-    if (emptyIndices.length === 0) return;
-
-    const findWinningMove = (mark: string) => emptyIndices.find((index) => {
-      const candidate = [...currentBoard];
-      candidate[index] = mark;
-      return calculateWinner(candidate, boardSize) === mark;
-    });
-
-    let selectedIndex = findWinningMove('O') ?? findWinningMove('X');
-
-    if (selectedIndex === undefined && boardSize === 3) {
-      const minimax = (squares: Array<string | null>, xTurn: boolean, depth: number): number => {
-        const result = calculateWinner(squares, 3);
-        if (result === 'O') return 10 - depth;
-        if (result === 'X') return depth - 10;
-        if (squares.every((square) => square !== null)) return 0;
-
-        const scores = squares.flatMap((square, index) => {
-          if (square !== null) return [];
-          const nextBoard = [...squares];
-          nextBoard[index] = xTurn ? 'X' : 'O';
-          return [minimax(nextBoard, !xTurn, depth + 1)];
-        });
-        return xTurn ? Math.max(...scores) : Math.min(...scores);
-      };
-
-      const moves = emptyIndices.map((index) => {
-        const candidate = [...currentBoard];
-        candidate[index] = 'O';
-        return { index, score: minimax(candidate, true, 0) };
-      });
-      const bestScore = Math.min(...moves.map((move) => move.score));
-      const bestMoves = moves.filter((move) => move.score === bestScore);
-      selectedIndex = bestMoves[Math.floor(Math.random() * bestMoves.length)].index;
-    }
-
-    if (selectedIndex === undefined) {
-      selectedIndex = Math.floor(boardSize / 2) * boardSize + Math.floor(boardSize / 2);
-      if (currentBoard[selectedIndex] !== null) {
-        selectedIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
-      }
-    }
+  const makeAIMove = (currentBoard: TicTacToeCell[]) => {
+    if (boardRef.current !== currentBoard) return;
+    const selectedIndex = chooseTicTacToeAiMove(currentBoard, boardSize);
+    if (selectedIndex === null) return;
 
     const newBoard = [...currentBoard];
     newBoard[selectedIndex] = 'O';
+    boardRef.current = newBoard;
     setBoard(newBoard);
     setIsXNext(true);
   };
 
   const handleClick = (index: number) => {
-    if (board[index] || winner) return;
+    if (!Number.isInteger(index) || index < 0 || index >= board.length || board[index] || winner) return;
     if (onlineMode) {
       const activePlayer = onlinePlayers[currentTurn];
       if (!gameStarted || !activePlayer || activePlayer.userId !== user?.id) return;
@@ -465,24 +413,26 @@ export default function GamesPage() {
     const newBoard = [...board];
     const mark = isXNext ? 'X' : 'O';
     newBoard[index] = mark;
+    boardRef.current = newBoard;
     setBoard(newBoard);
 
-    if (onlineMode) {
-      const nextIsX = !isXNext;
-      setIsXNext(nextIsX);
-      void channelRef.current?.send({ type: 'broadcast', event: 'state', payload: { board: newBoard, boardSize, isXNext: nextIsX } });
-      return;
-    }
-
-    if (vsAI && isXNext && !calculateWinner(newBoard, boardSize)) {
+    if (vsAI && isXNext && !calculateTicTacToeWinner(newBoard, boardSize)) {
       setIsXNext(false);
-      setTimeout(() => makeAIMove(newBoard), 400);
+      if (aiMoveTimerRef.current !== null) window.clearTimeout(aiMoveTimerRef.current);
+      aiMoveTimerRef.current = window.setTimeout(() => {
+        aiMoveTimerRef.current = null;
+        makeAIMove(newBoard);
+      }, 400);
     } else {
       setIsXNext(!isXNext);
     }
   };
 
   const resetGame = () => {
+    if (aiMoveTimerRef.current !== null) {
+      window.clearTimeout(aiMoveTimerRef.current);
+      aiMoveTimerRef.current = null;
+    }
     if (onlineMode) {
       if (onlineRole !== 'host' || !gameStarted) return;
       publishOnlineSnapshot(Array(boardSize * boardSize).fill(null), boardSize, 0, true, roomCapacity);
@@ -627,7 +577,9 @@ export default function GamesPage() {
               type="button"
               onClick={() => {
                 setBoardSize(size);
-                setBoard(Array(size * size).fill(null));
+                const cleanBoard = Array<TicTacToeCell>(size * size).fill(null);
+                boardRef.current = cleanBoard;
+                setBoard(cleanBoard);
                 setIsXNext(true);
               }}
               disabled={onlineMode}

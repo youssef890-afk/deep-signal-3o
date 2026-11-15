@@ -34,10 +34,11 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            react: ['react', 'react-dom', 'react-router-dom'],
-            supabase: ['@supabase/supabase-js'],
-            motion: ['framer-motion'],
+          manualChunks(id) {
+            const moduleId = id.replaceAll('\\', '/');
+            if (/\/node_modules\/(?:react|react-dom|react-router-dom)\//.test(moduleId)) return 'react';
+            if (moduleId.includes('/node_modules/@supabase/supabase-js/')) return 'supabase';
+            if (moduleId.includes('/node_modules/framer-motion/')) return 'motion';
           },
         },
       },

@@ -67,7 +67,7 @@ export default function DiscoverPage() {
         const [likesResult, bookmarksResult] = postIds.length
           ? await Promise.all([
             supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-            supabase.from('post_bookmarks').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+            supabase.from('saved_posts').select('post_id').eq('user_id', user.id).in('post_id', postIds),
           ])
           : [{ data: [], error: null }, { data: [], error: null }];
         if (likesResult.error) throw likesResult.error;

@@ -102,8 +102,8 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
 
     try {
       const { error } = saved
-        ? await supabase.from('post_bookmarks').delete().eq('post_id', post.id).eq('user_id', currentUserId)
-        : await supabase.from('post_bookmarks').insert({ post_id: post.id, user_id: currentUserId });
+        ? await supabase.from('saved_posts').delete().eq('post_id', post.id).eq('user_id', currentUserId)
+        : await supabase.from('saved_posts').insert({ post_id: post.id, user_id: currentUserId });
 
       if (error && !(error.code === '23505' && !saved)) throw error;
       setSaved(!saved);
@@ -373,7 +373,7 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
       {lightboxOpen && !hasVideo && (
         createPortal(<div role="dialog" aria-modal="true" aria-label="عرض الصورة" dir={directionForLanguage(getStoredLanguage())} onMouseDown={(event) => { if (event.target === event.currentTarget) setLightboxOpen(false); }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 p-3 sm:p-8">
           <button type="button" onClick={() => setLightboxOpen(false)} aria-label="إغلاق الصورة" className="absolute inset-inline-start-4 top-4 z-10 rounded-full bg-[var(--text)]/10 p-2 text-[var(--text)] transition hover:scale-105 hover:bg-[var(--text)]/20"><X className="h-6 w-6" /></button>
-          <img src={post.url} alt={post.caption ?? 'منشور'} onClick={(event) => event.stopPropagation()} className="max-h-full max-w-full rounded-lg object-contain" />
+          <img src={post.url ?? undefined} alt={post.caption ?? 'منشور'} onClick={(event) => event.stopPropagation()} className="max-h-full max-w-full rounded-lg object-contain" />
         </div>, document.body)
       )}
     </article>

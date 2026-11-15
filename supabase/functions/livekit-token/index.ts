@@ -1,22 +1,36 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { AccessToken } from 'npm:livekit-server-sdk';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+function corsHeaders(request: Request) {
+  const origin = request.headers.get('origin') ?? '';
+  const configured = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  };
+  if (configured.includes(origin)) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
+}
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, headers: Record<string, string>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json' },
   });
 }
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
+  const headers = corsHeaders(request);
+  const origin = request.headers.get('origin');
+  if (origin !== null && !headers['Access-Control-Allow-Origin']) {
+    return jsonResponse({ error: 'Origin not allowed' }, headers, 403);
+  }
+  if (request.method === 'OPTIONS') return new Response('ok', { headers });
+  if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, headers, 405);
 
   const authorization = request.headers.get('Authorization');
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -26,25 +40,25 @@ Deno.serve(async (request) => {
   const liveKitApiSecret = Deno.env.get('LIVEKIT_API_SECRET');
 
   if (!authorization || !supabaseUrl || !anonKey || !serviceRoleKey || !liveKitApiKey || !liveKitApiSecret) {
-    return jsonResponse({ error: 'Voice service is not configured' }, 503);
+    return jsonResponse({ error: 'Voice service is not configured' }, headers, 503);
   }
 
   const authClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authorization } },
   });
   const { data: authData, error: authError } = await authClient.auth.getUser();
-  if (authError || !authData.user) return jsonResponse({ error: 'Authentication required' }, 401);
+  if (authError || !authData.user) return jsonResponse({ error: 'Authentication required' }, headers, 401);
 
   let requestedRoom: unknown;
   try {
     ({ roomName: requestedRoom } = await request.json());
   } catch {
-    return jsonResponse({ error: 'Invalid request body' }, 400);
+    return jsonResponse({ error: 'Invalid request body' }, headers, 400);
   }
 
-  if (typeof requestedRoom !== 'string') return jsonResponse({ error: 'Invalid room name' }, 400);
+  if (typeof requestedRoom !== 'string') return jsonResponse({ error: 'Invalid room name' }, headers, 400);
   const roomMatch = /^([A-Z0-9]{6})-(all|team-(alpha|beta))$/.exec(requestedRoom);
-  if (!roomMatch) return jsonResponse({ error: 'Invalid room name' }, 400);
+  if (!roomMatch) return jsonResponse({ error: 'Invalid room name' }, headers, 400);
 
   const [, roomCode, , requestedTeam] = roomMatch;
   const admin = createClient(supabaseUrl, serviceRoleKey, {
@@ -55,11 +69,11 @@ Deno.serve(async (request) => {
     admin.from('voice_card_clash_players').select('seat').eq('room_code', roomCode).eq('user_id', authData.user.id).maybeSingle(),
   ]);
 
-  if (roomError || memberError) return jsonResponse({ error: 'Unable to verify room access' }, 500);
-  if (!room?.is_active || !membership) return jsonResponse({ error: 'Room membership required' }, 403);
+  if (roomError || memberError) return jsonResponse({ error: 'Unable to verify room access' }, headers, 500);
+  if (!room?.is_active || !membership) return jsonResponse({ error: 'Room membership required' }, headers, 403);
 
   const assignedTeam = membership.seat < 4 ? 'alpha' : 'beta';
-  if (requestedTeam && requestedTeam !== assignedTeam) return jsonResponse({ error: 'Team voice access denied' }, 403);
+  if (requestedTeam && requestedTeam !== assignedTeam) return jsonResponse({ error: 'Team voice access denied' }, headers, 403);
 
   const token = new AccessToken(liveKitApiKey, liveKitApiSecret, {
     identity: authData.user.id,
@@ -74,5 +88,5 @@ Deno.serve(async (request) => {
     canPublishData: false,
   });
 
-  return jsonResponse({ token: await token.toJwt() });
+  return jsonResponse({ token: await token.toJwt() }, headers);
 });

@@ -101,7 +101,7 @@ export default function FeedPage() {
         if (user?.id && postIds.length > 0) {
           const [likesResult, bookmarksResult] = await Promise.all([
             supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-            supabase.from('post_bookmarks').select('post_id').eq('user_id', user.id).in('post_id', postIds),
+            supabase.from('saved_posts').select('post_id').eq('user_id', user.id).in('post_id', postIds),
           ]);
           if (likesResult.error) throw likesResult.error;
           if (bookmarksResult.error) throw bookmarksResult.error;

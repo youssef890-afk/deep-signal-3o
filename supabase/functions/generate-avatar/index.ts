@@ -112,15 +112,13 @@ function originHeaders(request: Request): Record<string, string> {
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
-  const allowOrigin = configured.length === 0
-    ? '*'
-    : configured.includes(origin) ? origin : configured[0];
-  return {
-    'Access-Control-Allow-Origin': allowOrigin,
+  const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     Vary: 'Origin',
   };
+  if (configured.includes(origin)) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
 }
 
 function json(body: unknown, status: number, headers: Record<string, string>) {
@@ -195,6 +193,9 @@ function generatedAvatarPath(url: string | null, userId: string, supabaseUrl: st
 
 Deno.serve(async (request) => {
   const headers = originHeaders(request);
+  if (request.headers.get('origin') !== null && !headers['Access-Control-Allow-Origin']) {
+    return json({ error: 'Origin not allowed' }, 403, headers);
+  }
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, headers);
 

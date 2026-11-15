@@ -47,21 +47,13 @@ function originHeaders(request: Request): Record<string, string> {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  // Empty configuration keeps the historical "*" behaviour. The endpoint is
-  // still authenticated; configure ALLOWED_ORIGINS to restrict browser origins.
-  const allowOrigin =
-    configured.length === 0
-      ? '*'
-      : configured.includes(requestOrigin)
-        ? requestOrigin
-        : configured[0];
-
-  return {
-    'Access-Control-Allow-Origin': allowOrigin,
+  const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     Vary: 'Origin',
   };
+  if (configured.includes(requestOrigin)) headers['Access-Control-Allow-Origin'] = requestOrigin;
+  return headers;
 }
 
 function json(body: unknown, status: number, headers: Record<string, string>) {
@@ -235,6 +227,9 @@ async function callProvider(
 }
 Deno.serve(async (request) => {
   const headers = originHeaders(request);
+  if (request.headers.get('origin') !== null && !headers['Access-Control-Allow-Origin']) {
+    return json({ error: 'Origin not allowed' }, 403, headers);
+  }
   if (request.method === 'OPTIONS') return new Response('ok', { headers });
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, headers);
 

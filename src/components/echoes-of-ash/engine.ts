@@ -63,12 +63,12 @@ export class GameEngine {
   player: THREE.Group;
   playerSword: THREE.Group;
   playerPistol: THREE.Group;
-  playerBody: THREE.Mesh;
-  playerHead: THREE.Mesh;
-  playerLegL: THREE.Mesh;
-  playerLegR: THREE.Mesh;
-  playerArmL: THREE.Mesh;
-  playerArmR: THREE.Mesh;
+  playerBody!: THREE.Mesh;
+  playerHead!: THREE.Mesh;
+  playerLegL!: THREE.Mesh;
+  playerLegR!: THREE.Mesh;
+  playerArmL!: THREE.Mesh;
+  playerArmR!: THREE.Mesh;
 
   enemies: Enemy[] = [];
   enemyProjectiles: EnemyProjectile[] = [];

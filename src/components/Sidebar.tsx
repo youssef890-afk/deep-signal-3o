@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Compass, Gamepad2, House, MessagesSquare, Radio, Settings2, Sparkles, Video } from 'lucide-react';
+import { Compass, Heart, House, MessagesSquare, Radio, Settings2, Sparkles, Video } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Avatar from '@/components/Avatar';
 import { DSLogo } from '@/components/icons/BrandIcons';
@@ -11,7 +11,7 @@ const items = [
   { to: '/feed', label: 'الرئيسية', Icon: House },
   { to: '/discover', label: 'اكتشف', Icon: Compass },
   { to: '/rooms', label: 'الغرف الصوتية', Icon: Radio },
-  { to: '/games', label: 'الألعاب', Icon: Gamepad2 },
+  { to: '/games', label: 'الألعاب', Icon: Heart },
   { to: '/reels', label: 'ريلز', Icon: Video },
   { to: '/jokal', label: 'aiPageTitle', Icon: Sparkles },
   { to: '/chat', label: 'الرسائل', Icon: MessagesSquare },

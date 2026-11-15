@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Compass, Gamepad2, House, MessagesSquare, Radio, Sparkles, UserRound, Video } from 'lucide-react';
+import { Compass, Heart, House, MessagesSquare, Radio, Sparkles, UserRound, Video } from 'lucide-react';
 import { useMessages } from '@/context/MessagesContext';
 import { useAuth } from '@/context/AuthContext';
 import AnimatedAvatar from '@/components/AnimatedAvatar';
@@ -11,7 +11,7 @@ const items = [
   { path: '/feed', Icon: House, label: 'الرئيسية' },
   { path: '/discover', Icon: Compass, label: 'اكتشف' },
   { path: '/rooms', Icon: Radio, label: 'الغرف' },
-  { path: '/games', Icon: Gamepad2, label: 'الألعاب' },
+  { path: '/games', Icon: Heart, label: 'الألعاب' },
   { path: '/reels', Icon: Video, label: 'ريلز' },
   { path: '/jokal', Icon: Sparkles, label: 'aiPageTitle' },
   { path: '/chat', Icon: MessagesSquare, label: 'الرسائل' },

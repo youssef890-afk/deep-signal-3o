@@ -8,14 +8,16 @@ import MobileNav from '@/components/MobileNav';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PageBackground from '@/components/PageBackground';
+import QuickNavigationMenu from '@/components/QuickNavigationMenu';
 import { useHostHeartbeat, useStaleRoomSweeper } from '@/hooks/useRoomPresence';
+import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
 import { OnlinePresenceProvider } from '@/hooks/useOnlinePresence';
 import AuthEntryPage from '@/pages/AuthEntryPage';
 import AuthRecoveryPage from '@/pages/AuthRecoveryPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import LegalPage from '@/pages/LegalPage';
 import Youssef555Page from '@/pages/Youssef555Page';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw, WifiOff } from 'lucide-react';
 import { DSLogo } from '@/components/icons/BrandIcons';
 import { directionForLanguage, getStoredLanguage, LANGUAGE_CHANGE_EVENT, type Language } from '@/lib/i18n';
 
@@ -46,8 +48,11 @@ const AvatarStudioPage = lazy(() => import('@/pages/AvatarStudioPage'));
 
 function RouteFallback() {
   return (
-    <div className="grid min-h-[60vh] place-items-center" role="status" aria-label="جارٍ التحميل">
-      <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
+    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-6" role="status" aria-label="جارٍ التحميل" aria-busy="true">
+      <div className="skeleton h-40 rounded-3xl" />
+      <div className="skeleton h-5 w-2/5 rounded-full" />
+      <div className="skeleton h-24 rounded-2xl" />
+      <div className="skeleton h-24 rounded-2xl" />
     </div>
   );
 }
@@ -55,6 +60,7 @@ function RouteFallback() {
 function ProtectedLayout({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const location = useLocation();
+  const { status: connectionStatus, retry: retryConnection } = useSupabaseConnection();
   useHostHeartbeat(!!user);
   useStaleRoomSweeper(!!user);
   const [direction, setDirection] = useState<'rtl' | 'ltr'>(() =>
@@ -86,6 +92,37 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
           </div>
           <div dir={direction} className="relative z-10 min-h-[100dvh] min-w-0">
             <Navbar direction={direction} onToggleDirection={() => setDirection((current) => current === 'rtl' ? 'ltr' : 'rtl')} />
+            {connectionStatus !== 'connected' && (
+              <div className="mx-auto max-w-[1500px] px-3 pt-3 sm:px-6">
+                <div
+                  role={connectionStatus === 'checking' ? 'status' : 'alert'}
+                  aria-live="polite"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white shadow-lg backdrop-blur-xl"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    {connectionStatus === 'checking'
+                      ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--accent)]" />
+                      : <WifiOff className="h-4 w-4 shrink-0 text-amber-300" />}
+                    <span>
+                      {connectionStatus === 'checking'
+                        ? 'جارٍ التحقق من الاتصال...'
+                        : connectionStatus === 'offline'
+                          ? 'لا يوجد اتصال بالإنترنت. تحقق من الشبكة ثم أعد المحاولة.'
+                          : 'تعذر الاتصال بخدمات Deep Signal. تحقق من الاتصال وإعدادات Supabase ثم أعد المحاولة.'}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void retryConnection()}
+                    disabled={connectionStatus === 'checking'}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${connectionStatus === 'checking' ? 'animate-spin' : ''}`} />
+                    إعادة المحاولة
+                  </button>
+                </div>
+              </div>
+            )}
             <main className="min-h-[calc(100dvh-72px)] pb-[92px] lg:pb-8">
               <AnimatePresence mode="wait">
                 <div key={location.pathname}>
@@ -98,6 +135,7 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
         <div className="lg:hidden">
           <MobileNav />
         </div>
+        <QuickNavigationMenu />
       </div>
     </OnlinePresenceProvider>
   );
