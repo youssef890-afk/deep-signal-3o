@@ -10,8 +10,8 @@ type Props = {
   language: Language;
   onSelect: (language: Language) => void;
   onOpenChange?: (open: boolean) => void;
-  compactAnchorRef: RefObject<HTMLDivElement>;
-  robotRef: RefObject<HTMLDivElement>;
+  compactAnchorRef: RefObject<HTMLDivElement | null>;
+  robotRef: RefObject<HTMLDivElement | null>;
 };
 
 type LanguageLabel = LanguageOption & {

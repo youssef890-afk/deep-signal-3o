@@ -34,9 +34,9 @@ export default function LoginWelcomeScene({ language, isTalking, status, compact
       className="relative mx-auto flex w-full max-w-sm flex-col items-center px-2 pb-0 pt-0 text-center"
       aria-label={robotLabel}
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-12 top-6 h-28 rounded-full bg-[#22C55E]/10 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-12 top-6 h-28 rounded-full bg-[var(--accent)]/10 blur-3xl" />
       {activeStatus === 'thinking' && !reduceMotion && (
-        <span aria-hidden="true" className="login-robot-speaking-ring pointer-events-none absolute top-16 h-28 w-28 rounded-full border border-[#22C55E]/30" />
+        <span aria-hidden="true" className="login-robot-speaking-ring pointer-events-none absolute top-16 h-28 w-28 rounded-full border border-[var(--accent)]/30" />
       )}
       <div className={`relative z-10 ${compact ? 'h-28 w-36 sm:h-32 sm:w-40' : 'h-36 w-44 sm:h-40 sm:w-48'}`}>
         <svg
@@ -64,13 +64,13 @@ export default function LoginWelcomeScene({ language, isTalking, status, compact
           <path d="M75 60c-12 0-18 8-18 20s6 20 18 20M165 60c12 0 18 8 18 20s-6 20-18 20" fill="none" stroke="#B8B1A5" strokeWidth="6" strokeLinecap="round" />
           <path d="M120 19V8m0 0c-7 0-11-5-11-9" fill="none" stroke="#F5F2EB" strokeWidth="4" strokeLinecap="round" />
           <circle cx="109" cy="-1" r="5" fill="#F5F2EB" filter="url(#robot-glow)" />
-          <ellipse className="login-robot-eye" cx="106" cy="72" rx="7" ry="9" fill="#22C55E" filter="url(#robot-glow)" />
-          <ellipse className="login-robot-eye login-robot-eye--delayed" cx="144" cy="72" rx="7" ry="9" fill="#22C55E" filter="url(#robot-glow)" />
+          <ellipse className="login-robot-eye" cx="106" cy="72" rx="7" ry="9" fill="var(--accent)" filter="url(#robot-glow)" />
+          <ellipse className="login-robot-eye login-robot-eye--delayed" cx="144" cy="72" rx="7" ry="9" fill="var(--accent)" filter="url(#robot-glow)" />
           <circle cx="106" cy="72" r="2.4" fill="#171614" transform={`translate(${gaze.x} ${gaze.y})`} />
           <circle cx="144" cy="72" r="2.4" fill="#171614" transform={`translate(${gaze.x} ${gaze.y})`} />
           <path d="M119 88h12" stroke="#F5F2EB" strokeWidth="3" strokeLinecap="round" opacity=".9" />
           <ellipse className="login-robot-mouth" cx="125" cy="103" rx="8" ry="2.5" fill="#F5F2EB" />
-          <circle cx="120" cy="163" r="4" fill="#22C55E" filter="url(#robot-glow)" />
+          <circle cx="120" cy="163" r="4" fill="var(--accent)" filter="url(#robot-glow)" />
         </svg>
       </div>
       <div aria-hidden="true" className="relative z-10 -mt-2 h-px w-24 bg-gradient-to-r from-transparent via-[#F5F2EB]/60 to-transparent" />

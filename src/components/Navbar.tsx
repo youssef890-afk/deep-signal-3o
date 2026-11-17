@@ -265,7 +265,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
             onClick={onToggleDirection}
             aria-label={`تبديل الاتجاه إلى ${direction === 'rtl' ? 'LTR' : 'RTL'}`}
             title={`تبديل الاتجاه إلى ${direction === 'rtl' ? 'LTR' : 'RTL'}`}
-            className="grid h-9 w-9 place-items-center rounded-lg text-[var(--text)]/45 transition hover:bg-[var(--text)]/[0.06] hover:text-[var(--text)]"
+            className="hidden h-9 w-9 place-items-center rounded-lg text-[var(--text)]/45 transition hover:bg-[var(--text)]/[0.06] hover:text-[var(--text)] lg:grid"
           >
             <ArrowLeftRight className="h-4 w-4" />
           </button>
@@ -273,7 +273,7 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           to="/games"
           dir="rtl"
           aria-label={`الألعاب، ${online ? 'متصل' : 'غير متصل'}`}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--text)]/10 bg-[var(--text)]/[0.03] px-3 text-[var(--text)]/80 transition hover:border-[var(--text)]/20 hover:bg-[var(--text)]/[0.07]"
+          className="hidden min-h-10 items-center gap-2 rounded-full border border-[var(--text)]/10 bg-[var(--text)]/[0.03] px-3 text-[var(--text)]/80 transition hover:border-[var(--text)]/20 hover:bg-[var(--text)]/[0.07] lg:inline-flex"
           >
             <Heart className="h-[19px] w-[19px] text-[var(--text)]" />
             <span className="hidden text-xs font-medium sm:inline">الألعاب</span>

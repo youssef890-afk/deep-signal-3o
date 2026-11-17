@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpLeft, Compass, Gamepad2, Image, Mic2, Plus, Smile, Sparkles, Video } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
 import Avatar from '@/components/Avatar';
+import HeroSection from '@/components/HeroSection';
 import { Button, Card } from '@/components/ui';
 import { useOnlinePresenceProfiles, useOnlineUsers, type PresenceProfile } from '@/hooks/useOnlinePresence';
 
@@ -181,6 +182,9 @@ export default function FeedPage() {
         <span className="absolute -top-40 start-[10%] h-96 w-96 rounded-full bg-[var(--accent)]/10 blur-[120px]" />
         <span className="absolute top-40 end-[18%] h-72 w-72 rounded-full bg-[var(--accent)]/[0.06] blur-[110px]" />
         <span className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-[var(--bg)]" />
+      </div>
+      <div className="relative z-10 px-4 pt-3 sm:px-6 sm:pt-5">
+        <HeroSection />
       </div>
       <div className="relative z-10 mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 px-4 pb-24 pt-3 sm:px-6 sm:pt-5 xl:grid-cols-[minmax(0,680px)_320px] xl:gap-6 2xl:grid-cols-[260px_minmax(0,680px)_300px] 2xl:gap-5">
         <aside className="hidden 2xl:block">

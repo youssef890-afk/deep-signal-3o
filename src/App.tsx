@@ -40,6 +40,7 @@ const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'));
 const GamesPage = lazy(() => import('@/pages/GamesPage'));
 const VoiceCardClashPage = lazy(() => import('@/pages/VoiceCardClashPage'));
 const EchoesOfAshPage = lazy(() => import('@/pages/EchoesOfAshPage'));
+const EchoOfAshesPage = lazy(() => import('@/pages/EchoOfAshesPage'));
 const ZombieGamePage = lazy(() => import('@/pages/ZombieGamePage'));
 const JokalPage = lazy(() => import('@/pages/JokalPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
@@ -123,7 +124,7 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
                 </div>
               </div>
             )}
-            <main className="min-h-[calc(100dvh-72px)] pb-[92px] lg:pb-8">
+            <main className="min-h-[calc(100dvh-72px)] pb-[calc(80px_+_env(safe-area-inset-bottom))] lg:pb-8">
               <AnimatePresence mode="wait">
                 <div key={location.pathname}>
                   <Suspense fallback={<RouteFallback />}>{children}</Suspense>
@@ -133,7 +134,7 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="lg:hidden">
-          <MobileNav />
+          <MobileNav direction={direction} onToggleDirection={() => setDirection((current) => current === 'rtl' ? 'ltr' : 'rtl')} />
         </div>
         <QuickNavigationMenu />
       </div>
@@ -245,6 +246,7 @@ function AuthGate() {
         <Route path="/jokal" element={<ProtectedLayout><JokalPage /></ProtectedLayout>} />
         <Route path="/games/voice-card-clash" element={<ProtectedLayout><VoiceCardClashPage /></ProtectedLayout>} />
         <Route path="/games/echoes-of-ash" element={<ProtectedLayout><EchoesOfAshPage /></ProtectedLayout>} />
+        <Route path="/games/echo-of-ashes" element={<Suspense fallback={<RouteFallback />}><EchoOfAshesPage /></Suspense>} />
         <Route path="/games/zombie" element={<ProtectedLayout><ZombieGamePage /></ProtectedLayout>} />
         <Route path="/chat" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />
         <Route path="/chat/:userId" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />

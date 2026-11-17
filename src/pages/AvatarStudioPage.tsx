@@ -52,7 +52,7 @@ const groups = [
   { id: 'scene', label: 'الخلفية', Icon: Eye, fields: ['background'] },
 ] as const;
 
-function AvatarIllustration({ config, svgRef }: { config: AvatarConfig; svgRef?: RefObject<SVGSVGElement> }) {
+function AvatarIllustration({ config, svgRef }: { config: AvatarConfig; svgRef?: RefObject<SVGSVGElement | null> }) {
   const facePath = config.face === 'round'
     ? 'M180 92 C116 92 104 146 111 207 C117 260 146 290 180 290 C214 290 243 260 249 207 C256 146 244 92 180 92Z'
     : config.face === 'square'

@@ -37,7 +37,7 @@ export default function QuickNavigationMenu() {
           className="fixed inset-0 z-[54] cursor-default bg-black/10"
         />
       )}
-      <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-[55] h-14 w-14 lg:bottom-6">
+      <div className="fixed bottom-6 right-4 z-[55] hidden h-14 w-14 lg:block">
         <div id="quick-navigation-items" aria-hidden={!open}>
           {items.map(({ to, label, Icon, x, y }, index) => (
             <Link

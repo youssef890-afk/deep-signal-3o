@@ -17,8 +17,8 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue>({
   theme: 'obsidian',
   mode: 'dark',
-  palette: 'obsidian',
-  accentColor: '#22C55E',
+  palette: 'royal',
+  accentColor: '#F97316',
   setTheme: () => undefined,
   setMode: () => undefined,
   setAccentColor: () => undefined,
@@ -55,7 +55,7 @@ function accentForeground(hex: string): string {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [palette, setPaletteState] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('ds-theme');
-    return isThemeName(saved) ? saved : 'obsidian';
+    return isThemeName(saved) ? saved : 'royal';
   });
   const [mode, setModeState] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('ds-theme-mode');
@@ -65,12 +65,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const savedMode = localStorage.getItem('ds-theme-mode');
     if (isThemeMode(savedMode)) return savedMode;
     const savedPalette = localStorage.getItem('ds-theme');
-    return isThemeName(savedPalette) ? savedPalette : 'obsidian';
+    return isThemeName(savedPalette) ? savedPalette : 'royal';
   });
   const [accentColor, setAccentColorState] = useState(() => {
     const saved = localStorage.getItem('ds-accent-color');
-    if (saved?.toUpperCase() === '#FB7185') return '#22C55E';
-    return saved && /^#[0-9a-fA-F]{6}$/.test(saved) ? saved : '#22C55E';
+    if (saved?.toUpperCase() === '#FB7185' || saved?.toUpperCase() === '#22C55E') return '#F97316';
+    return saved && /^#[0-9a-fA-F]{6}$/.test(saved) ? saved : '#F97316';
   });
 
   useEffect(() => {
@@ -80,10 +80,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.colorScheme = mode === 'auto' ? 'light dark' : mode;
     root.style.setProperty('--accent', accentColor);
     root.style.setProperty('--accent-foreground', accentForeground(accentColor));
+    root.style.setProperty('--accent-secondary', '#A855F7');
     root.style.setProperty('--accent-soft', withAlpha(accentColor, 0.15));
     root.style.setProperty('--accent-ring', withAlpha(accentColor, 0.38));
     root.style.setProperty('--accent-glow', withAlpha(accentColor, 0.55));
-    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${accentColor}, ${accentColor})`);
+    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, #A855F7, ${accentColor})`);
     localStorage.setItem('ds-theme', palette);
     localStorage.setItem('ds-theme-mode', mode);
     localStorage.setItem('ds-accent-color', accentColor);
