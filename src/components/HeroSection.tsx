@@ -18,13 +18,13 @@ export default function HeroSection() {
             تواصل <span className="text-orange-400">بلا حدود</span>
           </h2>
           <p className="mt-4 max-w-md text-sm leading-7 text-white/75 sm:text-base">
-            دردش، شارك لحظاتك، والعب مع مجتمعك في تجربة خفيفة وسريعة.
+            دردش، شارك لحظاتك، وتواصل مع مجتمعك في تجربة خفيفة وسريعة.
           </p>
           <Link
-            to="/games"
+            to="/discover"
             className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl border border-orange-300/70 bg-orange-500 px-5 py-3 text-sm font-bold text-black shadow-[0_0_28px_rgba(249,115,22,0.55)] transition hover:bg-orange-400 hover:shadow-[0_0_40px_rgba(249,115,22,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#17110d]"
           >
-            استكشف الألعاب <ArrowUpLeft aria-hidden="true" className="h-4 w-4" />
+            اكتشف المجتمع <ArrowUpLeft aria-hidden="true" className="h-4 w-4" />
           </Link>
         </div>
       </div>

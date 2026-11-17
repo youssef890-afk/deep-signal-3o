@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeftRight, Compass, Ellipsis, Gamepad2, House, MessagesSquare, Radio, Settings2, Sparkles, UserRound, Video, WandSparkles, X } from 'lucide-react';
+import { ArrowLeftRight, Compass, Ellipsis, House, MessagesSquare, Radio, Settings2, Sparkles, UserRound, Video, WandSparkles, X } from 'lucide-react';
 import { useMessages } from '@/context/MessagesContext';
 import { useAuth } from '@/context/AuthContext';
 import { getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language } from '@/lib/i18n';
@@ -9,7 +9,6 @@ import { getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language } fr
 const primaryItems = [
   { path: '/feed', Icon: House, label: 'الرئيسية' },
   { path: '/discover', Icon: Compass, label: 'اكتشف' },
-  { path: '/games', Icon: Gamepad2, label: 'الألعاب' },
   { path: '/chat', Icon: MessagesSquare, label: 'الرسائل' },
 ];
 

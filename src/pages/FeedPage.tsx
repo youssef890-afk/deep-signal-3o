@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import PostCard, { type PostCardPost } from '@/components/PostCard';
 import { Link } from 'react-router-dom';
-import { ArrowUpLeft, Compass, Gamepad2, Image, Mic2, Plus, Smile, Sparkles, Video } from 'lucide-react';
+import { ArrowUpLeft, Compass, Image, Mic2, Plus, Smile, Sparkles, Video } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
 import Avatar from '@/components/Avatar';
 import HeroSection from '@/components/HeroSection';
@@ -340,7 +340,6 @@ export default function FeedPage() {
             <Card className="rounded-2xl border border-white/10 bg-[var(--surface)] p-4">
               <h2 className="mb-3 text-sm font-bold">اختصارات</h2>
               <nav className="space-y-1">
-                <Link to="/games" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-[var(--text)]/70 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"><Gamepad2 className="h-4 w-4 text-[var(--accent)]" />الألعاب</Link>
                 <Link to="/rooms" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-[var(--text)]/70 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"><Mic2 className="h-4 w-4 text-[var(--accent)]" />الغرف الصوتية</Link>
                 <Link to="/jokal" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs text-[var(--text)]/70 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"><Sparkles className="h-4 w-4 text-[var(--accent)]" />مساعد Signal</Link>
               </nav>

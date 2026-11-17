@@ -26,7 +26,6 @@ interface UserActivityRow {
 export default function Navbar({ direction, onToggleDirection }: { direction: 'rtl' | 'ltr'; onToggleDirection: () => void }) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [online, setOnline] = useState(() => navigator.onLine);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -84,16 +83,6 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
       setProfileMenuPosition({ ...profileMenuPosition, top });
     }
   }, [profileMenuOpen, profileMenuPosition]);
-
-  useEffect(() => {
-    const setOnlineStatus = () => setOnline(navigator.onLine);
-    window.addEventListener('online', setOnlineStatus);
-    window.addEventListener('offline', setOnlineStatus);
-    return () => {
-      window.removeEventListener('online', setOnlineStatus);
-      window.removeEventListener('offline', setOnlineStatus);
-    };
-  }, []);
 
   useEffect(() => {
     if (!notificationsOpen || !user) return;
@@ -269,17 +258,6 @@ export default function Navbar({ direction, onToggleDirection }: { direction: 'r
           >
             <ArrowLeftRight className="h-4 w-4" />
           </button>
-          <Link
-          to="/games"
-          dir="rtl"
-          aria-label={`الألعاب، ${online ? 'متصل' : 'غير متصل'}`}
-          className="hidden min-h-10 items-center gap-2 rounded-full border border-[var(--text)]/10 bg-[var(--text)]/[0.03] px-3 text-[var(--text)]/80 transition hover:border-[var(--text)]/20 hover:bg-[var(--text)]/[0.07] lg:inline-flex"
-          >
-            <Heart className="h-[19px] w-[19px] text-[var(--text)]" />
-            <span className="hidden text-xs font-medium sm:inline">الألعاب</span>
-            <span className={`h-2 w-2 rounded-full ${online ? 'bg-[var(--success)]' : 'bg-[var(--text-muted)]/50'}`} />
-            <span className="hidden text-[10px] text-[var(--text)]/45 md:inline">{online ? 'متصل' : 'أوفلاين'}</span>
-          </Link>
           <div className="relative">
             <button
               ref={profileMenuAnchorRef}

@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Heart, House, MessagesSquare, Plus, Radio, Sparkles, X } from 'lucide-react';
+import { House, MessagesSquare, Plus, Radio, Sparkles, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const items = [
   { to: '/feed', label: 'الموجز', Icon: House, x: 160, y: 18 },
   { to: '/rooms', label: 'الغرف الصوتية', Icon: Radio, x: 132, y: 66 },
-  { to: '/games', label: 'الألعاب', Icon: Heart, x: 94, y: 108 },
-  { to: '/jokal', label: 'الذكاء الاصطناعي', Icon: Sparkles, x: 48, y: 138 },
-  { to: '/chat', label: 'الرسائل', Icon: MessagesSquare, x: 0, y: 152 },
+  { to: '/jokal', label: 'الذكاء الاصطناعي', Icon: Sparkles, x: 72, y: 124 },
+  { to: '/chat', label: 'الرسائل', Icon: MessagesSquare, x: 12, y: 142 },
 ];
 
 export default function QuickNavigationMenu() {

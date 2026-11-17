@@ -4,9 +4,16 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm ci",
+  "redirects": [
+    {
+      "source": "/zombie-game.html",
+      "destination": "/feed",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
-      "source": "/((?!assets/|sw\\.js$|manifest\\.json$|zombie-game\\.html$|icon).*)",
+      "source": "/((?!assets/|sw\\.js$|manifest\\.json$|icon).*)",
       "destination": "/index.html"
     }
   ],

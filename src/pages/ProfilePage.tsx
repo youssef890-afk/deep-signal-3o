@@ -181,19 +181,9 @@ export default function ProfilePage() {
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const recentPosts = loadedPosts.filter((post) => Date.parse(post.created_at) >= Date.parse(weekAgo)).length;
-      const { data: scores, error: scoresError } = await supabase
-        .from('game_scores')
-        .select('points')
-        .eq('user_id', profileId)
-        .gte('created_at', weekAgo);
-      if (scoresError) {
-        console.warn('Weekly profile game scores are unavailable; verify the Supabase migrations:', scoresError);
-      }
-      const weeklyPoints = (scores ?? []).reduce((sum, score) => sum + score.points, 0);
       const nextBadges: ProfileBadge[] = [];
       if (loadedPosts.length >= 5) nextBadges.push({ id: 'creator', label: 'صانع محتوى', className: 'border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]' });
       if (recentPosts >= 3) nextBadges.push({ id: 'active', label: 'نشيط هذا الأسبوع', className: 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' });
-      if (weeklyPoints >= 15) nextBadges.push({ id: 'gamer', label: 'بطل الألعاب', className: 'border-[var(--accent-secondary)]/20 bg-[var(--accent-secondary)]/10 text-[var(--accent-secondary)]' });
       setProfileBadges(nextBadges);
 
       // عدد المتابعين

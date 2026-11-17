@@ -37,9 +37,6 @@ const DiscoverPage = lazy(() => import('@/pages/DiscoverPage'));
 const RoomsPage = lazy(() => import('@/pages/RoomsPage'));
 const ReelsPage = lazy(() => import('@/pages/ReelsPage'));
 const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'));
-const GamesPage = lazy(() => import('@/pages/GamesPage'));
-const VoiceCardClashPage = lazy(() => import('@/pages/VoiceCardClashPage'));
-const ZombieGamePage = lazy(() => import('@/pages/ZombieGamePage'));
 const JokalPage = lazy(() => import('@/pages/JokalPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const AvatarOnboardingPage = lazy(() => import('@/pages/AvatarOnboardingPage'));
@@ -240,10 +237,7 @@ function AuthGate() {
         <Route path="/rooms" element={<ProtectedLayout><RoomsPage /></ProtectedLayout>} />
         <Route path="/rooms/:roomId" element={<ProtectedLayout><RoomDetailPage /></ProtectedLayout>} />
         <Route path="/reels" element={<ProtectedLayout><ReelsPage /></ProtectedLayout>} />
-        <Route path="/games" element={<ProtectedLayout><GamesPage /></ProtectedLayout>} />
         <Route path="/jokal" element={<ProtectedLayout><JokalPage /></ProtectedLayout>} />
-        <Route path="/games/voice-card-clash" element={<ProtectedLayout><VoiceCardClashPage /></ProtectedLayout>} />
-        <Route path="/games/zombie" element={<ProtectedLayout><ZombieGamePage /></ProtectedLayout>} />
         <Route path="/chat" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />
         <Route path="/chat/:userId" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />
         <Route path="/profile" element={<ProtectedLayout><ProfilePage /></ProtectedLayout>} />
