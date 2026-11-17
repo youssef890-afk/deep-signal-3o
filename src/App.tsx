@@ -39,8 +39,6 @@ const ReelsPage = lazy(() => import('@/pages/ReelsPage'));
 const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'));
 const GamesPage = lazy(() => import('@/pages/GamesPage'));
 const VoiceCardClashPage = lazy(() => import('@/pages/VoiceCardClashPage'));
-const EchoesOfAshPage = lazy(() => import('@/pages/EchoesOfAshPage'));
-const EchoOfAshesPage = lazy(() => import('@/pages/EchoOfAshesPage'));
 const ZombieGamePage = lazy(() => import('@/pages/ZombieGamePage'));
 const JokalPage = lazy(() => import('@/pages/JokalPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
@@ -245,8 +243,6 @@ function AuthGate() {
         <Route path="/games" element={<ProtectedLayout><GamesPage /></ProtectedLayout>} />
         <Route path="/jokal" element={<ProtectedLayout><JokalPage /></ProtectedLayout>} />
         <Route path="/games/voice-card-clash" element={<ProtectedLayout><VoiceCardClashPage /></ProtectedLayout>} />
-        <Route path="/games/echoes-of-ash" element={<ProtectedLayout><EchoesOfAshPage /></ProtectedLayout>} />
-        <Route path="/games/echo-of-ashes" element={<Suspense fallback={<RouteFallback />}><EchoOfAshesPage /></Suspense>} />
         <Route path="/games/zombie" element={<ProtectedLayout><ZombieGamePage /></ProtectedLayout>} />
         <Route path="/chat" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />
         <Route path="/chat/:userId" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />
