@@ -86,12 +86,9 @@ export function OnlinePresenceProvider({ userId, loadRecentProfiles = false, chi
 
     return () => {
       active = false;
-      void (async () => {
-        const untrackStatus = await channel.untrack();
-        if (untrackStatus !== 'ok') console.error('Online presence untrack failed:', untrackStatus);
-        const removeStatus = await supabase.removeChannel(channel);
+      void supabase.removeChannel(channel).then((removeStatus) => {
         if (removeStatus !== 'ok') console.error('Online presence channel cleanup failed:', removeStatus);
-      })();
+      });
     };
   }, [userId]);
 

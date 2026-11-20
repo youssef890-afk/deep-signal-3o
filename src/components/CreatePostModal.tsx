@@ -410,7 +410,6 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             user_id: user.id,
             post_type: 'audio',
             caption: content.trim() || null,
-            audio_url: audioUrl,
             media_urls: [audioUrl],
             image_url: null,
             video_url: null,

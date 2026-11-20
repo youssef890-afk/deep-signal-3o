@@ -7,7 +7,7 @@ import { useMessages } from '@/context/MessagesContext';
 import { useDirectCall } from '@/hooks/useDirectCall';
 import AnimatedAvatar from '@/components/AnimatedAvatar';
 import Handle from '@/components/Handle';
-import { Send, ArrowLeft, Loader2, MessageCircle, Mic, Square, AudioLines, Video, VideoOff, MicOff, PhoneOff, PhoneCall, Smartphone, Search, X, PhoneIncoming } from 'lucide-react';
+import { Send, ArrowLeft, Loader2, MessageCircle, Mic, AudioLines, Video, VideoOff, MicOff, PhoneOff, PhoneCall, Smartphone, Search, X, PhoneIncoming } from 'lucide-react';
 import { formatTime } from '@/utils/format';
 import type { Profile, Message } from '@/types';
 import { useModalScrollLock } from '@/hooks/useModalLayer';
@@ -286,6 +286,10 @@ export default function ChatPage() {
       setVoiceError('microphoneUnavailable');
       return;
     }
+    if (typeof MediaRecorder === 'undefined') {
+      setVoiceError('microphoneUnavailable');
+      return;
+    }
     try {
       const microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
       microphoneRef.current = microphone;
@@ -305,7 +309,15 @@ export default function ChatPage() {
         recordingStream = destination.stream;
       }
 
-      const recorder = new MediaRecorder(recordingStream);
+      const supportedMimeType = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+      ].find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+      const recorder = supportedMimeType
+        ? new MediaRecorder(recordingStream, { mimeType: supportedMimeType })
+        : new MediaRecorder(recordingStream);
       recorderRef.current = recorder;
       audioChunksRef.current = [];
       recorder.ondataavailable = (event) => {
@@ -321,7 +333,10 @@ export default function ChatPage() {
         audioContextRef.current = null;
         setSending(true);
         void sendVoiceNote(voiceBlob, duration)
-          .catch((error: unknown) => setVoiceError(voiceErrorKey(error)))
+          .catch((error: unknown) => {
+            console.error('Voice note send failed:', error);
+            setVoiceError(voiceErrorKey(error));
+          })
           .finally(() => setSending(false));
       };
       recordingStartedAtRef.current = Date.now();
@@ -494,7 +509,10 @@ export default function ChatPage() {
                     </select>
                   </label>
                   <button type="button" onClick={isRecording ? stopVoiceRecording : () => void startVoiceRecording()} disabled={sending || !activeUserId} className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[10px] font-semibold transition disabled:opacity-40 ${isRecording ? 'bg-accent-soft text-accent' : 'text-[var(--accent)] hover:bg-white/[0.05]'}`}>
-                    {isRecording ? <Square className="h-3 w-3 fill-current" /> : <Mic className="h-3.5 w-3.5" />}
+                    <span className="relative grid h-3.5 w-3.5 shrink-0 place-items-center" aria-hidden="true">
+                      <Mic className={`absolute h-3.5 w-3.5 transition-opacity ${isRecording ? 'opacity-0' : 'opacity-100'}`} />
+                      <span className={`absolute h-2 w-2 rounded-[1px] bg-current transition-opacity ${isRecording ? 'opacity-100' : 'opacity-0'}`} />
+                    </span>
                     {isRecording ? `إيقاف ${recordingSeconds}s` : sending ? 'جارٍ الإرسال...' : 'رسالة صوتية'}
                   </button>
                   {voiceError && <p role="alert" className="w-full text-[10px] text-[var(--error)]">{t(voiceError)}</p>}

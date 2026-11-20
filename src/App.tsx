@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { MessagesProvider } from '@/context/MessagesContext';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -120,11 +119,9 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
               </div>
             )}
             <main className="min-h-[calc(100dvh-72px)] pb-[calc(80px_+_env(safe-area-inset-bottom))] lg:pb-8">
-              <AnimatePresence mode="wait">
-                <div key={location.pathname}>
-                  <Suspense fallback={<RouteFallback />}>{children}</Suspense>
-                </div>
-              </AnimatePresence>
+              <div key={location.pathname}>
+                <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+              </div>
             </main>
           </div>
         </div>

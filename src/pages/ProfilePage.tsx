@@ -42,7 +42,6 @@ interface PostData {
   id: string;
   image_url: string | null;
   video_url: string | null;
-  audio_url: string | null;
   media_urls: string[] | null;
   post_type: 'text' | 'image' | 'video' | 'reel' | 'audio' | null;
   caption: string | null;
@@ -168,7 +167,7 @@ export default function ProfilePage() {
       // جلب منشورات المستخدم
       const { data: posts, error: postsError } = await supabase
         .from('posts')
-        .select('id, image_url, video_url, audio_url, media_urls, post_type, caption, created_at')
+        .select('id, image_url, video_url, media_urls, post_type, caption, created_at')
         .eq('user_id', profileId)
         .order('created_at', { ascending: false });
 
@@ -1351,10 +1350,10 @@ export default function ProfilePage() {
                   relative
                 "
               >
-                {post.audio_url ? (
+                {post.media_urls?.[0] && post.post_type === 'audio' ? (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-emerald-950 to-neutral-950 p-3">
                     <Music2 className="h-8 w-8 text-[var(--accent)]" />
-                    <audio src={post.audio_url} controls className="w-full" />
+                    <audio src={post.media_urls[0]} controls className="w-full" />
                   </div>
                 ) : post.video_url ? (
                   <video
