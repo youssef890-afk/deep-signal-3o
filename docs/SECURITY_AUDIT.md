@@ -1,15 +1,48 @@
 # Deep Signal security audit
 
-Audit date: 2026-11-15. This report is based on local source and read-only production catalog inspection. No secrets or application row contents were displayed.
+Original audit: 2026-11-15. Live follow-up: 2026-11-20. This report is based
+on local source and read-only production catalog inspection. No secrets or
+application row contents were displayed.
+
+## Live follow-up (2026-11-20)
+
+No production changes or authenticated-user probes were made.
+
+- `close_stale_rooms(interval)` remains a `SECURITY DEFINER` routine executable
+  by `PUBLIC`/`anon`, with a caller-controlled interval and membership
+  deletion.
+- Two permissive `room_members` INSERT policies combine with OR. One checks
+  only `auth.uid() = user_id`, bypassing the other policy's active-room and
+  capacity checks. No membership trigger or role check constraint exists.
+  Authenticated users can self-join inactive/full rooms and set
+  `role='owner'`. Critical authorization flaw; no production fix applied.
+- `messages` lacks the three audio-message columns used by the client.
+  `voice-notes` now exists as a private bucket but has no object policies.
+  `realtime.messages` has no policies, matching the `online-users`
+  authorization failure.
+- The migration ledger is 28 local-only versions, four remote-only versions,
+  and zero matching versions. Remote `clear_test_data_keep_schema` contains a
+  destructive `TRUNCATE ... RESTART IDENTITY CASCADE` and no recorded
+  rollback.
+- The backup CLI inventory returned no physical backup entries and reported
+  PITR disabled. A usable recovery point is not verified; database backups
+  also do not include Storage object bytes.
+- The old feed query's 400 was reproduced as missing `posts.audio_url`
+  (`42703`). The current FeedPage request omits that field and passes a
+  no-result PostgREST probe (HTTP 200). This is an integration check of the
+  query shape, not a penetration test.
 
 ## Findings
 
 | Severity | Finding | Evidence / impact | Status |
 | --- | --- | --- | --- |
-| Critical | Anonymous callers can execute `close_stale_rooms(interval)` | The `SECURITY DEFINER` function accepts a caller-selected stale threshold, closes rooms, and deletes `room_members`. Its ACL grants EXECUTE to `PUBLIC` and `anon`. | Local corrective migration prepared; not applied. |
+| Critical | Anonymous callers can execute `close_stale_rooms(interval)` | Live catalog confirms the `SECURITY DEFINER` function accepts a caller-selected stale threshold, closes rooms, and deletes `room_members`; EXECUTE is granted to `PUBLIC` and `anon`. | Local corrections prepared; not applied. |
+| Critical | Authenticated users can bypass room activity/capacity checks | Permissive `room_members` INSERT policies combine with OR; the weaker policy checks only self-membership. No membership trigger or role constraint exists. | Confirmed live; no production change. |
 | High | Authenticated users can upload to other users' Storage paths | Production upload policies check only bucket ID, not `auth.uid()` against the first path segment. | Owner-path policies prepared; not applied. |
-| High | Production migration history does not match the checkout | 26 local migration versions and four different remote versions; many client features depend on local-only schema. | Must reconcile before migrations or release. |
+| High | Production migration history does not match the checkout | 28 local-only versions, four remote-only versions, and zero matching versions; live schema also differs from local types/defaults. | Must reconcile before migrations or release. |
 | High | Private Realtime authorization is absent in production metadata | No policy rows were found for `realtime.messages`; local authorization migration is pending remotely. | Two-account and channel tests remain blocked. |
+| High | Voice-note path is incomplete in production | Audio columns are absent and the private bucket has no `storage.objects` policies. | Local repair is unapplied; signed-in upload/playback not tested. |
+| High | No recoverable backup is verified | CLI reports no physical backups and PITR disabled; Storage object bytes need a separate backup. | No backup/restore drill performed; migration work remains blocked. |
 | High | Client-authoritative game moves and results | Tic-Tac-Toe and Voice Card Clash exchange client-authored state over Realtime; no production match/result tables or trusted scoring RPC exist. | Not safe for ranked or trusted results. |
 | Medium | Public post uploads have no server-side size or MIME limit | `posts` bucket has no size or MIME restriction. | Keep current accepted media types; agree on limits before enforcement. |
 | Medium | Privacy settings do not enforce database privacy | Settings persist locally; public profile/posts policies remain unchanged. | User-facing privacy controls are not effective server-side. |
@@ -17,11 +50,15 @@ Audit date: 2026-11-15. This report is based on local source and read-only produ
 
 ## Secret handling
 
-Only environment variable names were inspected. Secret values were not printed or added to source. The browser app uses the Supabase public/anon key; no service-role key is referenced in frontend source during this review.
+No private environment value was printed or added to source. The local
+`.env` was read in-process solely to issue one read-only PostgREST request
+using the public Supabase URL/key and a guaranteed-empty post ID filter; no key
+values or post rows were logged. No service-role key was used or referenced in
+frontend source during this review.
 
 ## Not verified
 
-No separate test accounts or credentials were available to run authenticated/anonymous API probes, a two-user message test, or deployed RLS tests. The SQL inspection was read-only and did not impersonate accounts. No claim that RLS passes adversarial tests is made.
+No authenticated test account was available to run authenticated API probes, a two-user message test, or deployed RLS tests. One anonymous PostgREST schema/query probe used a guaranteed-empty post ID filter and returned no user rows. The SQL inspection was read-only and did not impersonate accounts. No claim that RLS passes adversarial tests is made.
 
 ## Additional source review and changes (2026-11-15)
 

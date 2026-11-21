@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Compass, House, MessagesSquare, Radio, Settings2, Sparkles, Video } from 'lucide-react';
+import { Compass, Gamepad2, House, MessagesSquare, Radio, Settings2, Sparkles, Video } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Avatar from '@/components/Avatar';
 import { DSLogo } from '@/components/icons/BrandIcons';
 import { getStoredLanguage, LANGUAGE_CHANGE_EVENT, translate, type Language } from '@/lib/i18n';
 import { useMessages } from '@/context/MessagesContext';
+import { appFeatures } from '@/lib/appFeatures';
 
 const items = [
   { to: '/feed', label: 'الرئيسية', Icon: House },
   { to: '/discover', label: 'اكتشف', Icon: Compass },
   { to: '/rooms', label: 'الغرف الصوتية', Icon: Radio },
   { to: '/reels', label: 'ريلز', Icon: Video },
+  ...(appFeatures.games ? [{ to: '/games', label: 'الألعاب', Icon: Gamepad2 }] : []),
   { to: '/jokal', label: 'aiPageTitle', Icon: Sparkles },
   { to: '/chat', label: 'الرسائل', Icon: MessagesSquare },
 ];

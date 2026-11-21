@@ -379,14 +379,14 @@ export default function ChatPage() {
   const displayName = (p: Profile) => p.full_name || p.username;
 
   return (
-    <div className="h-[calc(100dvh-154px)] min-h-[480px] overflow-hidden border-y border-white/[0.09] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-lg)] md:h-[calc(100dvh-104px)] md:min-h-[540px]">
+    <div className="ds-chat-shell ds-page-shell mt-3 overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-lg)] sm:mt-4">
       <div className="flex h-full min-w-0">
         <aside className={`flex w-full shrink-0 flex-col border-l border-white/[0.08] bg-[var(--surface)] md:w-[260px] xl:w-[286px] ${activeUserId ? 'hidden md:flex' : 'flex'}`}>
           <header className="border-b border-white/[0.08] px-4 pb-4 pt-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="font-mono text-[9px] font-semibold text-[var(--accent)]">{t('directMessages')}</p>
-                <h1 className="mt-1 font-serif text-xl font-bold">المحادثات</h1>
+                <h1 className="mt-1 text-xl font-bold tracking-tight">المحادثات</h1>
               </div>
               <span className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-[var(--accent)]"><MessageCircle className="h-[18px] w-[18px]" /></span>
             </div>
@@ -397,7 +397,7 @@ export default function ChatPage() {
                 value={conversationSearch}
                 onChange={(event) => setConversationSearch(event.target.value)}
                 placeholder="قلب على محادثة"
-                className="h-10 w-full rounded-md border border-white/[0.08] bg-black/20 ps-9 pe-3 text-xs text-white outline-none placeholder:text-white/30 focus:border-[var(--accent)]/45"
+                className="h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-black/20 ps-9 pe-3 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[var(--accent)]/45 focus:ring-2 focus:ring-[var(--accent)]/15"
               />
             </label>
           </header>
@@ -425,7 +425,7 @@ export default function ChatPage() {
                     key={conv.otherUser.id}
                     type="button"
                     onClick={() => navigate(`/chat/${conv.otherUser.id}`)}
-                    className={`mb-1 flex w-full items-center gap-3 border-r-2 px-3 py-3 text-right transition ${isActive ? 'border-[var(--accent)] bg-[var(--accent)]/[0.07]' : 'border-transparent hover:bg-white/[0.035]'}`}
+                    className={`mb-1 flex min-h-[68px] w-full items-center gap-3 rounded-xl border-r-2 px-3 py-3 text-right transition ${isActive ? 'border-[var(--accent)] bg-[var(--accent)]/[0.07]' : 'border-transparent hover:bg-white/[0.035]'}`}
                   >
                     <span className="relative shrink-0"><AnimatedAvatar src={conv.otherUser.avatar_url} name={displayName(conv.otherUser)} size="md" /><span className="absolute bottom-0 start-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] bg-[var(--success)]" /></span>
                     <span className="min-w-0 flex-1">
@@ -453,16 +453,16 @@ export default function ChatPage() {
           {activeUser ? (
             <>
               <header className="flex min-h-[68px] items-center gap-3 border-b border-white/[0.08] px-3 sm:px-5">
-                <button type="button" onClick={() => navigate('/chat')} aria-label="العودة للمحادثات" className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-white/55 transition hover:bg-white/[0.06] hover:text-white md:hidden"><ArrowLeft className="h-5 w-5" /></button>
+                <button type="button" onClick={() => navigate('/chat')} aria-label="العودة للمحادثات" className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-control)] text-white/55 transition hover:bg-white/[0.06] hover:text-white md:hidden"><ArrowLeft className="h-5 w-5" /></button>
                 <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="shrink-0"><AnimatedAvatar src={activeUser.avatar_url} name={displayName(activeUser)} size="sm" /></button>
                 <button type="button" onClick={() => navigate(`/profile/${activeUser.id}`)} className="min-w-0 flex-1 text-right">
                   <span className="block truncate text-sm font-bold text-white">{displayName(activeUser)}</span>
                   <span className="mt-0.5 block truncate text-[10px] text-[var(--accent)]/75"><Handle username={activeUser.username} /> <span className="text-white/30">· مباشر</span></span>
                 </button>
                 <div className="flex shrink-0 items-center gap-1">
-                  <button type="button" disabled aria-label="مكالمة صوتية قريباً" title="مكالمة صوتية قريباً" className="grid h-9 w-9 place-items-center rounded-md text-white/25 disabled:cursor-not-allowed"><PhoneCall className="h-[17px] w-[17px]" /></button>
-                  <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady || directCall.status !== 'idle'} aria-label="بدء مكالمة فيديو" title="مكالمة فيديو" className="grid h-9 w-9 place-items-center rounded-md text-[var(--accent)] transition hover:bg-[var(--accent)]/10 disabled:opacity-40"><Video className="h-[18px] w-[18px]" /></button>
-                  <button type="button" disabled aria-label="مكالمة SIM قريباً" title="مكالمة SIM قريباً" className="grid h-9 w-9 place-items-center rounded-md text-white/25 disabled:cursor-not-allowed"><Smartphone className="h-[17px] w-[17px]" /></button>
+                  <button type="button" disabled aria-label="مكالمة صوتية قريباً" title="مكالمة صوتية قريباً" className="grid h-9 w-9 place-items-center rounded-[var(--radius-control)] text-white/25 disabled:cursor-not-allowed"><PhoneCall className="h-[17px] w-[17px]" /></button>
+                  <button type="button" onClick={() => void directCall.startCall()} disabled={!directCall.channelReady || directCall.status !== 'idle'} aria-label="بدء مكالمة فيديو" title="مكالمة فيديو" className="grid h-9 w-9 place-items-center rounded-[var(--radius-control)] text-[var(--accent)] transition hover:bg-[var(--accent)]/10 disabled:opacity-40"><Video className="h-[18px] w-[18px]" /></button>
+                  <button type="button" disabled aria-label="مكالمة SIM قريباً" title="مكالمة SIM قريباً" className="grid h-9 w-9 place-items-center rounded-[var(--radius-control)] text-white/25 disabled:cursor-not-allowed"><Smartphone className="h-[17px] w-[17px]" /></button>
                 </div>
               </header>
 
@@ -517,7 +517,7 @@ export default function ChatPage() {
                   </button>
                   {voiceError && <p role="alert" className="w-full text-[10px] text-[var(--error)]">{t(voiceError)}</p>}
                 </div>
-                <div className="flex items-end gap-2 rounded-md border border-white/[0.1] bg-white/[0.035] p-1.5 focus-within:border-[var(--accent)]/35">
+                <div className="flex items-end gap-2 rounded-[var(--radius-control)] border border-white/[0.1] bg-white/[0.035] p-1.5 focus-within:border-[var(--accent)]/35">
                   <textarea
                     value={newMessage}
                     onChange={(event) => { setNewMessage(event.target.value); setMessageError(''); }}
@@ -535,7 +535,7 @@ export default function ChatPage() {
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
               <div className="relative mb-5 grid h-20 w-20 place-items-center border border-[var(--accent)]/20 bg-[var(--accent)]/[0.055] text-[var(--accent)]"><MessageCircle className="h-8 w-8" /><span className="absolute -left-1 -top-1 h-3 w-3 border-2 border-[var(--bg)] bg-[var(--success)]" /></div>
               <p className="mb-2 font-mono text-[9px] text-[var(--accent)]">{t('waitingSignal')}</p>
-              <h2 className="font-serif text-2xl font-bold">مساحتك، على ترددك</h2>
+              <h2 className="text-2xl font-bold tracking-tight">مساحتك، على ترددك</h2>
               <p className="mt-3 max-w-sm text-xs leading-6 text-white/45">اختار محادثة من اللائحة، أو قلب على شخص وابدأ حديث خاص بالصوت والصورة.</p>
               {myProfile && <p className="mt-6 border-t border-white/[0.08] pt-4 text-[10px] text-white/30">متصل باسم <Handle username={myProfile.username} /></p>}
             </div>

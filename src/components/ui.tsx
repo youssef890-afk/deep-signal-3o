@@ -21,7 +21,7 @@ export function Button({ variant = 'primary', className = '', type = 'button', .
     <button
       {...props}
       type={type}
-      className={`inline-flex h-10 items-center justify-center gap-2 rounded-[var(--radius)] px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${buttonVariants[variant]} ${className}`}
+      className={`inline-flex h-10 items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-50 ${buttonVariants[variant]} ${className}`}
     />
   );
 }
@@ -36,7 +36,7 @@ export function Input({ icon, className = '', ...props }: InputProps) {
       {icon && <span className="pointer-events-none absolute inset-inline-start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">{icon}</span>}
       <input
         {...props}
-        className={`h-10 w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/90 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25 ${icon ? 'ps-10' : ''} ${className}`}
+        className={`h-11 w-full rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)]/90 transition focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25 ${icon ? 'ps-10' : ''} ${className}`}
       />
     </span>
   );
@@ -44,7 +44,7 @@ export function Input({ icon, className = '', ...props }: InputProps) {
 
 export function Card({ className = '', children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div {...props} className={`rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)] ${className}`}>
+    <div {...props} className={`rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)] ${className}`}>
       {children}
     </div>
   );
@@ -79,7 +79,7 @@ export function Modal({ open, title, closeLabel, onClose, children, className = 
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          className={`max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ${className}`}
+          className={`max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ${className}`}
           onMouseDown={(event) => event.stopPropagation()}
         >
           <header className="mb-4 flex items-center justify-between gap-3">
@@ -160,7 +160,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
 
 export function Toast({ children, status = 'status', className = '' }: { children: ReactNode; status?: 'status' | 'alert'; className?: string }) {
   return (
-    <div role={status} className={`rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text)] shadow-[var(--shadow-md)] ${className}`}>
+    <div role={status} className={`rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text)] shadow-[var(--shadow-md)] ${className}`}>
       {children}
     </div>
   );

@@ -9,10 +9,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "test": "node --experimental-strip-types --test tests/openSourceApplication.test.ts tests/ticTacToe.test.ts tests/voiceCardClash.test.ts",
+    "test": "node --experimental-strip-types --test tests/openSourceApplication.test.ts tests/ticTacToe.test.ts tests/voiceCardClash.test.ts tests/featureFlags.test.ts",
     "voices:samples": "node --env-file=.env scripts/voice-samples.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "@mediapipe/tasks-vision": "^1.2.2",
     "@supabase/supabase-js": "^2.57.4",
     "browser-image-compression": "^2.0.2",

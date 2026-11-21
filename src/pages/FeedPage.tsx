@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import PostCard, { type PostCardPost } from '@/components/PostCard';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpLeft, Compass, Image, Mic2, Plus, Smile, Sparkles, Video } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
 import Avatar from '@/components/Avatar';
-import HeroSection from '@/components/HeroSection';
 import { Button, Card } from '@/components/ui';
 import { useOnlinePresenceProfiles, useOnlineUsers, type PresenceProfile } from '@/hooks/useOnlinePresence';
 
@@ -41,6 +40,8 @@ function PresencePerson({ profile, online, status, dimmed = false }: {
 }
 
 export default function FeedPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { session, profile } = useAuth();
   const user = session?.user ?? null;
   const { onlineIds } = useOnlineUsers();
@@ -72,6 +73,21 @@ export default function FeedPage() {
   const offlinePeople = recentProfiles
     .filter((recentProfile) => recentProfile.id !== user?.id && !onlineIds.includes(recentProfile.id))
     .slice(0, 30);
+  const communityProfiles = [...onlineProfiles, ...recentProfiles]
+    .filter((person, index, profiles) => person.id !== user?.id && profiles.findIndex((item) => item.id === person.id) === index)
+    .slice(0, 12);
+
+  useEffect(() => {
+    const openComposer = () => setComposerOpen(true);
+    window.addEventListener('ds:create-post', openComposer);
+    return () => window.removeEventListener('ds:create-post', openComposer);
+  }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('compose') !== '1') return;
+    setComposerOpen(true);
+    navigate('/feed', { replace: true });
+  }, [location.search, navigate]);
 
   useEffect(() => {
     let isMounted = true;
@@ -83,7 +99,7 @@ export default function FeedPage() {
 
         const { data, error } = await supabase
           .from('posts')
-          .select('id, user_id, post_type, image_url, video_url, caption, created_at, likes(count), comments_count:comments(count), comments(id, user_id, content, created_at, profiles:profiles(username)), profiles:profiles(id, username, avatar_url)')
+          .select('id, user_id, post_type, image_url, video_url, media_urls, caption, created_at, likes(count), comments_count:comments(count), comments(id, user_id, content, created_at, profiles:profiles(username)), profiles:profiles(id, username, full_name, avatar_url, avatar_type, avatar_emoji)')
           .order('created_at', { ascending: false })
           .limit(2, { foreignTable: 'comments' })
           .limit(40);
@@ -116,6 +132,10 @@ export default function FeedPage() {
           const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
           const videoUrl = typeof post.video_url === 'string' ? post.video_url : null;
           const imageUrl = typeof post.image_url === 'string' ? post.image_url : null;
+          const mediaUrls = Array.isArray(post.media_urls)
+            ? post.media_urls.filter((url): url is string => typeof url === 'string' && Boolean(url.trim()))
+            : [];
+          const imageUrls = imageUrl || post.post_type === 'image' ? mediaUrls.length > 0 ? mediaUrls : imageUrl ? [imageUrl] : [] : [];
           const postComments = Array.isArray(post.comments) ? post.comments : [];
           const commentCount = Array.isArray(post.comments_count)
             ? Number(post.comments_count[0]?.count ?? 0)
@@ -123,10 +143,11 @@ export default function FeedPage() {
           const likesCount = Array.isArray(post.likes) ? Number(post.likes[0]?.count ?? 0) : 0;
           return {
             id: String(post.id),
-            type: videoUrl ? 'video' : imageUrl ? 'image' : 'text',
-            url: videoUrl ?? imageUrl,
+            type: videoUrl ? 'video' : imageUrls.length > 0 ? 'image' : post.post_type === 'audio' ? 'audio' : 'text',
+            url: videoUrl ?? imageUrls[0] ?? (post.post_type === 'audio' && mediaUrls[0] ? mediaUrls[0] : null),
+            mediaUrls: imageUrls,
             userId: String(post.user_id),
-            author: profile && typeof profile.username === 'string' ? profile.username : 'مستخدم',
+            author: profile && typeof profile.full_name === 'string' && profile.full_name.trim() ? profile.full_name : profile && typeof profile.username === 'string' ? profile.username : 'مستخدم',
             avatar: profile && typeof profile.avatar_url === 'string' ? profile.avatar_url : null,
             caption: typeof post.caption === 'string' ? post.caption : null,
             likes: likesCount,
@@ -176,16 +197,13 @@ export default function FeedPage() {
   }, [loading, posts]);
 
   return (
-    <div className="relative isolate min-h-[calc(100dvh-68px)] overflow-x-clip bg-[var(--bg)] text-[var(--text)]" dir="rtl">
+    <div className="relative isolate min-h-[calc(100dvh_-_var(--desktop-header-height))] overflow-x-clip bg-[var(--bg)] text-[var(--text)]" dir="rtl">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[560px] overflow-hidden">
         <span className="absolute -top-40 start-[10%] h-96 w-96 rounded-full bg-[var(--accent)]/10 blur-[120px]" />
         <span className="absolute top-40 end-[18%] h-72 w-72 rounded-full bg-[var(--accent)]/[0.06] blur-[110px]" />
         <span className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-[var(--bg)]" />
       </div>
-      <div className="relative z-10 px-4 pt-3 sm:px-6 sm:pt-5">
-        <HeroSection />
-      </div>
-      <div className="relative z-10 mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 px-4 pb-24 pt-3 sm:px-6 sm:pt-5 xl:grid-cols-[minmax(0,680px)_320px] xl:gap-6 2xl:grid-cols-[260px_minmax(0,680px)_300px] 2xl:gap-5">
+      <div className="relative z-10 mx-auto grid w-full max-w-[1500px] grid-cols-1 gap-5 px-3 pb-10 pt-5 sm:gap-6 sm:px-6 sm:pt-6 xl:grid-cols-[minmax(0,1fr)_280px] 2xl:grid-cols-[250px_minmax(0,1fr)_280px] 2xl:gap-6">
         <aside className="hidden 2xl:block">
           <div className="sticky top-[88px] space-y-4">
             <Card className="rounded-2xl border border-white/10 bg-[var(--surface)] p-3">
@@ -214,60 +232,90 @@ export default function FeedPage() {
           </div>
         </aside>
 
-        <main className="mx-auto min-w-0 w-full max-w-[680px]" aria-label="موجز المجتمع">
-          <header className="sticky top-[68px] z-20 -mx-3 border-b border-white/[0.08] bg-[var(--bg)]/85 px-3 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-br from-[var(--accent)]/15 to-[var(--surface)] text-[var(--accent)] shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-                  <Compass className="h-5 w-5" />
-                </span>
-                <div className="min-w-0">
-                  <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-[var(--text)]/45">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                    مساحة المجتمع
-                  </p>
-                  <h1 className="text-xl font-bold tracking-tight sm:text-2xl">الموجز</h1>
-                </div>
-              </div>
-              <Link to="/discover" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 text-xs font-semibold text-[var(--text-muted)] shadow-sm transition duration-200 hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/10 hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                اكتشف <ArrowUpLeft className="h-4 w-4" />
-              </Link>
+        <main className="mx-auto min-w-0 w-full max-w-[860px]" aria-label="موجز المجتمع">
+          <header className="mb-5 flex items-center justify-between gap-4 px-1 sm:mb-6">
+            <div className="min-w-0">
+              <p className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-violet-300/75">
+                <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,.8)]" />
+                Deep-Signal
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">الموجز</h1>
             </div>
+            <Link to="/discover" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-violet-300/15 bg-violet-400/[0.06] px-4 text-xs font-semibold text-violet-100/80 transition hover:border-violet-300/30 hover:bg-violet-400/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+              اكتشف <ArrowUpLeft className="h-4 w-4" />
+            </Link>
           </header>
 
-          <div role="tablist" aria-label="تصنيفات الموجز" className="mx-auto mt-3 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-white/10 bg-[var(--surface)]/90 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.16)]">
-            <button type="button" role="tab" aria-selected="true" className="shrink-0 rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-bold text-[var(--accent-foreground)] shadow-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">الكل</button>
-            <button type="button" role="tab" aria-selected="false" className="shrink-0 rounded-full px-5 py-2 text-xs font-medium text-[var(--text)]/55 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">المتابَعون</button>
-            <button type="button" role="tab" aria-selected="false" className="shrink-0 rounded-full px-5 py-2 text-xs font-medium text-[var(--text)]/55 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">الأحدث</button>
-          </div>
+          <Card className="mb-5 overflow-hidden rounded-3xl border border-white/[0.08] bg-[linear-gradient(145deg,rgba(18,16,28,.98),rgba(12,12,18,.98))] p-4 shadow-[0_16px_44px_rgba(0,0,0,.24)] sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <div>
+                <h2 className="text-sm font-bold tracking-tight">أعضاء المجتمع</h2>
+                <p className="mt-1 text-[11px] text-white/45">حسابات حقيقية من مجتمع Deep-Signal</p>
+              </div>
+              <Link to="/discover" className="text-[11px] font-semibold text-violet-300 transition hover:text-violet-200">عرض الكل</Link>
+            </div>
+            <div className="flex snap-x gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button type="button" onClick={() => setComposerOpen(true)} className="flex w-[88px] shrink-0 snap-start flex-col items-center gap-2 rounded-xl p-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+                <span className="relative grid h-[68px] w-[68px] place-items-center rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-blue-500 p-[2px]">
+                  <span className="grid h-full w-full place-items-center rounded-full bg-[#101018]">
+                    <Avatar src={profile?.avatar_url} name={profile?.full_name ?? profile?.username ?? user?.email ?? 'مستخدم'} type={profile?.avatar_type} emoji={profile?.avatar_emoji} size={54} />
+                  </span>
+                  <span className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full border-2 border-[#101018] bg-violet-500 text-white"><Plus className="h-3.5 w-3.5" /></span>
+                </span>
+                <span className="max-w-full truncate text-[11px] font-medium text-white/80">منشور جديد</span>
+              </button>
+              {communityProfiles.map((person) => {
+                const name = person.full_name?.trim() || person.username?.trim() || 'مستخدم';
+                const online = onlineIds.includes(person.id);
+                return (
+                  <Link key={person.id} to={`/profile/${person.id}`} className="flex w-[88px] shrink-0 snap-start flex-col items-center gap-2 rounded-xl p-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+                    <span className={`grid h-[68px] w-[68px] place-items-center rounded-full p-[2px] ${online ? 'bg-gradient-to-br from-violet-500 via-fuchsia-500 to-blue-500' : 'bg-white/15'}`}>
+                      <span className="grid h-full w-full place-items-center rounded-full bg-[#101018] p-[3px]">
+                        <Avatar src={person.avatar_url} name={name} type={person.avatar_type} emoji={person.avatar_emoji} size={56} showStatus online={online} />
+                      </span>
+                    </span>
+                    <span className="max-w-full truncate text-[11px] font-medium text-white/80">{name}</span>
+                  </Link>
+                );
+              })}
+              {communityProfiles.length === 0 && !recentProfilesLoading && (
+                <p className="flex min-h-[96px] min-w-[220px] items-center justify-center text-xs text-white/45">ستظهر حسابات المجتمع هنا عند توفرها.</p>
+              )}
+              {recentProfilesLoading && <span aria-label="جارٍ تحميل الأعضاء" className="h-[68px] w-[68px] shrink-0 animate-pulse rounded-full bg-white/[0.06]" />}
+            </div>
+          </Card>
 
-          <Card className="my-4 rounded-2xl border border-white/10 bg-[var(--surface)] p-3 shadow-[0_18px_48px_rgba(0,0,0,0.16)] transition duration-200 hover:border-white/15 focus-within:border-[var(--accent)]/25 sm:p-4">
-            <div className="flex items-start gap-3">
-              <Avatar src={profile?.avatar_url} name={profile?.username ?? user?.email ?? 'مستخدم'} type={profile?.avatar_type} emoji={profile?.avatar_emoji} size={40} />
+          <Card className="my-5 rounded-3xl border border-violet-300/[0.12] bg-[linear-gradient(145deg,rgba(17,16,25,.98),rgba(12,12,18,.98))] p-4 shadow-[0_16px_44px_rgba(0,0,0,.22)] transition duration-200 hover:border-violet-300/20 focus-within:border-violet-400/35 sm:p-5">
+            <div className="flex items-center gap-3">
+              <span className="shrink-0 rounded-full bg-gradient-to-br from-violet-400/80 via-fuchsia-400/70 to-indigo-400/70 p-[2px]">
+                <span className="block rounded-full bg-[#101018] p-[2px]">
+                  <Avatar src={profile?.avatar_url} name={profile?.full_name ?? profile?.username ?? user?.email ?? 'مستخدم'} type={profile?.avatar_type} emoji={profile?.avatar_emoji} size={38} showStatus online />
+                </span>
+              </span>
               <button
                 type="button"
                 onClick={() => setComposerOpen(true)}
-                className="min-h-12 min-w-0 flex-1 rounded-xl border border-white/[0.07] bg-black/10 px-4 py-3 text-right text-sm leading-6 text-[var(--text-muted)] transition duration-200 hover:border-white/15 hover:bg-black/15 focus:min-h-20 focus:border-[var(--accent)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                className="min-h-12 min-w-0 flex-1 rounded-2xl border border-white/[0.07] bg-black/25 px-5 py-3 text-right text-sm leading-6 text-white/50 transition duration-200 hover:border-violet-300/20 hover:bg-black/35 focus:border-violet-400/50 focus:outline-none focus:ring-2 focus:ring-violet-400"
               >
-                شارك فكرة أو لحظة مع المجتمع...
+                شارك فكرة مع المجتمع...
               </button>
             </div>
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+            <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-3">
               <div className="flex items-center gap-1">
                 {[
                   { label: 'إضافة صورة', Icon: Image },
                   { label: 'إضافة فيديو', Icon: Video },
                   { label: 'إضافة رمز تعبيري', Icon: Smile },
                 ].map(({ label, Icon }) => (
-                  <button key={label} type="button" onClick={() => setComposerOpen(true)} aria-label={label} className="grid h-9 w-9 place-items-center rounded-xl text-[var(--text)]/55 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                    <Icon className="h-4 w-4" />
+                  <button key={label} type="button" onClick={() => setComposerOpen(true)} aria-label={label} className="grid h-9 w-9 place-items-center rounded-xl text-[var(--text)]/55 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+                    <Icon className="h-4 w-4 text-violet-300" />
                   </button>
                 ))}
-                <button type="button" onClick={() => setComposerOpen(true)} aria-label="إضافة منشور" className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] transition duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                <button type="button" onClick={() => setComposerOpen(true)} aria-label="إضافة منشور" className="grid h-9 w-9 place-items-center rounded-xl bg-violet-600 text-white transition duration-200 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <Button onClick={() => setComposerOpen(true)} className="h-9 rounded-xl px-5 text-xs">نشر</Button>
+              <Button onClick={() => setComposerOpen(true)} className="h-9 rounded-xl bg-violet-600 px-5 text-xs text-white hover:bg-violet-500">إنشاء منشور</Button>
             </div>
           </Card>
 

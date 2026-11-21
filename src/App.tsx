@@ -19,6 +19,7 @@ import Youssef555Page from '@/pages/Youssef555Page';
 import { Loader2, RefreshCw, WifiOff } from 'lucide-react';
 import { DSLogo } from '@/components/icons/BrandIcons';
 import { directionForLanguage, getStoredLanguage, LANGUAGE_CHANGE_EVENT, type Language } from '@/lib/i18n';
+import { appFeatures } from '@/lib/appFeatures';
 
 /*
  * Route-level code splitting.
@@ -36,6 +37,8 @@ const DiscoverPage = lazy(() => import('@/pages/DiscoverPage'));
 const RoomsPage = lazy(() => import('@/pages/RoomsPage'));
 const ReelsPage = lazy(() => import('@/pages/ReelsPage'));
 const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'));
+const GamesPage = lazy(() => import('@/pages/GamesPage'));
+const VoiceCardClashPage = lazy(() => import('@/pages/VoiceCardClashPage'));
 const JokalPage = lazy(() => import('@/pages/JokalPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const AvatarOnboardingPage = lazy(() => import('@/pages/AvatarOnboardingPage'));
@@ -118,7 +121,7 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
                 </div>
               </div>
             )}
-            <main className="min-h-[calc(100dvh-72px)] pb-[calc(80px_+_env(safe-area-inset-bottom))] lg:pb-8">
+            <main className="min-h-[calc(100dvh_-_var(--desktop-header-height))] pb-[calc(var(--mobile-nav-height)_+_env(safe-area-inset-bottom))] lg:pb-8">
               <div key={location.pathname}>
                 <Suspense fallback={<RouteFallback />}>{children}</Suspense>
               </div>
@@ -126,7 +129,7 @@ function ProtectedLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="lg:hidden">
-          <MobileNav direction={direction} onToggleDirection={() => setDirection((current) => current === 'rtl' ? 'ltr' : 'rtl')} />
+          <MobileNav />
         </div>
         <QuickNavigationMenu />
       </div>
@@ -234,6 +237,8 @@ function AuthGate() {
         <Route path="/rooms" element={<ProtectedLayout><RoomsPage /></ProtectedLayout>} />
         <Route path="/rooms/:roomId" element={<ProtectedLayout><RoomDetailPage /></ProtectedLayout>} />
         <Route path="/reels" element={<ProtectedLayout><ReelsPage /></ProtectedLayout>} />
+        {appFeatures.games && <Route path="/games" element={<ProtectedLayout><GamesPage /></ProtectedLayout>} />}
+        {appFeatures.games && <Route path="/games/voice-card-clash" element={<ProtectedLayout><VoiceCardClashPage /></ProtectedLayout>} />}
         <Route path="/jokal" element={<ProtectedLayout><JokalPage /></ProtectedLayout>} />
         <Route path="/chat" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />
         <Route path="/chat/:userId" element={<ProtectedLayout><ChatPage /></ProtectedLayout>} />

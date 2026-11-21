@@ -551,7 +551,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="mx-auto min-h-[60vh] w-full max-w-xl space-y-5 px-4 py-6" dir={getStoredLanguage() === 'ar' ? 'rtl' : 'ltr'} role="status" aria-label={t('profileLoading')} aria-live="polite">
+      <div className="mx-auto min-h-[60vh] w-full max-w-5xl space-y-5 px-[var(--page-gutter)] py-5" dir={getStoredLanguage() === 'ar' ? 'rtl' : 'ltr'} role="status" aria-label={t('profileLoading')} aria-live="polite">
         <div className="skeleton h-32 rounded-2xl" />
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <div className="flex items-center gap-4">
@@ -601,13 +601,14 @@ export default function ProfilePage() {
   return (
     <div
       className="
-        max-w-xl
+        w-full
+        max-w-5xl
         mx-auto
-        px-4
-        py-6
-        pb-28
+        px-[var(--page-gutter)]
+        py-5
+        pb-6
         text-white
-        space-y-6
+        space-y-5
       "
     >
       {profileError && (
@@ -668,23 +669,16 @@ export default function ProfilePage() {
       ====================================== */}
 
       <div
-        className="
-          bg-neutral-900
-          border
-          border-white/10
-          rounded-2xl
-          p-5
-          shadow-xl
-        "
+        className="rounded-[var(--radius-card)] border border-white/10 bg-[var(--surface)] p-3 shadow-xl sm:p-5"
       >
 
         <div
-          className="relative mb-5 flex h-32 items-end overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-emerald-950 via-neutral-900 to-neutral-950 bg-cover bg-center p-3"
+          className="relative mb-5 flex h-36 items-end overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-violet-950 via-neutral-900 to-neutral-950 bg-cover bg-center p-2.5 sm:h-48 sm:p-3 lg:h-56"
           style={profile.cover_url ? { backgroundImage: `linear-gradient(0deg, rgba(0,0,0,.7), transparent), url(${profile.cover_url})` } : undefined}
         >
           <span className="text-[10px] font-medium text-white/65">غلاف الملف الشخصي</span>
           {isOwnProfile && (
-            <div className="mr-auto flex items-center gap-2">
+            <div className="mr-auto flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => void handleGenerateProfileImage()}
@@ -705,7 +699,7 @@ export default function ProfilePage() {
 
         {/* معلومات المستخدم */}
 
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
 
           {/* Avatar */}
 
@@ -713,8 +707,8 @@ export default function ProfilePage() {
 
             <div
               className="
-                w-20
-                h-20
+                h-[68px]
+                w-[68px]
                 rounded-full
                 bg-[var(--accent)]/20
                 border-2
@@ -803,16 +797,16 @@ export default function ProfilePage() {
 
           {/* الاسم */}
 
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
 
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
 
               <h1
                 className="
                   text-base
                   font-bold
                   text-white
-                  truncate
+                  min-w-0 flex-1 truncate
                 "
               >
                 {profile.full_name ||
@@ -826,7 +820,7 @@ export default function ProfilePage() {
                   text-[10px]
                   px-2
                   py-0.5
-                  rounded-full
+                  min-w-0 max-w-[42%] truncate rounded-full
                   font-mono
                 "
               >
@@ -852,7 +846,7 @@ export default function ProfilePage() {
                   text-xs
                   text-neutral-300
                   mt-2
-                  leading-relaxed
+                  break-words leading-relaxed
                 "
               >
                 {profile.bio}
@@ -962,11 +956,7 @@ export default function ProfilePage() {
         ================================== */}
 
         <div
-          className="
-            flex
-            gap-2
-            mt-4
-          "
+          className="mt-4 flex flex-wrap gap-2"
         >
 
           {isOwnProfile ? (
@@ -977,7 +967,7 @@ export default function ProfilePage() {
                 )
               }
               className="
-                flex-1
+                min-h-11 flex-1
                 bg-neutral-800
                 hover:bg-neutral-700
                 py-2.5
@@ -1010,7 +1000,7 @@ export default function ProfilePage() {
                 }
                 disabled={followLoading}
                 className={`
-                  flex-1
+                  min-h-11 flex-1
                   py-2.5
                   rounded-xl
                   text-xs
@@ -1077,9 +1067,10 @@ export default function ProfilePage() {
                   )
                 }
                 className="
+                  min-h-11
                   bg-neutral-800
                   hover:bg-neutral-700
-                  px-4
+                  flex-1 px-3 sm:flex-none sm:px-4
                   py-2.5
                   rounded-xl
                   text-xs
@@ -1333,22 +1324,12 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div
-            className="
-              grid
-              grid-cols-2
-              sm:grid-cols-3
-              gap-1
-            "
+            className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4"
           >
             {userPosts.map((post) => (
               <div
                 key={post.id}
-                className="
-                  aspect-square
-                  bg-neutral-950
-                  overflow-hidden
-                  relative
-                "
+                className="relative aspect-square overflow-hidden rounded-xl border border-white/[0.06] bg-neutral-950"
               >
                 {post.media_urls?.[0] && post.post_type === 'audio' ? (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-emerald-950 to-neutral-950 p-3">

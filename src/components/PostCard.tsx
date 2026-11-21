@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { AudioLines, Bookmark, Heart, Image as ImageIcon, MessageCircle, MoreHorizontal, Play, Send, Video, X } from 'lucide-react';
+import { AudioLines, Bookmark, Globe2, Heart, Image as ImageIcon, MessageCircle, MoreHorizontal, Play, Send, Video, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useModalScrollLock } from '@/hooks/useModalLayer';
 import { directionForLanguage, getStoredLanguage, translate } from '@/lib/i18n';
@@ -18,6 +18,7 @@ export interface PostCardPost {
   id: string;
   type: 'text' | 'image' | 'video' | 'audio';
   url: string | null;
+  mediaUrls?: string[];
   userId: string;
   author: string;
   avatar: string | null;
@@ -266,14 +267,14 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
       : relativeTime.format(-Math.floor(minutesAgo / 1440), 'day');
 
   return (
-    <article id={`post-${post.id}`} className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--surface)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-[0_22px_60px_rgba(0,0,0,0.24)]" dir="rtl">
+    <article id={`post-${post.id}`} className="overflow-hidden rounded-3xl border border-violet-300/[0.10] bg-[linear-gradient(155deg,rgba(18,16,27,.98),rgba(12,12,18,.98))] shadow-[0_16px_48px_rgba(0,0,0,0.24)] transition duration-200 hover:border-violet-300/20 hover:shadow-[0_22px_60px_rgba(0,0,0,0.3)]" dir="rtl">
       <header className="flex min-h-[72px] items-center gap-3 px-4 py-3">
-        <button type="button" onClick={() => navigate(`/profile/${post.author}`)} aria-label={`عرض الملف الشخصي ${post.author}`} className="shrink-0 rounded-full transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <button type="button" onClick={() => navigate(`/profile/${post.userId}`)} aria-label={`عرض الملف الشخصي ${post.author}`} className="shrink-0 rounded-full transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
           <Avatar src={post.avatar} name={post.author} size={44} />
         </button>
         <div className="min-w-0 flex-1">
-          <button type="button" onClick={() => navigate(`/profile/${post.author}`)} className="block max-w-full truncate text-right text-sm font-bold text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">{post.author}</button>
-          <div className="mt-1 flex items-center gap-2"><span className="text-[10px] font-medium text-[var(--text)]/55">إشارة من المجتمع</span><span className="h-1 w-1 rounded-full bg-[var(--text)]/25" /><time dateTime={post.createdAt} className="text-[11px] text-[var(--text)]/45">{postedAt}</time></div>
+          <button type="button" onClick={() => navigate(`/profile/${post.userId}`)} className="block max-w-full truncate text-right text-sm font-bold text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">{post.author}</button>
+          <div className="mt-1 flex items-center gap-2"><time dateTime={post.createdAt} className="text-[11px] text-[var(--text)]/50">{postedAt}</time><span className="h-1 w-1 rounded-full bg-white/25" /><span className="inline-flex items-center gap-1 text-[10px] text-[var(--text)]/45"><Globe2 className="h-3 w-3" /> عام</span></div>
         </div>
         <div className="relative">
           <button type="button" aria-label="خيارات المنشور" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="rounded-xl p-2 text-[var(--text)]/55 transition duration-200 hover:bg-white/[0.06] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"><MoreHorizontal className="h-5 w-5" /></button>
@@ -289,7 +290,7 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
             className="text-sm leading-7 text-[var(--text)]/85"
             style={!expandedCaption ? { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined}
           >
-            <button type="button" onClick={() => navigate(`/profile/${post.author}`)} className="ml-1 font-semibold text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">{post.author}</button>
+            <button type="button" onClick={() => navigate(`/profile/${post.userId}`)} className="ml-1 font-semibold text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">{post.author}</button>
             {post.caption}
           </p>
           {captionIsLong && <button type="button" onClick={() => setExpandedCaption((current) => !current)} className="mt-1 text-xs text-[var(--text)]/55 hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">{expandedCaption ? 'أقل' : 'عرض المزيد'}</button>}
@@ -303,8 +304,8 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
         </div>
       )}
 
-      {post.url && (hasImage || hasVideo) && <button type="button" onClick={openMedia} aria-label={hasVideo ? 'فتح الفيديو في ريلز' : 'عرض الصورة بالحجم الكامل'} className="group/media block w-full overflow-hidden bg-black text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]">
-        <div className="relative mx-auto aspect-video max-h-[480px] w-full overflow-hidden bg-black">
+      {post.url && (hasImage || hasVideo) && <button type="button" onClick={openMedia} aria-label={hasVideo ? 'فتح الفيديو في ريلز' : 'عرض الصورة بالحجم الكامل'} className="group/media relative block w-full overflow-hidden bg-black text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400">
+        <div className="relative mx-auto aspect-[4/5] max-h-[600px] w-full overflow-hidden bg-black sm:aspect-video">
           {mediaError ? (
             <div className="absolute inset-0 grid place-items-center text-white/35">
               {hasVideo ? <Video className="h-8 w-8" /> : <ImageIcon className="h-8 w-8" />}
@@ -340,6 +341,7 @@ const PostCard = ({ post, currentUserId, currentUsername, onEngagementChanged }:
             </>
           )}
           {!mediaLoaded && !mediaError && <div aria-hidden="true" className="absolute inset-0 z-10 animate-pulse bg-white/[0.07]" />}
+          {!hasVideo && (post.mediaUrls?.length ?? 0) > 1 && <span className="absolute right-3 top-3 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">1/{post.mediaUrls?.length}</span>}
         </div>
       </button>}
 

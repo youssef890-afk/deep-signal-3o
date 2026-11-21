@@ -1,6 +1,46 @@
 # Deep Signal database audit
 
-Audit date: 2026-11-15. Target: linked production project `Deep-signal-db`.
+Original audit: 2026-11-15. Live follow-up: 2026-11-20. Target: linked
+production project `Deep-signal-db`.
+
+## Live follow-up (2026-11-20)
+
+All checks below were read-only. No schema, policy, data, Storage object, or
+migration ledger was changed.
+
+- The migration ledger has 28 local-only versions, four remote-only versions,
+  and zero matching versions. Remote versions are `20260910153013`,
+  `20260910153047`, `20260920001050`, and `20261112174648`. The local
+  `avatar_studio` SQL matches remote SQL after whitespace normalization, but
+  the two phase-1 migrations differ. The remote-only
+  `clear_test_data_keep_schema` contains `TRUNCATE ... RESTART IDENTITY
+  CASCADE` and no recorded rollback.
+- The production schema differs from local migrations: `posts.media_urls` is
+  nullable `jsonb` with default `[]`, while local
+  `20260910155900_core_content_and_rooms.sql` declares `text[] NOT NULL`.
+  Production `rooms.capacity` is `integer DEFAULT 10`; local migrations define
+  a different type/default.
+- The old feed request was replayed against a guaranteed-empty post ID filter.
+  It returned HTTP 400 / `42703` because `posts.audio_url` does not exist.
+  The current `FeedPage` request omits that field and returned HTTP 200 / zero
+  rows. Production does have the queried comments-to-posts, comments-to-
+  profiles, and posts-to-profiles foreign keys.
+- Production `messages` lacks `message_type`, `audio_url`, and
+  `audio_duration_ms`. The private `voice-notes` bucket now exists, but has no
+  matching `storage.objects` policies. `realtime.messages` has no policies.
+- `room_members` has permissive INSERT policies `room_members_insert` and
+  `room_members_insert_self`. The former checks only `auth.uid() = user_id`;
+  because permissive policies combine with OR, it bypasses the latter's
+  active-room and capacity checks. There is no `room_members` trigger and no
+  role check constraint; the only non-internal room trigger is `rooms_add_host`.
+  Authenticated users can self-join inactive/full rooms and choose
+  `role='owner'`. This is a critical authorization issue.
+- `authenticated` can update `messages.read_at` but cannot update
+  `messages.content`; `anon` cannot update `read_at`.
+- `supabase backups list` returned no physical backup entries and reported
+  `pitr_enabled=false`. `walg_enabled=true` does not prove a usable restore
+  point. No backup/restore was attempted. Supabase database backups exclude
+  Storage object bytes, so object backup/restore must be handled separately.
 
 ## Method and safety
 
@@ -33,10 +73,11 @@ RLS is enabled on all 13 public application tables and on Storage tables. `FORCE
 
 Important observations:
 
-- Direct-message SELECT is limited to sender or receiver. INSERT checks the sender. The receiver has read-status update policies, and table-level UPDATE is not granted; this needs a real two-account test before claiming chat security works end-to-end.
+- Direct-message SELECT is limited to sender or receiver. INSERT checks the sender. `authenticated` can update the `read_at` column but not `content`, and `anon` cannot update `read_at`; this needs a real two-account test before claiming chat security works end-to-end.
 - Profiles and public posts are readable through broad public policies. Profile privacy settings in the UI are stored locally and do not change database visibility.
 - `realtime` has no row in `pg_policies` for `realtime.messages` in production. Local migration `20261113003000_realtime_channel_authorization.sql` adds authorization policies, but its migration is not in the remote ledger.
 - `close_stale_rooms(interval)` is `SECURITY DEFINER`, has EXECUTE granted to `PUBLIC`/`anon`, accepts a caller-controlled grace period, and updates room status while deleting membership rows. This is a critical authorization and data-retention issue. The prepared local hotfix makes the threshold server-controlled, requires authentication, and stops deleting membership history.
+- The live `room_members` INSERT policies are permissive and overlap. Since policies combine with OR, the self-only policy bypasses the other policy's active-room/capacity checks. No membership trigger or role check constraint exists in production. Local capacity-trigger SQL has not been applied.
 
 ## Realtime
 
@@ -44,19 +85,36 @@ The `supabase_realtime` publication contains `public.messages`, `public.room_mem
 
 ## Storage
 
-Production buckets are:
+Production buckets in the 2026-11-20 follow-up are:
 
 | Bucket | Public | Limit | MIME restriction |
 | --- | --- | --- | --- |
 | `avatar-temp` | No | 3 MiB | JPEG, PNG, WebP |
 | `avatars` | Yes | 5 MiB | JPEG, PNG, WebP |
 | `posts` | Yes | None | None |
+| `voice-notes` | No | 5 MiB | audio types |
 
-`voice-notes` is missing although chat code uploads and reads from it. Two broad authenticated upload policies let users upload into `posts` and `avatars` without checking the first path segment belongs to the caller. A prepared migration replaces those with owner-path policies and creates a private voice-note bucket with participant-path access. The public post bucket remains unbounded and accepts any MIME type; setting a compatible limit needs a product file-size decision.
+`voice-notes` was missing at the original audit, but exists in the live follow-up
+as a private 5 MiB bucket with audio MIME restrictions. It still has no
+`storage.objects` policies, so the bucket is not usable by the app. Two broad
+authenticated upload policies let users upload into `posts` and `avatars`
+without checking the first path segment belongs to the caller. A prepared
+migration replaces those with owner-path policies and creates participant-path
+access for voice notes. The public post bucket remains unbounded and accepts
+any MIME type; setting a compatible limit needs a product file-size decision.
 
 ## Migration ledger
 
-The production ledger contains four versions: `20260910153013`, `20260910153047`, `20260920001050`, and `20261112174648`. The repository contains 26 migration versions, and none matches a remote version exactly. The remote includes three versions absent locally plus an `avatar_studio` version whose timestamp differs from the local file. This is not a safe state for `supabase db push`; migration history and actual schema must be reconciled first. In particular, the remote-only `clear_test_data_keep_schema` migration must be inspected before any future migration operation.
+The production ledger contains four versions: `20260910153013`,
+`20260910153047`, `20260920001050`, and `20261112174648`. The current checkout
+contains 28 migration versions; none matches a remote version exactly. The
+remote includes three versions absent locally plus an `avatar_studio` version
+whose timestamp differs from the local file. The `avatar_studio` SQL matches
+after whitespace normalization. The phase-1 migrations differ in content.
+This is not a safe state for `supabase db push`; migration history and actual
+schema must be reconciled first. In particular, the remote-only
+`clear_test_data_keep_schema` migration contains a destructive truncate and no
+recorded rollback, so it must never be blindly replayed.
 
 ## Data source and functionality
 
@@ -64,4 +122,13 @@ Posts, likes, comments, follows, direct-message rows, profiles, voice rooms, and
 
 ## Safe follow-up
 
-`supabase/migrations/20261115000000_database_audit_security_hotfix.sql` is prepared locally and has not been applied. It secures bookmarks on the existing `saved_posts` table, replaces broad Storage uploads, creates a private voice-note bucket, and hardens stale-room cleanup. First reconcile the migration ledger against a schema dump and review the remote-only migration; then run the additive fixes in a staging project, test RLS/Storage/Realtime, and only afterward plan production approval. No table or row was added remotely during this audit.
+`supabase/migrations/20261115000000_database_audit_security_hotfix.sql` and
+`supabase/migrations/20261119000000_voice_notes_and_presence_repair.sql` are
+prepared locally and have not been applied. The former secures bookmarks,
+replaces broad Storage uploads, and hardens stale-room cleanup; the latter adds
+audio-message columns and voice/Realtime policies. Neither is a validated
+production patch, and neither addresses the permissive room-membership policy
+overlap. First reconcile the ledger against a schema-only dump and inspect the
+remote-only migration; then restore to staging, apply reviewed repairs there,
+and test RLS/Storage/Realtime before seeking production approval. No production
+table or row was changed during this audit.
